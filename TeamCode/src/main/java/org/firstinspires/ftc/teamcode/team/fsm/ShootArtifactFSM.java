@@ -9,7 +9,7 @@ public class ShootArtifactFSM {
     public enum ShootingStage {
         IDLE,
         SHOTGUN_SPINUP,
-        ELEVATOR_UP,
+        GATE_OPEN,
         ELEVATOR_DOWN,
         FINISHED
     }
@@ -56,12 +56,12 @@ public class ShootArtifactFSM {
                 // If the pattern has already spun up the shotgun, there's no need to wait for the delay here.
                 if (ejectionMotorsControlledByPattern || currentTime - shootingStartTime >= SPINUP_DELAY) {
                     shootingStartTime = currentTime; // Reset timer for next stage
-                    shootingStage = ShootingStage.ELEVATOR_UP;
+                    shootingStage = ShootingStage.GATE_OPEN;
                 }
                 break;
 
-            case ELEVATOR_UP:
-                opMode.Elevator.setPosition(DarienOpModeFSM.ELEVATOR_POS_UP);
+            case GATE_OPEN:
+                opMode.Elevator.setPosition(DarienOpModeFSM.GATE_OPEN);
                 if (currentTime - shootingStartTime >= ELEVATOR_UP_DELAY) {
                     shootingStage = ShootingStage.ELEVATOR_DOWN;
                     shootingStartTime = currentTime; // Reset timer for next stage
@@ -69,7 +69,7 @@ public class ShootArtifactFSM {
                 break;
 
             case ELEVATOR_DOWN:
-                opMode.Elevator.setPosition(DarienOpModeFSM.ELEVATOR_POS_DOWN);
+                opMode.Elevator.setPosition(DarienOpModeFSM.GATE_CLOSED);
                 if (currentTime - shootingStartTime >= ELEVATOR_DOWN_DELAY) {
                     if (!ejectionMotorsControlledByPattern) {
                         shotGunStop();

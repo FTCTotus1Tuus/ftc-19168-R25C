@@ -82,8 +82,6 @@ public class BlueAudience1 extends DarienOpModeFSM {
         setPathState(0);
 
         targetGoalId = APRILTAG_ID_GOAL_BLUE;
-        // Set the initial tray position immediately.
-        TrayServo.setPosition(TRAY_POS_1_SCORE);
         // Constantly run top roller in intake mode
         topIntake.setPower(-INTAKE_INTAKE_ROLLER_POWER);
 
@@ -213,8 +211,6 @@ public class BlueAudience1 extends DarienOpModeFSM {
                 //start reading april tags
                 telemetry.addLine("Case " + pathState + ": Wait for Camera");
 
-                // Set the initial tray position
-                TrayServo.setPosition(TRAY_POS_1_SCORE);
                 tagFSM.start(getRuntime());
                 follower.setMaxPower(PATH_POWER_STANDARD * .75); //normal speed
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
@@ -274,7 +270,6 @@ public class BlueAudience1 extends DarienOpModeFSM {
                     //  topIntake.setPower(-INTAKE_INTAKE_ROLLER_POWER);
                     leftIntake.setPower(-INTAKE_INTAKE_ROLLER_POWER);
                     rightIntake.setPower(INTAKE_INTAKE_ROLLER_POWER);
-                    setTrayPosition(TRAY_POS_3_INTAKE);
                     follower.followPath(paths.IntakePosition, true);
                     setPathState(pathState + 1);
                 }
@@ -297,8 +292,6 @@ public class BlueAudience1 extends DarienOpModeFSM {
                 telemetry.addLine("Case " + pathState + ": Intaking ball 1g");
 
                 if (!follower.isBusy() && pathTimer.getElapsedTimeSeconds() > BALL_INTAKE_DELAY) {
-
-                    setTrayPosition(TRAY_POS_1_INTAKE);
                     follower.followPath(paths.Intake2, true);
                     setPathState(pathState + 1);
                 }
@@ -308,8 +301,6 @@ public class BlueAudience1 extends DarienOpModeFSM {
                 //move to intake position 3
                 telemetry.addLine("Case " + pathState + ": Intaking ball 3p");
                 if (!follower.isBusy() && pathTimer.getElapsedTimeSeconds() > BALL_INTAKE_DELAY) {
-
-                    setTrayPosition(TRAY_POS_2_INTAKE);
                     follower.followPath(paths.Intake3, true);
                     setPathState(pathState + 1);
                 }
@@ -335,7 +326,6 @@ public class BlueAudience1 extends DarienOpModeFSM {
 
 
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > SHOTGUN_SPINUP_DELAY) {
-                    setTrayPosition(TRAY_POS_2_SCORE);
                     shootPatternFSM.startShootPattern(aprilTagDetections, getRuntime(), SHOT_GUN_POWER_UP_FAR);
                     setPathState(pathState + 1);
                 }

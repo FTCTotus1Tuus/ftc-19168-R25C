@@ -87,8 +87,6 @@ public class RedGoalSide2 extends DarienOpModeFSM {
         setPathState(0);
 
         targetGoalId = APRILTAG_ID_GOAL_RED;
-        // Set the initial tray position immediately.
-        TrayServo.setPosition(TRAY_POS_1_SCORE);
 
 
         // --- MAIN AUTONOMOUS LOOP ---
@@ -267,9 +265,6 @@ public class RedGoalSide2 extends DarienOpModeFSM {
         switch (pathState) {
             case 0:
                 telemetry.addLine("Case " + pathState + ": Start Path1");
-
-                // Set the initial tray position
-                TrayServo.setPosition(TRAY_POS_1_SCORE);
                 follower.setMaxPower(PATH_POWER_STANDARD);
                 shootArtifactFSM.shotGun(SHOT_GUN_POWER_UP);
                 follower.followPath(paths.ReadAprilTag);
@@ -332,7 +327,6 @@ public class RedGoalSide2 extends DarienOpModeFSM {
                     // topIntake.setPower(-INTAKE_INTAKE_ROLLER_POWER);
                     leftIntake.setPower(-INTAKE_INTAKE_ROLLER_POWER);
                     rightIntake.setPower(INTAKE_INTAKE_ROLLER_POWER);
-                    TrayServo.setPosition(TRAY_POS_2_INTAKE);
 
                     // now continue with next path
                     follower.followPath(paths.IntakePosition1, true);
@@ -357,8 +351,6 @@ public class RedGoalSide2 extends DarienOpModeFSM {
                 if (!follower.isBusy() && pathTimer.getElapsedTimeSeconds() > BALL_INTAKE_DELAY) {
                     telemetry.addLine("Case " + pathState + ": Move forward to pick up artifact 2p");
 
-                    TrayServo.setPosition(TRAY_POS_1_INTAKE);
-
                     setPathState(pathState + 1);
                 }
                 break;
@@ -376,8 +368,6 @@ public class RedGoalSide2 extends DarienOpModeFSM {
                 telemetry.addLine("Case " + pathState + ": Wait for Path5");
                 if (!follower.isBusy() && pathTimer.getElapsedTimeSeconds() > BALL_INTAKE_DELAY) {
                     telemetry.addLine("Case " + pathState + ": Move forward to pick up artifact 3g");
-
-                    TrayServo.setPosition(TRAY_POS_3_INTAKE);
                     setPathState(pathState + 1);
                 }
                 break;
@@ -399,7 +389,6 @@ public class RedGoalSide2 extends DarienOpModeFSM {
                     follower.setMaxPower(PATH_POWER_STANDARD);// resume normal speed
 
                     follower.followPath(paths.ShootingPosition2, true);
-                    TrayServo.setPosition(TRAY_POS_2_SCORE);
                     rubberBands.setPower(0);
                     //topIntake.setPower(0);
                     leftIntake.setPower(0);
@@ -430,7 +419,6 @@ public class RedGoalSide2 extends DarienOpModeFSM {
                     //  topIntake.setPower(-INTAKE_INTAKE_ROLLER_POWER);
                     leftIntake.setPower(-INTAKE_INTAKE_ROLLER_POWER);
                     rightIntake.setPower(INTAKE_INTAKE_ROLLER_POWER);
-                    TrayServo.setPosition(TRAY_POS_1_INTAKE);
 
                     // now continue with next path
                     follower.followPath(paths.IntakePosition2, true);
@@ -454,8 +442,6 @@ public class RedGoalSide2 extends DarienOpModeFSM {
                 if (!follower.isBusy() && pathTimer.getElapsedTimeSeconds() > BALL_INTAKE_DELAY) {
                     telemetry.addLine("Case " + pathState + ": Move forward to pick up artifact 1p");
 
-                    TrayServo.setPosition(TRAY_POS_3_INTAKE);
-
                     setPathState(pathState + 1);
                 }
                 break;
@@ -473,8 +459,6 @@ public class RedGoalSide2 extends DarienOpModeFSM {
                 telemetry.addLine("Case " + pathState + ": Wait for Path4");
                 if (!follower.isBusy() && pathTimer.getElapsedTimeSeconds() > BALL_INTAKE_DELAY) {
                     telemetry.addLine("Case " + pathState + ": Move forward to pick up artifact 6p");
-
-                    TrayServo.setPosition(TRAY_POS_2_INTAKE);
 
                     setPathState(pathState + 1);
                 }
@@ -497,7 +481,6 @@ public class RedGoalSide2 extends DarienOpModeFSM {
                     follower.setMaxPower(PATH_POWER_STANDARD);// resume normal speed
 
                     follower.followPath(paths.Parking, true);
-                    TrayServo.setPosition(TRAY_POS_2_SCORE);
                     rubberBands.setPower(0);
                     // topIntake.setPower(0);
                     leftIntake.setPower(0);

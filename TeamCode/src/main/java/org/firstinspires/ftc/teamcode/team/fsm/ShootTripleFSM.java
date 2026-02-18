@@ -70,29 +70,14 @@ public class ShootTripleFSM {
             case IDLE:
                 // nothing
                 break;
+
             case SHOTGUN_SPINUP:
                 if (currentTime - nbLastActionTime >= SPINUP_DELAY) {
                     nbLastActionTime = currentTime;
                     nbStep = Stage.ROTATE_TRAY;
                 }
                 break;
-            case ROTATE_TRAY: // Move tray
-                double targetPos = (motif[nbMotifIndex] == 1) ? DarienOpModeFSM.TRAY_POS_1_SCORE :
-                        (motif[nbMotifIndex] == 2) ? DarienOpModeFSM.TRAY_POS_2_SCORE :
-                                DarienOpModeFSM.TRAY_POS_3_SCORE;
-                //opMode.servoIncremental(opMode.TrayServo, targetPos, opMode.currentTrayPosition, 1, 4);
-                //opMode.currentTrayPosition = targetPos;
-                opMode.TrayServo.setPosition(targetPos);
-                nbLastActionTime = currentTime;
-                nbStep = Stage.WAIT_FOR_ROTATE;
-                shotStarted = false; // Reset for next shot
-                break;
-            case WAIT_FOR_ROTATE: // Wait for tray move
-                if (currentTime - nbLastActionTime >= TRAY_DELAY) {
-                    nbLastActionTime = currentTime;
-                    nbStep = Stage.SHOOT;
-                }
-                break;
+
             case SHOOT: // Shoot and wait for completion
                 if (!shotStarted) {
                     shootArtifactFSM.startShooting(shootPower);
@@ -106,6 +91,7 @@ public class ShootTripleFSM {
                     nbStep = Stage.ROTATE_TRAY;
                 }
                 break;
+
             case DONE:
                 nbShootingActive = false;
                 shootArtifactFSM.setEjectionMotorsControlledByPattern(false);

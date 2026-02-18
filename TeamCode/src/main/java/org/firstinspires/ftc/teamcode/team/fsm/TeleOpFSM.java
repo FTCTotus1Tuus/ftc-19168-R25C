@@ -13,11 +13,8 @@ import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.telemetry.TelemetryManager;
 //import com.qualcomm.robotcore.hardware.DcMotorEx;
 //import com.qualcomm.robotcore.hardware.PIDFCoefficients;
-import com.qualcomm.robotcore.util.Range;
 
 import android.content.SharedPreferences;
-
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 
@@ -219,17 +216,9 @@ public class TeleOpFSM extends DarienOpModeFSM {
 
                 //CONTROL: ELEVATOR
                 if (gamepad2.left_bumper) {
-                    Elevator.setPosition(ELEVATOR_POS_UP);
+                    Elevator.setPosition(GATE_OPEN);
                 } else {
-                    Elevator.setPosition(ELEVATOR_POS_DOWN);
-                }
-                // CONTROL: ROTATING TRAY USING FSM
-                if (gamepad2.dpad_left) {
-                    setTrayPosition(TRAY_POS_1_SCORE);
-                } else if (gamepad2.dpad_up) {
-                    setTrayPosition(TRAY_POS_2_SCORE);
-                } else if (gamepad2.dpad_right) {
-                    setTrayPosition(TRAY_POS_3_SCORE);
+                    Elevator.setPosition(GATE_CLOSED);
                 }
 
                 /*
@@ -320,7 +309,6 @@ public class TeleOpFSM extends DarienOpModeFSM {
                     }
                     if (shootTripleFSM.isDone() || getRuntime() - tripleShotStartTime >= 10) {
                         setLedOff();
-                        TrayServo.setPosition(DarienOpModeFSM.TRAY_POS_3_INTAKE);
                         tripleShotStarted = false;
                     }
                 }

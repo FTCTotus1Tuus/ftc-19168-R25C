@@ -42,10 +42,6 @@ public class TrayFSM {
     private final DigitalChannel ledRight2;
     private final DigitalChannel ledLeft2;
 
-    // Slot servo target positions for intake slots (0, 1, 2 correspond to tray intake positions 3, 1, 2)
-    private final double[] slotPositions = new double[]{DarienOpModeFSM.TRAY_POS_3_INTAKE, DarienOpModeFSM.TRAY_POS_1_INTAKE, DarienOpModeFSM.TRAY_POS_2_INTAKE};
-
-
     // Internal state
     private final SlotState[] slots = new SlotState[3];
     private State state = State.IDLE;
@@ -140,7 +136,6 @@ public class TrayFSM {
         }
         state = State.POSITION_TO_SLOT;
         stateStartTime = timer.seconds();
-        moveToSlot(currentSlotIndex);
      }
 
     // Call this periodically (e.g., opmode loop)
@@ -273,31 +268,13 @@ public class TrayFSM {
                      int next = findNextEmptySlot(currentSlotIndex + 1);
                      if (next < 0) {
                          state = State.FINISHING;
-                     } else {
-                         currentSlotIndex = next;
-                         moveToSlot(currentSlotIndex);
-                         state = State.POSITION_TO_SLOT;
-                         stateStartTime = timer.seconds();
                      }
                  } else {
                      telemetry.addData("IntakeWaiting", "slot=%d time=%.2f", currentSlotIndex + 1, timer.seconds() - stateStartTime);
                  }
                  break;
 
-            case CHECK_SLOT:
-                // Post-detection settle: wait BALL_SETTLE_TIME to allow the ball to settle in the tray
-                if (timer.seconds() - stateStartTime >= BALL_SETTLE_TIME) {
-                    // After settling, move to the next empty intake slot
-                    moveToSlot(currentSlotIndex);
-                    state = State.POSITION_TO_SLOT;
-                    stateStartTime = timer.seconds();
-                    telemetry.addData("State", "POSITION_TO_SLOT after settle slot=%d", currentSlotIndex + 1);
-                } else {
-                    telemetry.addData("State", "SETTLING for %.2fs", BALL_SETTLE_TIME - (timer.seconds() - stateStartTime));
-                }
-                break;
             case FINISHING:
-                opMode.TrayServo.setPosition(DarienOpModeFSM.TRAY_POS_1_SCORE);
                 state = State.DONE;
                 break;
 
@@ -323,26 +300,6 @@ public class TrayFSM {
 
          //telemetry.update();
      }
-
-    // Move servo to the given intake slot index (0..2)
-    private void moveToSlot(int slotIndex) {
-        double pos = slotPositions[Math.max(0, Math.min(2, slotIndex))];
-        trayServo.setPosition(pos);
-        // ignore sensor input for a short time while the servo moves
-        servoIgnoreUntil = timer.seconds() + SERVO_IGNORE_DURATION;
-     }
-
-    // Move servo to a scoring position index (0..2) corresponding to scoring positions 1..3
-    public void moveToScoreSlot(int scoreSlotIndex) {
-        int i = Math.max(0, Math.min(2, scoreSlotIndex));
-        double pos;
-        switch (i) {
-            case 0: pos = DarienOpModeFSM.TRAY_POS_3_SCORE; break;
-            case 1: pos = DarienOpModeFSM.TRAY_POS_2_SCORE; break;
-            default: pos = DarienOpModeFSM.TRAY_POS_1_SCORE; break;
-        }
-        trayServo.setPosition(pos);
-    }
 
     // Returns next index >= start that is considered empty in the internal slots array; -1 if none
     private int findNextEmptySlot(int start) {

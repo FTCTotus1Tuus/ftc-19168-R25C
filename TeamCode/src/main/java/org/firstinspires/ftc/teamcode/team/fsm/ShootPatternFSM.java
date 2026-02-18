@@ -57,29 +57,6 @@ public class ShootPatternFSM {
             switchselector = detection.id;
         }
 
-        double[] motif = null;
-        // Motif order: 1=TRAY_POS_1_SCORE, 2=TRAY_POS_2_SCORE, 3=TRAY_POS_3_SCORE
-        //WORKING WHEN GREEN IN 2
-        switch (switchselector) {
-            case 21:
-                motif = new double[]{DarienOpModeFSM.TRAY_POS_2_SCORE, DarienOpModeFSM.TRAY_POS_1_SCORE, DarienOpModeFSM.TRAY_POS_3_SCORE_GPP};
-                break; // GPP
-            case 22:
-                motif = new double[]{DarienOpModeFSM.TRAY_POS_1_SCORE, DarienOpModeFSM.TRAY_POS_2_SCORE, DarienOpModeFSM.TRAY_POS_3_SCORE};
-                break; // PGP
-            case 23:
-            default:
-                motif = new double[]{DarienOpModeFSM.TRAY_POS_1_SCORE, DarienOpModeFSM.TRAY_POS_3_SCORE_GPP, DarienOpModeFSM.TRAY_POS_2_SCORE};
-                break; // PPG
-        }
-
-        if (nbMotifIndex >= motif.length) {
-            nbShootingActive = false;
-            shootArtifactFSM.shotGunStop(); // Stop motors
-            shootArtifactFSM.setEjectionMotorsControlledByPattern(false);
-            return;
-        }
-
         switch (nbStep) {
             case IDLE:
                 // nothing
@@ -87,22 +64,6 @@ public class ShootPatternFSM {
             case SHOTGUN_SPINUP:
                 if (currentTime - nbLastActionTime >= SPINUP_DELAY) {
                     nbLastActionTime = currentTime;
-                    nbStep = Stage.ROTATE_TRAY;
-                }
-                break;
-            case ROTATE_TRAY: // Move tray
-                double targetPos = motif[nbMotifIndex];
-                //opMode.servoIncremental(opMode.TrayServo, targetPos, opMode.currentTrayPosition, 1, 4);
-                //opMode.currentTrayPosition = targetPos;
-                opMode.setTrayPosition(targetPos);
-                nbLastActionTime = currentTime;
-                nbStep = Stage.WAIT_FOR_ROTATE;
-                shotStarted = false; // Reset for next shot
-                break;
-            case WAIT_FOR_ROTATE: // Wait for tray move
-                if (currentTime - nbLastActionTime >= TRAY_DELAY) {
-                    nbLastActionTime = currentTime;
-                    nbStep = Stage.SHOOT;
                 }
                 break;
             case SHOOT: // Shoot and wait for completion
@@ -115,7 +76,6 @@ public class ShootPatternFSM {
                 if (shootArtifactFSM.shootingDone() || currentTime - nbLastActionTime >= 2.0) {
                     shootArtifactFSM.resetShooting();
                     nbMotifIndex++;
-                    nbStep = Stage.ROTATE_TRAY;
                 }
                 break;
             case DONE:

@@ -11,7 +11,6 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
 import com.qualcomm.robotcore.hardware.Servo;
-import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.ExposureControl;
@@ -53,7 +52,7 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     public FtcDashboard dash;
 
     // HARDWARE DEVICES
-    public Servo TrayServo, Elevator, turretServo;
+    public Servo Elevator, turretServo, Gate;
     public CRServo topIntake, rightIntake, leftIntake;
     public DcMotorEx ejectionMotor, rubberBands;
     public DigitalChannel ledRightGreen, ledLeftGreen, ledRightRed, ledLeftRed;
@@ -71,16 +70,8 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     public static final int RATIO_BETWEEN_TURRET_GEARS = 6;
 
     // HARDWARE TUNING CONSTANTS
-    public static double TRAY_SERVO_DURATION_ROTATE = 1.5; // seconds
-    public static double TRAY_POS_1_INTAKE = 0.279;//275
-    public static double TRAY_POS_2_INTAKE = 0.210;//205
-    public static double TRAY_POS_3_INTAKE = 0.355;
-    public static double TRAY_POS_1_SCORE = 0.172;
-    public static double TRAY_POS_2_SCORE = 0.245;
-    public static double TRAY_POS_3_SCORE = 0.318;
-    public static double TRAY_POS_3_SCORE_GPP = 0.103;
-    public static final double ELEVATOR_POS_UP = 0.85;
-    public static final double ELEVATOR_POS_DOWN = 0.45;
+    public static final double GATE_OPEN = 0;
+    public static final double GATE_CLOSED = 0;
     public static double SHOT_GUN_POWER_UP = 0.60;
     public static double SHOT_GUN_POWER_UP_FAR = 0.64;//66
     public static double SHOT_GUN_POWER_UP_RPM = 700; // tuned to 6000 rpm motor
@@ -112,10 +103,6 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     public static double TURRET_POSITION_CENTER = 0.5;
 
     // PIDF Constants for DcMotorEx.setVelocityPIDFCoefficients()
-    public static double EJECTION_P=15;
-    public static double EJECTION_I=3;
-    public static double EJECTION_D=0;
-    public static double EJECTION_F=12.5;
 
     // PID Constants for custom MotorHelper PID functions
     public static double SHOT_GUN_PGAIN = 0.015;
@@ -165,8 +152,7 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
         dash = FtcDashboard.getInstance();
 
         // INITIALIZE SERVOS
-        TrayServo = hardwareMap.get(Servo.class, "Tray");
-        Elevator = hardwareMap.get(Servo.class, "Elevator");
+        Gate = hardwareMap.get(Servo.class, "gateServo");
         topIntake = hardwareMap.get(CRServo.class, "topIntake");
         turretServo = hardwareMap.get(Servo.class, "turretServo");
         rightIntake = hardwareMap.get(CRServo.class, "rightIntake");
@@ -204,7 +190,6 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
         tagFSM = new AprilTagDetectionFSM(aprilTag, TIMEOUT_APRILTAG_DETECTION);
         shootArtifactFSM = new ShootArtifactFSM(this);
         shootPatternFSM = new ShootPatternFSM(this);
-        trayFSM = new TrayFSM(this, TrayServo, rubberBands, topIntake, rightIntake, leftIntake, intakeColorSensor, telemetry, ledRightGreen, ledLeftGreen, ledRightRed, ledLeftRed);
         shootTripleFSM = new ShootTripleFSM(this);
         shotgunFSM = new ShotgunFSM(SHOT_GUN_POWER_UP, SHOT_GUN_POWER_UP_FAR, ejectionMotor, this, MotorHelper);
         turretFSM = new TurretFSM(this);
@@ -215,33 +200,6 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
 
         telemetry.addLine("FTC 19168 Robot Initialization Done!");
         telemetry.update();
-    }
-
-    /**
-     * Set the tray position and update the currentTrayPosition variable.
-     *
-     * @param position The desired position for the tray servo.
-     * @param duration The duration over which to move the tray servo to the desired position.
-     */
-    public void setTrayPosition(double position, double duration) {
-        TrayServo.setPosition(position);
-        //servoIncremental(TrayServo, position, currentTrayPosition, duration, 4);
-        currentTrayPosition = position;
-        /*
-        if (!trayServoFSM.isRunning()) {
-            targetTrayPosition = position;
-            trayServoFSM.start(position, currentTrayPosition, duration, getRuntime());
-        }
-         */
-    }
-
-    /**
-     * Set the tray position with a default duration in seconds.
-     *
-     * @param position The desired position for the tray servo.
-     */
-    public void setTrayPosition(double position) {
-        setTrayPosition(position, TRAY_SERVO_DURATION_ROTATE);
     }
 
     public DcMotor initializeMotor(String name) {
