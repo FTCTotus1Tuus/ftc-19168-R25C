@@ -4,6 +4,7 @@ import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.bylazar.configurables.annotations.Configurable;
+import com.qualcomm.hardware.rev.RevTouchSensor;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -53,11 +54,13 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
 
     // HARDWARE DEVICES
     public Servo Elevator, turretServo, Gate;
-    public CRServo topIntake, rightIntake, leftIntake;
+    public CRServo topIntake, rightIntake, leftIntake, rampServoLow, rampServoHigh;
     public DcMotorEx ejectionMotor, rubberBands;
     public DigitalChannel ledRightGreen, ledLeftGreen, ledRightRed, ledLeftRed;
 
     public NormalizedColorSensor intakeColorSensor;
+
+    public RevTouchSensor gateSensor;
 
     // HARDWARE FIXED CONSTANTS
     public static final double encoderResolution = 537.7; //no change unless we change motors
@@ -157,12 +160,15 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
         turretServo = hardwareMap.get(Servo.class, "turretServo");
         rightIntake = hardwareMap.get(CRServo.class, "rightIntake");
         leftIntake = hardwareMap.get(CRServo.class, "leftIntake");
+        rampServoLow = hardwareMap.get(CRServo.class, "rampServoLow");
+        rampServoHigh = hardwareMap.get(CRServo.class, "rampServoHigh");
         turretServo.setPosition(TURRET_POSITION_CENTER); // set to center position
         currentTurretPosition = TURRET_POSITION_CENTER;
         //turretServo.scaleRange(TURRET_ROTATION_MAX_RIGHT, TURRET_ROTATION_MAX_LEFT); // limit the servo range to the turret rotation range
 
         // INITIALIZE SENSORS
         intakeColorSensor = hardwareMap.get(NormalizedColorSensor.class, "intakeColorSensor");
+        gateSensor = hardwareMap.get(RevTouchSensor.class, "touchSensor");
 
         // INITIALIZE MOTORS
         rubberBands = hardwareMap.get(DcMotorEx.class, "rubberBands");
