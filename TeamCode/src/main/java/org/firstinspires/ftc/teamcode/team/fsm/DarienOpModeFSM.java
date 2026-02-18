@@ -157,9 +157,6 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     @Override
     public abstract void runOpMode() throws InterruptedException;
 
-    public ServoIncrementalFSM intakeServoFSM;
-    //public ServoIncrementalFSM trayServoFSM;
-
     public void initControls() {
 
         //TELEMETRY
