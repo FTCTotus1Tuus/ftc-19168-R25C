@@ -38,7 +38,6 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     public ShootPatternFSM shootPatternFSM;
     public ShootArtifactFSM shootArtifactFSM;
     public TrayFSM trayFSM;
-    public ShootTripleFSM shootTripleFSM;
     public ShotgunFSM shotgunFSM;
     public TurretFSM turretFSM;
     public MotorHelper MotorHelper;
@@ -53,14 +52,14 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     public FtcDashboard dash;
 
     // HARDWARE DEVICES
-    public Servo Elevator, turretServo, Gate;
-    public CRServo topIntake, rightIntake, leftIntake, rampServoLow, rampServoHigh;
-    public DcMotorEx ejectionMotor, rubberBands;
-    public DigitalChannel ledRightGreen, ledLeftGreen, ledRightRed, ledLeftRed;
+    public Servo turretServo, gateServo;
+    public CRServo rampServoLow, rampServoHigh, rubberBandsMid, intakeRear;
+    public DcMotorEx ejectionMotor, rubberBandsFront;
+    //public DigitalChannel ledRightGreen, ledLeftGreen, ledRightRed, ledLeftRed;
 
     public NormalizedColorSensor intakeColorSensor;
 
-    public RevTouchSensor gateSensor;
+    //public RevTouchSensor gateSensor;
 
     // HARDWARE FIXED CONSTANTS
     public static final double encoderResolution = 537.7; //no change unless we change motors
@@ -73,14 +72,15 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     public static final int RATIO_BETWEEN_TURRET_GEARS = 6;
 
     // HARDWARE TUNING CONSTANTS
-    public static final double GATE_OPEN = 0;
-    public static final double GATE_CLOSED = 0;
+    public static double GATE_OPEN = .4;
+    public static double GATE_CLOSED = .55;
+    public static double INTAKE_DISTANCE = 70;
     public static double SHOT_GUN_POWER_UP = 0.60;
     public static double SHOT_GUN_POWER_UP_FAR = 0.64;//66
-    public static double SHOT_GUN_POWER_UP_RPM = 700; // tuned to 6000 rpm motor
+    public static double SHOT_GUN_POWER_UP_RPM = 850; // tuned to 6000 rpm motor
     public static double SHOT_GUN_POWER_UP_RPM_AUTO = 650;
     public static double SHOT_GUN_POWER_UP_FAR_RPM_AUTO = 760;// tuned to 6000 rpm motor
-    public static double SHOT_GUN_POWER_UP_FAR_RPM_TELEOP = 850; // tuned to 6000 rpm motor
+    public static double SHOT_GUN_POWER_UP_FAR_RPM_TELEOP = 1100; // tuned to 6000 rpm motor
     public static double SHOT_GUN_POWER_DOWN = 0.2; // tuned to 6000 rpm motor
 
     // For FTC AprilTag detection with a Logitech C910 webcam,
@@ -96,7 +96,7 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     //   Lighting: Poor lighting may require longer timeout
     public static double TIMEOUT_APRILTAG_DETECTION = 0.75; // seconds
 
-    public static double INTAKE_RUBBER_BANDS_POWER = 1;
+    public static double INTAKE_RUBBER_BANDS_POWER = .3;
     public static double OUTPUT_RUBBER_BANDS_POWER = 0.3;
     public static double INTAKE_INTAKE_ROLLER_POWER = 1;
     public static double OUTPUT_INTAKE_ROLLER_POWER = 0.2;
@@ -108,9 +108,9 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     // PIDF Constants for DcMotorEx.setVelocityPIDFCoefficients()
 
     // PID Constants for custom MotorHelper PID functions
-    public static double SHOT_GUN_PGAIN = 0.015;
-    public static double SHOT_GUN_PGAIN2 = 0.015;
-    public static double SHOT_GUN_IGAIN = 0.0002;
+    public static double SHOT_GUN_PGAIN = 0.0015;
+    public static double SHOT_GUN_PGAIN2 = 0.0015;
+    public static double SHOT_GUN_IGAIN = 0.00002;
     public static double SHOT_GUN_PDUTY_MIN = -0.5;
     public static double SHOT_GUN_PDUTY_MAX = 1;
     public static double SHOT_GUN_IDUTY_MIN = 0;
@@ -155,25 +155,22 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
         dash = FtcDashboard.getInstance();
 
         // INITIALIZE SERVOS
-        Gate = hardwareMap.get(Servo.class, "gateServo");
-        topIntake = hardwareMap.get(CRServo.class, "topIntake");
         turretServo = hardwareMap.get(Servo.class, "turretServo");
-        rightIntake = hardwareMap.get(CRServo.class, "rightIntake");
-        leftIntake = hardwareMap.get(CRServo.class, "leftIntake");
         rampServoLow = hardwareMap.get(CRServo.class, "rampServoLow");
         rampServoHigh = hardwareMap.get(CRServo.class, "rampServoHigh");
+        rubberBandsMid = hardwareMap.get(CRServo.class, "rubberBandsMid");
+        intakeRear = hardwareMap.get(CRServo.class, "intakeRear");
+        gateServo = hardwareMap.get(Servo.class, "gateServo");
         turretServo.setPosition(TURRET_POSITION_CENTER); // set to center position
         currentTurretPosition = TURRET_POSITION_CENTER;
-        //turretServo.scaleRange(TURRET_ROTATION_MAX_RIGHT, TURRET_ROTATION_MAX_LEFT); // limit the servo range to the turret rotation range
 
         // INITIALIZE SENSORS
         intakeColorSensor = hardwareMap.get(NormalizedColorSensor.class, "intakeColorSensor");
-        gateSensor = hardwareMap.get(RevTouchSensor.class, "touchSensor");
 
         // INITIALIZE MOTORS
-        rubberBands = hardwareMap.get(DcMotorEx.class, "rubberBands");
-        rubberBands.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
-        rubberBands.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        rubberBandsFront = hardwareMap.get(DcMotorEx.class, "rubberBandsFront");
+        rubberBandsFront.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+        rubberBandsFront.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
 
         ejectionMotor = hardwareMap.get(DcMotorEx.class, "ejectionMotor");
         ejectionMotor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
@@ -181,11 +178,13 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
         //ejectionMotor.setVelocityPIDFCoefficients(EJECTION_P, EJECTION_I, EJECTION_D, EJECTION_F);
 
         //INITIALIZE LED
+        /*
         ledRightGreen = hardwareMap.get(DigitalChannel.class, "LEDRight1");
         ledLeftGreen = hardwareMap.get(DigitalChannel.class, "LEDLeft1");
         ledRightRed = hardwareMap.get(DigitalChannel.class, "LEDRight2");
         ledLeftRed = hardwareMap.get(DigitalChannel.class, "LEDLeft2");
         setLedRed();
+         */
 
 
         initAprilTag();
@@ -196,7 +195,6 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
         tagFSM = new AprilTagDetectionFSM(aprilTag, TIMEOUT_APRILTAG_DETECTION);
         shootArtifactFSM = new ShootArtifactFSM(this);
         shootPatternFSM = new ShootPatternFSM(this);
-        shootTripleFSM = new ShootTripleFSM(this);
         shotgunFSM = new ShotgunFSM(SHOT_GUN_POWER_UP, SHOT_GUN_POWER_UP_FAR, ejectionMotor, this, MotorHelper);
         turretFSM = new TurretFSM(this);
 
@@ -256,8 +254,11 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
         aprilTag = AprilTagProcessor.easyCreateWithDefaults();
 
         // Create the vision portal the easy way.
+        /*
         visionPortal = VisionPortal.easyCreateWithDefaults(
-                hardwareMap.get(WebcamName.class, "Webcam 1"), aprilTag);
+                hardwareMap.get(WebcamName.class, "Webcam 1"), aprilTag)
+                ;
+         */
 
         // Set manual exposure and gain to reduce motion blur and improve detection at distance
         // This is especially important for detecting AprilTags from far positions
@@ -400,7 +401,7 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
         }
 
     }
-
+/*
     public void setLedRed() {
         ledLeftGreen.setMode(DigitalChannel.Mode.OUTPUT);
         ledLeftGreen.setState(false); // LOW turns LED on (typically)
@@ -444,6 +445,8 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
         ledRightRed.setMode(DigitalChannel.Mode.OUTPUT);
         ledRightRed.setState(true);
     }
+
+ */
 
     //Red when start
     //amber when intaking

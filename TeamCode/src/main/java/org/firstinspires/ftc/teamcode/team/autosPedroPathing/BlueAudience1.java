@@ -83,7 +83,7 @@ public class BlueAudience1 extends DarienOpModeFSM {
 
         targetGoalId = APRILTAG_ID_GOAL_BLUE;
         // Constantly run top roller in intake mode
-        topIntake.setPower(-INTAKE_INTAKE_ROLLER_POWER);
+
 
         // --- MAIN AUTONOMOUS LOOP ---
         while (opModeIsActive() && !isStopRequested()) {
@@ -242,7 +242,7 @@ public class BlueAudience1 extends DarienOpModeFSM {
                 telemetry.addLine("Case " + pathState + ": wait for Path 1...");
 
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
-                    topIntake.setPower(-INTAKE_INTAKE_ROLLER_POWER);
+
                     setPathState(pathState + 1);
                 }
                 break;
@@ -266,10 +266,8 @@ public class BlueAudience1 extends DarienOpModeFSM {
 
                 if (shootPatternFSM.isShootPatternDone() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
 
-                    rubberBands.setPower(INTAKE_RUBBER_BANDS_POWER);
+                    rubberBandsFront.setPower(INTAKE_RUBBER_BANDS_POWER);
                     //  topIntake.setPower(-INTAKE_INTAKE_ROLLER_POWER);
-                    leftIntake.setPower(-INTAKE_INTAKE_ROLLER_POWER);
-                    rightIntake.setPower(INTAKE_INTAKE_ROLLER_POWER);
                     follower.followPath(paths.IntakePosition, true);
                     setPathState(pathState + 1);
                 }
@@ -338,10 +336,7 @@ public class BlueAudience1 extends DarienOpModeFSM {
                 shootPatternFSM.updateShootPattern(getRuntime());
 
                 if (shootPatternFSM.isShootPatternDone() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
-                    rubberBands.setPower(0);
-                    topIntake.setPower(0);
-                    leftIntake.setPower(0);
-                    rightIntake.setPower(0);
+                    rubberBandsFront.setPower(0);
                     follower.followPath(paths.Parking, true);
                     setPathState(pathState + 1);
                 }

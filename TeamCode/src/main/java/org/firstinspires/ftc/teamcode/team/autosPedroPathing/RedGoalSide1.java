@@ -258,7 +258,6 @@ public class RedGoalSide1 extends DarienOpModeFSM {
                     aprilTagDetections = tagFSM.getDetections();
 
                     telemetry.addLine("Case " + pathState + ": exiting");
-                    topIntake.setPower(-INTAKE_INTAKE_ROLLER_POWER);
                     follower.followPath(paths.ShootingPosition1);
                     setPathState(pathState + 1);
                 }
@@ -288,10 +287,8 @@ public class RedGoalSide1 extends DarienOpModeFSM {
 
                 if (shootPatternFSM.isShootPatternDone() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
 
-                    rubberBands.setPower(INTAKE_RUBBER_BANDS_POWER);
+                    rubberBandsFront.setPower(INTAKE_RUBBER_BANDS_POWER);
                     // topIntake.setPower(-INTAKE_INTAKE_ROLLER_POWER);
-                    leftIntake.setPower(-INTAKE_INTAKE_ROLLER_POWER);
-                    rightIntake.setPower(INTAKE_INTAKE_ROLLER_POWER);
 
                     // now continue with next path
                     follower.followPath(paths.IntakePosition1, true);
@@ -354,10 +351,8 @@ public class RedGoalSide1 extends DarienOpModeFSM {
                     follower.setMaxPower(PATH_POWER_STANDARD);// resume normal speed
 
                     follower.followPath(paths.ShootingPosition2, true);
-                    rubberBands.setPower(0);
+                    rubberBandsFront.setPower(0);
                     //topIntake.setPower(0);
-                    leftIntake.setPower(0);
-                    rightIntake.setPower(0);
                     shootArtifactFSM.shotGun(SHOT_GUN_POWER_UP);
                     setPathState(pathState + 1);
                 }
@@ -380,7 +375,6 @@ public class RedGoalSide1 extends DarienOpModeFSM {
                 shootPatternFSM.updateShootPattern(getRuntime());
                 if (shootPatternFSM.isShootPatternDone()) {
                     telemetry.addLine("Case " + pathState + ": Done, setting state -1");
-                    topIntake.setPower(0);
                     //rubberBands.setPower(0);
                     setPathState(-1); // done
                 }

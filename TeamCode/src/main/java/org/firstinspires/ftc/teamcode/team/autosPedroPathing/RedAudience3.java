@@ -84,7 +84,6 @@ public class RedAudience3 extends DarienOpModeFSM {
         // Set the initial tray position immediately.
         //  TrayServo.setPosition(TRAY_POS_1_SCORE);
         // Constantly run top roller in intake mode
-        topIntake.setPower(-INTAKE_INTAKE_ROLLER_POWER);
 
         // --- MAIN AUTONOMOUS LOOP ---
         while (opModeIsActive() && !isStopRequested()) {
@@ -310,7 +309,6 @@ public class RedAudience3 extends DarienOpModeFSM {
                 telemetry.addLine("Case " + pathState + ": wait for Path 1...");
 
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
-                    topIntake.setPower(-INTAKE_INTAKE_ROLLER_POWER);
                     setPathState(pathState + 1);
                 }
                 break;
@@ -334,10 +332,8 @@ public class RedAudience3 extends DarienOpModeFSM {
 
                 if (shootPatternFSM.isShootPatternDone() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
 
-                    rubberBands.setPower(INTAKE_RUBBER_BANDS_POWER);
+                    rubberBandsFront.setPower(INTAKE_RUBBER_BANDS_POWER);
                     //  topIntake.setPower(-INTAKE_INTAKE_ROLLER_POWER);
-                    leftIntake.setPower(-INTAKE_INTAKE_ROLLER_POWER);
-                    rightIntake.setPower(INTAKE_INTAKE_ROLLER_POWER);
                     //setTrayPosition(TRAY_POS_3_INTAKE);
                     follower.followPath(paths.IntakePosition, true);
                     setPathState(pathState + 1);
@@ -448,10 +444,8 @@ public class RedAudience3 extends DarienOpModeFSM {
 
                 if (shootPatternFSM.isShootPatternDone() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
 
-                    rubberBands.setPower(INTAKE_RUBBER_BANDS_POWER);
+                    rubberBandsFront.setPower(INTAKE_RUBBER_BANDS_POWER);
                     //  topIntake.setPower(-INTAKE_INTAKE_ROLLER_POWER);
-                    leftIntake.setPower(-INTAKE_INTAKE_ROLLER_POWER);
-                    rightIntake.setPower(INTAKE_INTAKE_ROLLER_POWER);
                     //setTrayPosition(TRAY_POS_3_INTAKE);
                     follower.followPath(paths.IntakePosition3, true);
                     setPathState(pathState + 1);
