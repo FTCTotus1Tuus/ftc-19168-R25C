@@ -61,13 +61,13 @@ public class ShootArtifactFSM {
                 break;
 
             case GATE_OPEN:
-                opMode.Elevator.setPosition(DarienOpModeFSM.GATE_OPEN);
+                //opMode.Elevator.setPosition(DarienOpModeFSM.GATE_OPEN);
                 if (currentTime - shootingStartTime >= ELEVATOR_UP_DELAY) {
                     shootingStage = ShootingStage.ELEVATOR_DOWN;
                     shootingStartTime = currentTime; // Reset timer for next stage
                 }
                 break;
-
+/*
             case ELEVATOR_DOWN:
                 opMode.Elevator.setPosition(DarienOpModeFSM.GATE_CLOSED);
                 if (currentTime - shootingStartTime >= ELEVATOR_DOWN_DELAY) {
@@ -77,6 +77,8 @@ public class ShootArtifactFSM {
                     shootingStage = ShootingStage.FINISHED;
                 }
                 break;
+
+ */
         }
     }
 
