@@ -6,15 +6,18 @@ import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.pedropathing.follower.Follower;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 
 import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.telemetry.TelemetryManager;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
 //import com.qualcomm.robotcore.hardware.DcMotorEx;
 //import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 
 import android.content.SharedPreferences;
+import android.telephony.ims.RcsUceAdapter;
 
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 
@@ -36,12 +39,13 @@ public class TeleOpFSM extends DarienOpModeFSM {
     private double shotStartTime;
     private boolean shotStarted = false;
     private boolean isReadingAprilTag = false;
-    private double tripleShotStartTime;
-    private boolean tripleShotStarted = false;
+    private boolean isIntakeOn = false;
+    private boolean isGateOpen = false;
+    private boolean isRubberBandsReversed = false;
 
     // Track previous bumper state for edge detection
     private boolean prevRightBumper1 = false;
-    //private boolean prevRightBumper2 = false;
+    private boolean prevRightBumper2 = false;
     private boolean prevBackButton = false;
     private ShotgunPowerLevel shotgunPowerLatch = ShotgunPowerLevel.LOW;
 
@@ -90,10 +94,6 @@ public class TeleOpFSM extends DarienOpModeFSM {
     public void initControls() {
         super.initControls();
         follower = Constants.createFollower(hardwareMap);
-
-        // Initialize rubber bands to off
-        rubberBands.setPower(0);
-        //TrayServo.setPosition(currentTrayPosition); // Prevent movement at init
     }
 
     @Override
@@ -102,6 +102,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
         initControls();
         tp = new TelemetryPacket();
         dash = FtcDashboard.getInstance();
+        double startTimeColor = getRuntime();
 
         SharedPreferences prefs = AppUtil.getInstance().getActivity().getSharedPreferences("ftc_prefs", android.content.Context.MODE_PRIVATE);
         autoAlliance = prefs.getString("auto_alliance", "UNKNOWN");
@@ -138,8 +139,22 @@ public class TeleOpFSM extends DarienOpModeFSM {
             // -----------------
             follower.setTeleOpDrive(-gamepad1.left_stick_y, -gamepad1.left_stick_x, -gamepad1.right_stick_x * ROTATION_SCALE, true);
             follower.update();
-            leftIntake.setPower(-INTAKE_INTAKE_ROLLER_POWER);
-            rightIntake.setPower(INTAKE_INTAKE_ROLLER_POWER);
+            /*
+            rubberBandsFront.setPower(-INTAKE_RUBBER_BANDS_POWER);
+            rubberBandsMid.setPower(INTAKE_INTAKE_ROLLER_POWER);
+            //intakeRear.setPower(INTAKE_RUBBER_BANDS_POWER);
+            rampServoHigh.setPower(INTAKE_INTAKE_ROLLER_POWER);
+            rampServoLow.setPower(INTAKE_INTAKE_ROLLER_POWER);
+
+             */
+            // Gate servo controls
+            // Left bumper: Close the gate
+            // Right bumper: Open the gate
+            if (gamepad2.left_bumper) {
+                gateServo.setPosition(GATE_CLOSED);
+            } else if (gamepad2.right_bumper) {
+                gateServo.setPosition(GATE_OPEN);
+            }
 
             if (isReadingAprilTag) {
                 updateReadingGoalId();
@@ -151,46 +166,72 @@ public class TeleOpFSM extends DarienOpModeFSM {
 
             //RubberBands + topIntake CONTROLS:
             if (gamepad1.y) {
-                // Intake mode
-                rubberBands.setPower(INTAKE_RUBBER_BANDS_POWER);
-                topIntake.setPower(-INTAKE_INTAKE_ROLLER_POWER);
-                //leftIntake.setPower(-INTAKE_INTAKE_ROLLER_POWER);
-                //rightIntake.setPower(INTAKE_INTAKE_ROLLER_POWER);
+                // Intake on
+                rubberBandsFront.setPower(-INTAKE_RUBBER_BANDS_POWER);
+                rubberBandsMid.setPower(-INTAKE_INTAKE_ROLLER_POWER);
+                rampServoLow.setPower(INTAKE_INTAKE_ROLLER_POWER);
+                rampServoHigh.setPower(INTAKE_INTAKE_ROLLER_POWER);
+                intakeRear.setPower(-INTAKE_INTAKE_ROLLER_POWER);
+                isIntakeOn = true;
+
             } else if (gamepad1.a) {
                 // Eject mode
-                rubberBands.setPower(-INTAKE_RUBBER_BANDS_POWER);
-                topIntake.setPower(INTAKE_INTAKE_ROLLER_POWER);
-                //leftIntake.setPower(-INTAKE_INTAKE_ROLLER_POWER);
-                //rightIntake.setPower(INTAKE_INTAKE_ROLLER_POWER);
+                rubberBandsFront.setPower(OUTPUT_RUBBER_BANDS_POWER);
+                rubberBandsMid.setPower(OUTPUT_RUBBER_BANDS_POWER);
+                rampServoLow.setPower(-OUTPUT_RUBBER_BANDS_POWER);
+                rampServoHigh.setPower(-OUTPUT_RUBBER_BANDS_POWER);
+                intakeRear.setPower(OUTPUT_RUBBER_BANDS_POWER);
+                isRubberBandsReversed = true;
             } else if (gamepad1.x) {
-                rubberBands.setPower(0);
-                topIntake.setPower(0);
-                //leftIntake.setPower(0);
-                //rightIntake.setPower(0);
+                // Intake Off
+                rubberBandsFront.setPower(0);
+                rubberBandsMid.setPower(0);
+                /*
+                rampServoLow.setPower(0);
+                rampServoHigh.setPower(0);
+                intakeRear.setPower(0);
+                 */
             }
 
+
+
+
+            //TODO IMPLEMENT COLOR SENSOR
+            /*
+            if (isIntakeOn == true) {
+                color sensor start checking
+                isIntakeDone = true;
+            }
+
+            if (isIntakeDone == true;) {
+                rubberBandsFront.setPower(0);
+                rubberBandsMid.setPower(0);
+            }
+
+             */
+
             // Toggle auto-intake on right bumper press (edge triggered)
+            /*
             if (gamepad1.right_bumper && !prevRightBumper1) {
                 // toggle the TrayFSM instance (from DarienOpModeFSM)
                 trayFSM.toggleAutoIntake();
             }
             prevRightBumper1 = gamepad1.right_bumper;
 
+             */
+
             // Show current auto-intake status on telemetry
-            telemetry.addData("AutoIntakeRunning", trayFSM != null && trayFSM.isAutoIntakeRunning());
+            //telemetry.addData("AutoIntakeRunning", trayFSM != null && trayFSM.isAutoIntakeRunning());
 
             // Update trayFSM state machine each loop so it can run when toggled on
-            trayFSM.update();
-            if (!trayFSM.isAutoIntakeRunning() && shotgunPowerLatch != ShotgunPowerLevel.OFF) {
-                setLedGreen();
-            }
+
 
 
             // -----------------
             // GAMEPAD2 CONTROLS
             // -----------------
 
-            if (!shotStarted && !tripleShotStarted) {
+            if (!shotStarted) {
                 // -----------------
                 // MANUAL CONTROLS: only allowed when not running macros
                 // -----------------
@@ -215,11 +256,14 @@ public class TeleOpFSM extends DarienOpModeFSM {
                 displayTurretTelemetry(yaw, rawBearingDeg, currentHeadingDeg, currentTurretPosition, targetServoPos, range);
 
                 //CONTROL: ELEVATOR
+                /*
                 if (gamepad2.left_bumper) {
                     Elevator.setPosition(GATE_OPEN);
                 } else {
                     Elevator.setPosition(GATE_CLOSED);
                 }
+
+                 */
 
                 /*
                 // DRIVER 1 MANUAL CONTROLS FOR INTAKE TRAY POSITIONS
@@ -258,32 +302,6 @@ public class TeleOpFSM extends DarienOpModeFSM {
 
                  */
 
-                // Edge-triggered start: press right bumper to start triple shoot, Triple shot
-                if (gamepad2.right_bumper && gamepad2.right_stick_y < -0.05) {
-                    //stop auto intake if running
-                    if (trayFSM.isAutoIntakeRunning()) {
-                        trayFSM.toggleAutoIntake();
-                    }
-                    startReadingGoalId();
-                    shootTripleFSM.startShootTriple(getRuntime(), SHOT_GUN_POWER_UP_FAR);
-                    tripleShotStartTime = getRuntime();
-                    tripleShotStarted = true;
-                    turretState = TurretStates.AUTO;
-                } else if (gamepad2.right_bumper) {
-                    //stop auto intake if running
-                    if (trayFSM.isAutoIntakeRunning()) {
-                        trayFSM.toggleAutoIntake();
-                    }
-                    startReadingGoalId();
-                    shootTripleFSM.startShootTriple(getRuntime(), SHOT_GUN_POWER_UP);
-                    tripleShotStartTime = getRuntime();
-                    tripleShotStarted = true;
-                    turretState = TurretStates.AUTO;
-                }
-
-                telemetry.addData("shotStarted", shotStarted);
-                telemetry.addData("tripleShotStarted", tripleShotStarted);
-
             } //manual controls
             else {
                 // -----------------
@@ -297,19 +315,6 @@ public class TeleOpFSM extends DarienOpModeFSM {
                     if (shootArtifactFSM.shootingDone() || getRuntime() - shotStartTime >= SHOT_TIMEOUT) {
                         shootArtifactFSM.resetShooting();
                         shotStarted = false;
-                    }
-                }
-
-                // CONTROL: TRIPLE SHOT MACRO
-                else if (tripleShotStarted) {
-                    // ONLY UPDATE IF IN MACRO CONTROL MODE
-                    shootTripleFSM.updateShootTriple(getRuntime());
-                    if (!isReadingAprilTag && turretState == TurretStates.AUTO) {
-                        startReadingGoalId();
-                    }
-                    if (shootTripleFSM.isDone() || getRuntime() - tripleShotStartTime >= 10) {
-                        setLedOff();
-                        tripleShotStarted = false;
                     }
                 }
 
@@ -331,14 +336,14 @@ public class TeleOpFSM extends DarienOpModeFSM {
                 currentTurretPosition = clampT(currentTurretPosition + TURRET_ROTATION_INCREMENT, TURRET_ROTATION_MAX_LEFT, TURRET_ROTATION_MAX_RIGHT);
                 //sets turret position
                 turretServo.setPosition(currentTurretPosition);
-                turretState = TurretStates.MANUAL;
+                //turretState = TurretStates.MANUAL;
             }
             else if (gamepad2.left_stick_x >= 0.05) {   //turn turret counterclockwise
                 //updating the current turret position to be in range of the min and max
                 currentTurretPosition = clampT(currentTurretPosition - TURRET_ROTATION_INCREMENT, TURRET_ROTATION_MAX_LEFT, TURRET_ROTATION_MAX_RIGHT);
                 //sets turret position
                 turretServo.setPosition(currentTurretPosition);
-                turretState = TurretStates.MANUAL;
+                //turretState = TurretStates.MANUAL;
             }
            /* else if (gamepad2.leftStickButtonWasPressed() && !Double.isNaN(targetServoPos)) {
                 currentTurretPosition = targetServoPos;
@@ -350,7 +355,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
                 telemetry.addData("Turret Min/Max/Inc", "%.3f / %.3f / %.3f", TURRET_ROTATION_MIN, TURRET_ROTATION_MAX, TURRET_ROTATION_INCREMENT); */
 
             //CONTROL: EJECTION MOTORS
-            if (!trayFSM.isAutoIntakeRunning()) {
+            //if (!trayFSM.isAutoIntakeRunning()) {
                 //Latch control
                 if (gamepad2.right_stick_y < -.05) {
                     shotgunPowerLatch = ShotgunPowerLevel.HIGH;
@@ -402,9 +407,9 @@ public class TeleOpFSM extends DarienOpModeFSM {
                 }
 
                  */
-            } else {
-                shotgunFSM.toOff();
-            }
+            //} else {
+                //shotgunFSM.toOff();
+            //}
             telemetry.addData("Actual ShotGun RPM", ejectionMotor.getVelocity() * 60 / TICKS_PER_ROTATION); // convert from ticks per second to RPM
             telemetry.addData("ejectionMotor power", ejectionMotor.getPower());
             telemetry.addData("Actual ShotGun TPS", ejectionMotor.getVelocity()); // convert from ticks per second to RPM
