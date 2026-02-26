@@ -55,9 +55,11 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     public Servo turretServo, gateServo;
     public CRServo rampServoLow, rampServoHigh, rubberBandsMid, intakeRear;
     public DcMotorEx ejectionMotor, rubberBandsFront;
-    //public DigitalChannel ledRightGreen, ledLeftGreen, ledRightRed, ledLeftRed;
+    public DigitalChannel ledRightGreen, ledLeftGreen, ledRightRed, ledLeftRed;
 
     public NormalizedColorSensor intakeColorSensor;
+    public NormalizedColorSensor middleColorSensor;
+    public NormalizedColorSensor turretColorSensor;
 
     //public RevTouchSensor gateSensor;
 
@@ -74,7 +76,7 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     // HARDWARE TUNING CONSTANTS
     public static double GATE_OPEN = .4;
     public static double GATE_CLOSED = .55;
-    public static double INTAKE_DISTANCE = 70;
+    public static double INTAKE_DISTANCE = 5;
     public static double SHOT_GUN_POWER_UP = 0.60;
     public static double SHOT_GUN_POWER_UP_FAR = 0.64;//66
     public static double SHOT_GUN_POWER_UP_RPM = 850; // tuned to 6000 rpm motor
@@ -97,8 +99,8 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     public static double TIMEOUT_APRILTAG_DETECTION = 0.75; // seconds
 
     public static double INTAKE_RUBBER_BANDS_POWER = .3;
-    public static double OUTPUT_RUBBER_BANDS_POWER = 0.3;
-    public static double INTAKE_INTAKE_ROLLER_POWER = 1;
+    public static double OUTPUT_RUBBER_BANDS_POWER = 0.2;
+    public static double INTAKE_INTAKE_ROLLER_POWER = 0.3;
     public static double OUTPUT_INTAKE_ROLLER_POWER = 0.2;
     public static double TURRET_ROTATION_INCREMENT = 0.002;
     public static double TURRET_ROTATION_MAX_LEFT = 0.63;
@@ -166,11 +168,13 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
 
         // INITIALIZE SENSORS
         intakeColorSensor = hardwareMap.get(NormalizedColorSensor.class, "intakeColorSensor");
+        middleColorSensor = hardwareMap.get(NormalizedColorSensor.class, "middleColorSensor");
+        turretColorSensor = hardwareMap.get(NormalizedColorSensor.class, "turretColorSensor");
 
         // INITIALIZE MOTORS
         rubberBandsFront = hardwareMap.get(DcMotorEx.class, "rubberBandsFront");
         rubberBandsFront.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
-        rubberBandsFront.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        rubberBandsFront.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
 
         ejectionMotor = hardwareMap.get(DcMotorEx.class, "ejectionMotor");
         ejectionMotor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
@@ -178,13 +182,12 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
         //ejectionMotor.setVelocityPIDFCoefficients(EJECTION_P, EJECTION_I, EJECTION_D, EJECTION_F);
 
         //INITIALIZE LED
-        /*
+
         ledRightGreen = hardwareMap.get(DigitalChannel.class, "LEDRight1");
         ledLeftGreen = hardwareMap.get(DigitalChannel.class, "LEDLeft1");
         ledRightRed = hardwareMap.get(DigitalChannel.class, "LEDRight2");
         ledLeftRed = hardwareMap.get(DigitalChannel.class, "LEDLeft2");
         setLedRed();
-         */
 
 
         initAprilTag();
@@ -401,7 +404,7 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
         }
 
     }
-/*
+
     public void setLedRed() {
         ledLeftGreen.setMode(DigitalChannel.Mode.OUTPUT);
         ledLeftGreen.setState(false); // LOW turns LED on (typically)
@@ -446,7 +449,6 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
         ledRightRed.setState(true);
     }
 
- */
 
     //Red when start
     //amber when intaking

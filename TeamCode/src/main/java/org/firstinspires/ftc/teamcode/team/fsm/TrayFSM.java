@@ -423,13 +423,6 @@ public class TrayFSM {
     }
 
     /**
-     * Returns true if the auto-intake state machine is currently running (positioning or intaking).
-     */
-    public boolean isAutoIntakeRunning() {
-        return state == State.POSITION_TO_SLOT || state == State.INTAKE_WAIT || state == State.CHECK_SLOT;
-    }
-
-    /**
      * Stop the auto-intake state machine and ensure intake motors are off.
      */
     public void stopAutoIntake() {
@@ -460,16 +453,4 @@ public class TrayFSM {
             //telemetry.update();
         }
     }
-
-    /**
-     * Toggle the auto-intake state machine: start if stopped, stop if running.
-     */
-    public void toggleAutoIntake() {
-        if (isAutoIntakeRunning()) {
-            stopAutoIntake();
-        } else {
-            startAutoIntake();
-        }
-    }
-
 }

@@ -39,9 +39,16 @@ public class TeleOpFSM extends DarienOpModeFSM {
     private double shotStartTime;
     private boolean shotStarted = false;
     private boolean isReadingAprilTag = false;
-    private boolean isIntakeOn = false;
     private boolean isGateOpen = false;
-    private boolean isRubberBandsReversed = false;
+    private boolean hasIntakeSensorDetected = false;
+    private boolean hasMiddleSensorDetected = false;
+    private boolean hasTurretSensorDetected = false;
+
+    // Color sensor detection timing
+    private double intakeColorSensorDetectionStartTime = Double.NaN;
+    private double middleColorSensorDetectionStartTime = Double.NaN;
+    private double turretColorSensorDetectionStartTime = Double.NaN;
+    private static final double DETECTION_HOLD_TIME = 1.0; // seconds
 
     // Track previous bumper state for edge detection
     private boolean prevRightBumper1 = false;
@@ -51,8 +58,13 @@ public class TeleOpFSM extends DarienOpModeFSM {
 
     private enum TurretStates {MANUAL, AUTO}
 
+
     ;
     private TurretStates turretState = TurretStates.MANUAL;
+
+    private enum IntakeModes {OFF, FORWARD, REVERSE, FULL}
+
+    private IntakeModes intakeMode = IntakeModes.OFF;
 
     // AUTOMATIC TURRET CONTROLS BASED ON CAMERA APRILTAG DETECTION
     AprilTagDetection detection;
@@ -94,6 +106,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
     public void initControls() {
         super.initControls();
         follower = Constants.createFollower(hardwareMap);
+        gateServo.setPosition(GATE_CLOSED);
     }
 
     @Override
@@ -102,7 +115,6 @@ public class TeleOpFSM extends DarienOpModeFSM {
         initControls();
         tp = new TelemetryPacket();
         dash = FtcDashboard.getInstance();
-        double startTimeColor = getRuntime();
 
         SharedPreferences prefs = AppUtil.getInstance().getActivity().getSharedPreferences("ftc_prefs", android.content.Context.MODE_PRIVATE);
         autoAlliance = prefs.getString("auto_alliance", "UNKNOWN");
@@ -139,22 +151,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
             // -----------------
             follower.setTeleOpDrive(-gamepad1.left_stick_y, -gamepad1.left_stick_x, -gamepad1.right_stick_x * ROTATION_SCALE, true);
             follower.update();
-            /*
-            rubberBandsFront.setPower(-INTAKE_RUBBER_BANDS_POWER);
-            rubberBandsMid.setPower(INTAKE_INTAKE_ROLLER_POWER);
-            //intakeRear.setPower(INTAKE_RUBBER_BANDS_POWER);
-            rampServoHigh.setPower(INTAKE_INTAKE_ROLLER_POWER);
-            rampServoLow.setPower(INTAKE_INTAKE_ROLLER_POWER);
-
-             */
-            // Gate servo controls
-            // Left bumper: Close the gate
-            // Right bumper: Open the gate
-            if (gamepad2.left_bumper) {
-                gateServo.setPosition(GATE_CLOSED);
-            } else if (gamepad2.right_bumper) {
-                gateServo.setPosition(GATE_OPEN);
-            }
+            //intakeMode = IntakeModes.FORWARD;
 
             if (isReadingAprilTag) {
                 updateReadingGoalId();
@@ -167,48 +164,144 @@ public class TeleOpFSM extends DarienOpModeFSM {
             //RubberBands + topIntake CONTROLS:
             if (gamepad1.y) {
                 // Intake on
-                rubberBandsFront.setPower(-INTAKE_RUBBER_BANDS_POWER);
-                rubberBandsMid.setPower(-INTAKE_INTAKE_ROLLER_POWER);
-                rampServoLow.setPower(INTAKE_INTAKE_ROLLER_POWER);
-                rampServoHigh.setPower(INTAKE_INTAKE_ROLLER_POWER);
-                intakeRear.setPower(-INTAKE_INTAKE_ROLLER_POWER);
-                isIntakeOn = true;
+                intakeMode = IntakeModes.FORWARD;
+                isGateOpen = false;
+                // Reset detection flags and timers when starting intake
+                hasIntakeSensorDetected = false;
+                hasMiddleSensorDetected = false;
+                hasTurretSensorDetected = false;
+                intakeColorSensorDetectionStartTime = Double.NaN;
+                middleColorSensorDetectionStartTime = Double.NaN;
+                turretColorSensorDetectionStartTime = Double.NaN;
+            }
 
-            } else if (gamepad1.a) {
+            if (gamepad1.a) {
                 // Eject mode
-                rubberBandsFront.setPower(OUTPUT_RUBBER_BANDS_POWER);
-                rubberBandsMid.setPower(OUTPUT_RUBBER_BANDS_POWER);
-                rampServoLow.setPower(-OUTPUT_RUBBER_BANDS_POWER);
-                rampServoHigh.setPower(-OUTPUT_RUBBER_BANDS_POWER);
-                intakeRear.setPower(OUTPUT_RUBBER_BANDS_POWER);
-                isRubberBandsReversed = true;
-            } else if (gamepad1.x) {
-                // Intake Off
-                rubberBandsFront.setPower(0);
-                rubberBandsMid.setPower(0);
-                /*
-                rampServoLow.setPower(0);
-                rampServoHigh.setPower(0);
-                intakeRear.setPower(0);
-                 */
+                intakeMode = IntakeModes.REVERSE;
             }
 
-
-
-
-            //TODO IMPLEMENT COLOR SENSOR
-            /*
-            if (isIntakeOn == true) {
-                color sensor start checking
-                isIntakeDone = true;
+            if (gamepad1.x) {
+                // Intake "Off"
+                intakeMode = IntakeModes.OFF;
             }
 
-            if (isIntakeDone == true;) {
-                rubberBandsFront.setPower(0);
-                rubberBandsMid.setPower(0);
+            // Gate servo controls - only affect gate, not intake motors
+            if (gamepad2.left_bumper) {
+                gateServo.setPosition(GATE_CLOSED);
+                isGateOpen = false;
+            } else if (gamepad2.right_bumper) {
+                gateServo.setPosition(GATE_OPEN);
+                isGateOpen = true;
+                hasIntakeSensorDetected = false;
+                hasMiddleSensorDetected = false;
+                hasTurretSensorDetected = false;
+                intakeColorSensorDetectionStartTime = Double.NaN;
+                middleColorSensorDetectionStartTime = Double.NaN;
+                turretColorSensorDetectionStartTime = Double.NaN;
+                setLedRed();
             }
 
-             */
+            // Set motor powers based on current state (runs every loop)
+            switch (intakeMode) {
+                case FORWARD:
+                    rubberBandsFront.setPower(-INTAKE_RUBBER_BANDS_POWER);
+                    rubberBandsMid.setPower(-INTAKE_INTAKE_ROLLER_POWER);
+                    rampServoLow.setPower(INTAKE_INTAKE_ROLLER_POWER);
+                    rampServoHigh.setPower(INTAKE_INTAKE_ROLLER_POWER);
+                    intakeRear.setPower(-INTAKE_INTAKE_ROLLER_POWER);
+                    gateServo.setPosition(GATE_CLOSED);
+                    break;
+                case REVERSE:
+                    rubberBandsFront.setPower(OUTPUT_RUBBER_BANDS_POWER);
+                    rubberBandsMid.setPower(OUTPUT_RUBBER_BANDS_POWER);
+                    rampServoLow.setPower(-OUTPUT_RUBBER_BANDS_POWER);
+                    rampServoHigh.setPower(-OUTPUT_RUBBER_BANDS_POWER);
+                    intakeRear.setPower(OUTPUT_RUBBER_BANDS_POWER);
+                    break;
+                case OFF:
+                    rubberBandsFront.setPower(0);
+                    rubberBandsMid.setPower(0);
+                    rampServoLow.setPower(0);
+                    rampServoHigh.setPower(0);
+                    intakeRear.setPower(0);
+                    break;
+                case FULL:
+                default:
+                    rubberBandsFront.setPower(0);
+                    rubberBandsMid.setPower(-INTAKE_INTAKE_ROLLER_POWER);
+                    rampServoLow.setPower(INTAKE_INTAKE_ROLLER_POWER);
+                    rampServoHigh.setPower(INTAKE_INTAKE_ROLLER_POWER);
+                    intakeRear.setPower(-INTAKE_INTAKE_ROLLER_POWER);
+                    break;
+            }
+
+            // Add debug telemetry
+            telemetry.addData("isGateOpen", isGateOpen);
+            telemetry.addData("rubberBandsFront Power", rubberBandsFront.getPower());
+            telemetry.addData("rubberBandsMid Power", rubberBandsMid.getPower());
+
+            if (intakeColorSensor instanceof DistanceSensor) {
+                telemetry.addData("Distance (cm)", "%.3f", ((DistanceSensor) intakeColorSensor).getDistance(DistanceUnit.CM));
+
+                if (((DistanceSensor) intakeColorSensor).getDistance(DistanceUnit.CM) <= INTAKE_DISTANCE) {
+                    if (Double.isNaN(intakeColorSensorDetectionStartTime)) {
+                        intakeColorSensorDetectionStartTime = getRuntime();
+                    }
+                    if (getRuntime() - intakeColorSensorDetectionStartTime >= DETECTION_HOLD_TIME) {
+                        telemetry.addData("intakeColorSensor", "Detected");
+                        hasIntakeSensorDetected = true;
+                    } else {
+                        telemetry.addData("intakeColorSensor", "Detecting... %.1fs", getRuntime() - intakeColorSensorDetectionStartTime);
+                    }
+                } else {
+                    intakeColorSensorDetectionStartTime = Double.NaN;
+                    hasIntakeSensorDetected = false;
+                    telemetry.addData("intakeColorSensor", "Not Detected");
+                }
+
+                // Check middle color sensor
+                if (((DistanceSensor) middleColorSensor).getDistance(DistanceUnit.CM) <= INTAKE_DISTANCE) {
+                    if (Double.isNaN(middleColorSensorDetectionStartTime)) {
+                        middleColorSensorDetectionStartTime = getRuntime();
+                    }
+                    if (getRuntime() - middleColorSensorDetectionStartTime >= DETECTION_HOLD_TIME) {
+                        telemetry.addData("middleColorSensor", "Detected");
+                        hasMiddleSensorDetected = true;
+                    } else {
+                        telemetry.addData("middleColorSensor", "Detecting... %.1fs", getRuntime() - middleColorSensorDetectionStartTime);
+                    }
+                } else {
+                    middleColorSensorDetectionStartTime = Double.NaN;
+                    hasMiddleSensorDetected = false;
+                    telemetry.addData("middleColorSensor", "Not Detected");
+                }
+
+                // Check turret color sensor
+                if (((DistanceSensor) turretColorSensor).getDistance(DistanceUnit.CM) <= INTAKE_DISTANCE) {
+                    if (Double.isNaN(turretColorSensorDetectionStartTime)) {
+                        turretColorSensorDetectionStartTime = getRuntime();
+                    }
+                    if (getRuntime() - turretColorSensorDetectionStartTime >= DETECTION_HOLD_TIME) {
+                        telemetry.addData("turretColorSensor", "Detected");
+                        hasTurretSensorDetected = true;
+                    } else {
+                        telemetry.addData("turretColorSensor", "Detecting... %.1fs", getRuntime() - turretColorSensorDetectionStartTime);
+                    }
+                } else {
+                    turretColorSensorDetectionStartTime = Double.NaN;
+                    hasTurretSensorDetected = false;
+                    telemetry.addData("turretColorSensor", "Not Detected");
+                }
+
+                telemetry.addData("All Sensors Detected", hasIntakeSensorDetected && hasMiddleSensorDetected && hasTurretSensorDetected);
+
+                // Only stop intake if all sensors detect for 1+ second AND auto-stop is allowed
+                if (intakeMode == IntakeModes.FORWARD && hasIntakeSensorDetected && hasMiddleSensorDetected && hasTurretSensorDetected) {
+                    intakeMode = IntakeModes.FULL;
+                    setLedGreen();
+                    telemetry.addData("AUTO STOP", "All sensors detected!");
+                }
+            }
 
             // Toggle auto-intake on right bumper press (edge triggered)
             /*
@@ -493,3 +586,4 @@ public class TeleOpFSM extends DarienOpModeFSM {
     }
 
 } //TeleOpFSM class
+
