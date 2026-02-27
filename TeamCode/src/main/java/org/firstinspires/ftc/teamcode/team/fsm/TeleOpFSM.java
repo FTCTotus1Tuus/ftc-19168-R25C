@@ -54,10 +54,6 @@ public class TeleOpFSM extends DarienOpModeFSM {
     private enum IntakeModes {OFF, FORWARD, REVERSE, FULL, SHOOT}
     private IntakeModes intakeMode = IntakeModes.OFF;
 
-    private enum GateStates {CLOSED, OPEN}
-
-    private GateStates gateState = GateStates.CLOSED;
-
     // AUTOMATIC TURRET CONTROLS BASED ON CAMERA APRILTAG DETECTION
     AprilTagDetection detection;
     double yaw, range; // Stores detection.ftcPose.yaw
@@ -90,8 +86,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
     public void initControls() {
         super.initControls();
         follower = Constants.createFollower(hardwareMap);
-        gateServo.setPosition(GATE_CLOSED);
-        gateState = GateStates.CLOSED;
+        gateFSM.close();
     }
 
     @Override
@@ -126,6 +121,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
             // -----------------
             follower.setTeleOpDrive(-gamepad1.left_stick_y, -gamepad1.left_stick_x, -gamepad1.right_stick_x * ROTATION_SCALE, true);
             follower.update();
+            gateFSM.update(getRuntime(), true, telemetry);
 
             if (isReadingAprilTag) {
                 updateReadingGoalId();
@@ -139,7 +135,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
             if (gamepad1.y) {
                 // Intake on
                 intakeMode = IntakeModes.FORWARD;
-                gateState = GateStates.CLOSED;
+                gateFSM.close();
                 // Reset detection flags and timers when starting intake
                 hasIntakeSensorDetected = false;
                 hasMiddleSensorDetected = false;
@@ -156,9 +152,9 @@ public class TeleOpFSM extends DarienOpModeFSM {
             }
 
             if (gamepad2.left_bumper) {
-                gateState = GateStates.CLOSED;
+                gateFSM.close();
             } else if (gamepad2.right_bumper) {
-                gateState = GateStates.OPEN;
+                gateFSM.open();
                 intakeMode = IntakeModes.SHOOT;
                 hasIntakeSensorDetected = false;
                 hasMiddleSensorDetected = false;
@@ -184,7 +180,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
                     rampServoLow.setPower(INTAKE_INTAKE_ROLLER_POWER);
                     rampServoHigh.setPower(INTAKE_INTAKE_ROLLER_POWER);
                     intakeRear.setPower(-INTAKE_INTAKE_ROLLER_POWER);
-                    gateState = GateStates.CLOSED;
+                    gateFSM.close();
                     break;
                 case REVERSE:
                     rubberBandsFront.setPower(OUTPUT_RUBBER_BANDS_POWER);
@@ -210,19 +206,9 @@ public class TeleOpFSM extends DarienOpModeFSM {
                     break;
             }
 
-            // GATE CONTROL
-            switch (gateState) {
-                case CLOSED:
-                    gateServo.setPosition(GATE_CLOSED);
-                    break;
-                case OPEN:
-                default:
-                    gateServo.setPosition(GATE_OPEN);
-                    break;
-            }
 
             // Add debug telemetry
-            telemetry.addData("Gate", gateState);
+            telemetry.addData("Gate", gateFSM.getState());
             telemetry.addData("rubberBandsFront Power", rubberBandsFront.getPower());
             telemetry.addData("rubberBandsMid Power", rubberBandsMid.getPower());
 
