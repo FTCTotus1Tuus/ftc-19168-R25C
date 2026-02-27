@@ -52,7 +52,6 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     public FtcDashboard dash;
 
     // HARDWARE DEVICES
-    public Servo turretServo;
     public CRServo rampServoLow, rampServoHigh, rubberBandsMid, intakeRear;
     public DcMotorEx ejectionMotor, rubberBandsFront;
     public DigitalChannel ledRightGreen, ledLeftGreen, ledRightRed, ledLeftRed;
@@ -68,8 +67,6 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     public static final double inchesToEncoder = encoderResolution / constMult;
     public static final double PI = 3.1416;
     public static final double TICKS_PER_ROTATION = 28*4; // for goBILDA 6000 rpm motor 5203. Each rotation has 28 ticks, and with 4x encoder mode, it's 28*4.
-    public static final int FIVE_ROTATION_SERVO_SPAN_DEG = 1800; // Degrees of rotation (5-rotation goBILDA servo)
-    public static final int RATIO_BETWEEN_TURRET_GEARS = 6;
     public static double ROBOT_CENTER_OFFSET_X = 9;
     public static double ROBOT_CENTER_OFFSET_Y = 9;
 
@@ -102,21 +99,6 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     public static double INTAKE_INTAKE_ROLLER_POWER = 0.3;
     public static double INTAKE_INTAKE_ROLLER_POWER_HIGH = 1;
     public static double OUTPUT_INTAKE_ROLLER_POWER = 0.2;
-    public static double TURRET_ROTATION_INCREMENT = 0.002;
-    public static double TURRET_POSITION_CENTER = 0.5;
-
-    // Turret range of motion in turret degrees (physically measurable on the robot).
-    // Positive = CCW from center (left), Negative = CW from center (right).
-    // Change these when hardware changes; servo clamp limits are derived automatically.
-    public static double TURRET_MAX_DEG_LEFT = 90.0;  // degrees CCW from center
-    public static double TURRET_MAX_DEG_RIGHT = 90.0;  // degrees CW  from center
-
-    // Servo clamp limits derived from degree limits.
-    // Formula: servo = center ± (degrees / (FIVE_ROTATION_SERVO_SPAN_DEG / RATIO_BETWEEN_TURRET_GEARS))
-    //   = 0.5 ± (degrees / 300)
-    // These are computed at runtime so they always stay in sync with the degree constants above.
-    public double TURRET_ROTATION_MAX_LEFT = TURRET_POSITION_CENTER + TURRET_MAX_DEG_LEFT / ((double) FIVE_ROTATION_SERVO_SPAN_DEG / RATIO_BETWEEN_TURRET_GEARS);
-    public double TURRET_ROTATION_MAX_RIGHT = TURRET_POSITION_CENTER - TURRET_MAX_DEG_RIGHT / ((double) FIVE_ROTATION_SERVO_SPAN_DEG / RATIO_BETWEEN_TURRET_GEARS);
 
     // PID Constants for custom MotorHelper PID functions
     public static double SHOT_GUN_PGAIN = 0.015;
@@ -134,17 +116,12 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
 
     public final int APRILTAG_ID_GOAL_BLUE = 20;
     public final int APRILTAG_ID_GOAL_RED = 24;
-    public static double TURRET_OFFSET_RED = 0.005;
-    public static double TURRET_OFFSET_BLUE = 0.01;
 
     // CAMERA EXPOSURE/GAIN SETTINGS FOR APRILTAG DETECTION
     // Low exposure (5-6ms) with high gain reduces motion blur and improves far-distance detection
     // Tune these values using the TuneAprilTagExposure OpMode while viewing camera stream
     public static int APRILTAG_EXPOSURE_MS = 6;  // Milliseconds (lower = less blur, start with 5-6)
     public static int APRILTAG_GAIN = 255;       // 0-255 (higher = brighter in low light, start at max)
-
-    // DYNAMIC VARIABLES
-    public double currentTurretPosition;
 
     // FIELD GOAL POSITION CONSTANTS (in inches, Pedro Pathing coordinate system)
     // (0,0) = left audience side (red loading zone), (72,72) = field center, (144,144) = red goal
@@ -181,14 +158,10 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
         dash = FtcDashboard.getInstance();
 
         // INITIALIZE SERVOS
-        turretServo = hardwareMap.get(Servo.class, "turretServo");
         rampServoLow = hardwareMap.get(CRServo.class, "rampServoLow");
         rampServoHigh = hardwareMap.get(CRServo.class, "rampServoHigh");
         rubberBandsMid = hardwareMap.get(CRServo.class, "rubberBandsMid");
         intakeRear = hardwareMap.get(CRServo.class, "intakeRear");
-
-        turretServo.setPosition(TURRET_POSITION_CENTER); // set to center position
-        currentTurretPosition = TURRET_POSITION_CENTER;
 
         // INITIALIZE SENSORS
         intakeColorSensor = hardwareMap.get(NormalizedColorSensor.class, "intakeColorSensor");
@@ -223,8 +196,10 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
         shootArtifactFSM = new ShootArtifactFSM(this);
         shootPatternFSM = new ShootPatternFSM(this);
         shotgunFSM = new ShotgunFSM(SHOT_GUN_POWER_UP, SHOT_GUN_POWER_UP_FAR, ejectionMotor, this, MotorHelper);
-        turretFSM = new TurretFSM(this);
+        turretFSM = new TurretFSM(this.hardwareMap);
+        turretFSM.init();
         gateFSM = new GateFSM(this.hardwareMap);
+        gateFSM.init();
 
         telemetry.addLine("FTC 19168 Robot Initialization Done!");
         telemetry.update();

@@ -56,9 +56,6 @@ public class TeleOpFSM extends DarienOpModeFSM {
 
     private ShotgunPowerLevel shotgunPowerLatch = ShotgunPowerLevel.LOW;
 
-    private enum TurretStates {MANUAL, CAMERA, ODOMETRY}
-    private TurretStates turretState = TurretStates.MANUAL;
-
     private enum ShootingPowerModes {MANUAL, ODOMETRY}
 
     private ShootingPowerModes shootingPowerMode = ShootingPowerModes.MANUAL;
@@ -86,24 +83,14 @@ public class TeleOpFSM extends DarienOpModeFSM {
     boolean isCalculatingTurretTargetPosition = false;
 
     int targetGoalTagId;
-    double turretOffset;
     private String autoAlliance = "UNKNOWN";
-
-
-    //private clamp test
-    private static double clampT(double v, double min, double max) {
-        if (Double.isNaN(v)) return min;               // defensive: treat NaN as min
-        if (min > max) {                               // tolerate inverted bounds
-            double t = min; min = max; max = t;
-        }
-        return Math.max(min, Math.min(max, v));
-    }
 
     @Override
     public void initControls() {
         super.initControls();
         follower = Constants.createFollower(hardwareMap);
         gateFSM.close();
+        turretFSM.center(); // set to center position
 
         // Initialize GoBildaPinpointDriver for odometry position reset
         odo = hardwareMap.get(GoBildaPinpointDriver.class, "odo");
@@ -122,10 +109,10 @@ public class TeleOpFSM extends DarienOpModeFSM {
         // Set align color based on saved color from auto
         if ("BLUE".equals(autoAlliance)) {
             targetGoalTagId = APRILTAG_ID_GOAL_BLUE;
-            turretOffset = TURRET_OFFSET_BLUE;
+            turretFSM.setOffsetBlue();
         } else if ("RED".equals(autoAlliance)) {
             targetGoalTagId = APRILTAG_ID_GOAL_RED;
-            turretOffset = TURRET_OFFSET_RED;
+            turretFSM.setOffsetRed();
         }
 
         // Load saved odometry position from auto (if available)
@@ -192,8 +179,9 @@ public class TeleOpFSM extends DarienOpModeFSM {
             follower.setTeleOpDrive(-gamepad1.left_stick_y, -gamepad1.left_stick_x, -gamepad1.right_stick_x * ROTATION_SCALE, true);
             follower.update();
             gateFSM.update(getRuntime(), true, telemetry);
+            turretFSM.update();
 
-            if (turretState == TurretStates.CAMERA) {
+            if (turretFSM.getState() == TurretFSM.TurretStates.CAMERA) {
                 if (!isReadingAprilTag) {
                     startReadingGoalId();
                 } else {
@@ -404,10 +392,10 @@ public class TeleOpFSM extends DarienOpModeFSM {
 
                 //TURRET STATE CHANGE CONTROLS
                 if (gamepad2.left_trigger > 0.1) {
-                    turretState = TurretStates.ODOMETRY;
+                    turretFSM.setState(TurretFSM.TurretStates.ODOMETRY);
                     shootingPowerMode = ShootingPowerModes.ODOMETRY;
                 } else if (gamepad2.right_trigger > 0.1) {
-                    turretState = TurretStates.CAMERA;
+                    turretFSM.setState(TurretFSM.TurretStates.CAMERA);
                     startReadingGoalId();
                 }
 
@@ -457,23 +445,16 @@ public class TeleOpFSM extends DarienOpModeFSM {
             robotY = follower.getPose().getY();
             robotHeadingRadians = follower.getPose().getHeading();
 
-            //turret rotation
-            if (gamepad2.left_stick_x <=-0.05) {    //turn turret clockwise
-                //updating the current turret position to be in range of the min and max
-                currentTurretPosition = clampT(currentTurretPosition + TURRET_ROTATION_INCREMENT, TURRET_ROTATION_MAX_LEFT, TURRET_ROTATION_MAX_RIGHT);
-                //sets turret position
-                turretServo.setPosition(currentTurretPosition);
-                turretState = TurretStates.MANUAL;
-            }
-            else if (gamepad2.left_stick_x >= 0.05) {   //turn turret counterclockwise
-                //updating the current turret position to be in range of the min and max
-                currentTurretPosition = clampT(currentTurretPosition - TURRET_ROTATION_INCREMENT, TURRET_ROTATION_MAX_LEFT, TURRET_ROTATION_MAX_RIGHT);
-                //sets turret position
-                turretServo.setPosition(currentTurretPosition);
-                turretState = TurretStates.MANUAL;
+            // TURRET CONTROLS
+            if (gamepad2.left_stick_x <= -0.05) {
+                turretFSM.rotateLeft();
+                turretFSM.setState(TurretFSM.TurretStates.MANUAL);
+            } else if (gamepad2.left_stick_x >= 0.05) {
+                turretFSM.rotateRight();
+                turretFSM.setState(TurretFSM.TurretStates.MANUAL);
             }
             // Odometry-based turret aiming (when not in manual control)
-            else if (turretState == TurretStates.ODOMETRY) {
+            else if (turretFSM.getState() == TurretFSM.TurretStates.ODOMETRY) {
 
                 // Determine target goal based on alliance color
                 double targetGoalX, targetGoalY;
@@ -485,16 +466,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
                     targetGoalY = DarienOpModeFSM.GOAL_BLUE_Y;
                 }
 
-                // Calculate raw angle, then clamp via servo conversion
-                double targetTurretAngleDeg = turretFSM.calculateTurretAngleFromOdometry(
-                        targetGoalX, targetGoalY, robotX, robotY, robotHeadingRadians);
-                double targetServoPos = turretFSM.calculateServoPositionFromAngle(targetTurretAngleDeg);
-
-                currentTurretPosition = targetServoPos;
-                turretServo.setPosition(targetServoPos);
-
-                telemetry.addData("Turret ODO Angle (deg)", String.format("%.1f", targetTurretAngleDeg));
-                telemetry.addData("Turret ODO Servo", String.format("%.3f", targetServoPos));
+                turretFSM.setPositionFromOdometry(targetGoalX, targetGoalY, robotX, robotY, robotHeadingRadians);
             }
 
             //CONTROL: EJECTION MOTORS
@@ -537,18 +509,6 @@ public class TeleOpFSM extends DarienOpModeFSM {
             telemetry.addData("ejectionMotor power", ejectionMotor.getPower());
             telemetry.addData("Actual ShotGun TPS", ejectionMotor.getVelocity()); // convert from ticks per second to RPM
 
-            // Turret Aiming Mode Telemetry
-            telemetry.addData("Turret State", turretState);
-
-            double targetGoalX, targetGoalY;
-            if ("RED".equals(autoAlliance)) {
-                targetGoalX = DarienOpModeFSM.GOAL_RED_X;
-                targetGoalY = DarienOpModeFSM.GOAL_RED_Y;
-            } else {
-                targetGoalX = DarienOpModeFSM.GOAL_BLUE_X;
-                targetGoalY = DarienOpModeFSM.GOAL_BLUE_Y;
-            }
-
             /*
             telemetry.addData("P,I,D,F (orig)", "%.04f, %.04f, %.04f, %.04f",
                     pidfOrig.p, pidfOrig.i, pidfOrig.d, pidfOrig.f);
@@ -564,7 +524,9 @@ public class TeleOpFSM extends DarienOpModeFSM {
             //       (getRuntime() - lastCameraDetectionTime) * 1000);
             telemetry.addData("Odometry Pos (X,Y)", String.format("%.1f, %.1f", robotX, robotY));
             telemetry.addData("Odometry Bearing (deg)", String.format("%.1f", Math.toDegrees(robotHeadingRadians)));
-            displayTurretTelemetry(yaw, rawBearingDeg, currentHeadingDeg, currentTurretPosition, targetServoPos, range);
+            telemetry.addData("TURRET: State", turretFSM.getState().toString());
+            telemetry.addData("TURRET: Current Turret Pos", turretFSM.getPosition());
+
             telemetry.update();
         } //while opModeIsActive
     } //runOpMode
@@ -585,10 +547,10 @@ public class TeleOpFSM extends DarienOpModeFSM {
             //aprilTagDetections.removeIf(tag -> tag.id != 24);
             if (targetGoalTagId == APRILTAG_ID_GOAL_RED) {
                 aprilTagDetections.removeIf(tag -> tag.id == 20 || tag.id == 21 || tag.id == 22 || tag.id == 23);
-                turretOffset = TURRET_OFFSET_RED;
+                turretFSM.setOffsetRed();
             } else if (targetGoalTagId == APRILTAG_ID_GOAL_BLUE) {
                 aprilTagDetections.removeIf(tag -> tag.id == 24 || tag.id == 21 || tag.id == 22 || tag.id == 23);
-                turretOffset = TURRET_OFFSET_BLUE;
+                turretFSM.setOffsetBlue();
             }
             if (!aprilTagDetections.isEmpty()) {
                 telemetry.addLine("Goal Detection: FOUND APRILTAG!");
@@ -607,12 +569,8 @@ public class TeleOpFSM extends DarienOpModeFSM {
 
                     if (!isCalculatingTurretTargetPosition) {
                         isCalculatingTurretTargetPosition = true;
-                        targetServoPos = TURRET_POSITION_CENTER + turretOffset + RATIO_BETWEEN_TURRET_GEARS * rawBearingDeg / FIVE_ROTATION_SERVO_SPAN_DEG;
-                        if (!Double.isNaN(targetServoPos)) {
-                            currentTurretPosition = targetServoPos;
-                            turretServo.setPosition(targetServoPos);
-                            // lastCameraDetectionTime = getRuntime();  // Update last detection time
-                        }
+                        turretFSM.alignToBearing(rawBearingDeg);
+                        // lastCameraDetectionTime = getRuntime();  // Update last detection time
                     }
                 } else if (detection.ftcPose == null) {
                     telemetry.addLine("Goal Detection: WARNING - Pose estimation failed!");
@@ -630,16 +588,6 @@ public class TeleOpFSM extends DarienOpModeFSM {
 
         } // end tagFSM is done
         isCalculatingTurretTargetPosition = false;
-    }
-
-    private void displayTurretTelemetry(double yaw, double rawBearingDeg, double currentHeadingDeg, double currentTurretPosition, double targetServoPos, double distanceFromGoal) {
-        //telemetry.addData("TURRET: yaw", yaw);
-        telemetry.addData("TURRET: Raw Bearing Deg (alpha)", rawBearingDeg);
-        //telemetry.addData("TURRET: currentHeadingDeg (C0)", currentHeadingDeg);
-        telemetry.addData("TURRET: Current Turret Pos", currentTurretPosition);
-        telemetry.addData("TURRET: Target Turret Pos", targetServoPos);
-        //telemetry.addData("TURRET: range", distanceFromGoal);
-        // DO NOT ADD telemetry.update() HERE
     }
 
 } //TeleOpFSM class
