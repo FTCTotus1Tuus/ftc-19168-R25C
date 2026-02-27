@@ -93,23 +93,8 @@ public class BlueAudience1 extends DarienOpModeFSM {
 
             // Drive the state machine
             pathState = autonomousPathUpdate();
-
-
-            /*
-            // Update tray servo FSM if running
-            if (trayServoFSM.isRunning()) {
-                trayServoFSM.update(getRuntime());
-                if (!trayServoFSM.isRunning()) {
-                    // Update current tray position when done
-                    currentTrayPosition = targetTrayPosition;
-                }
-            }
-
-             */
-
+            
             // Panels/driver telemetry
-            panelsTelemetry.addData("Tray Curr", currentTrayPosition);
-            //panelsTelemetry.addData("Tray Targ", targetTrayPosition);
             panelsTelemetry.addData("Path State", pathState);
             panelsTelemetry.addData("X", follower.getPose().getX());
             panelsTelemetry.addData("Y", follower.getPose().getY());

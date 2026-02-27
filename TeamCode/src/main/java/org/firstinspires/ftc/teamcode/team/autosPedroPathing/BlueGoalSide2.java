@@ -19,7 +19,6 @@ import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.team.fsm.DarienOpModeFSM;
-import org.firstinspires.ftc.teamcode.team.fsm.TrayFSM;
 
 /**
  * Pedro Pathing auto using LinearOpMode via DarienOpModeFSM.
@@ -87,9 +86,6 @@ public class BlueGoalSide2 extends DarienOpModeFSM {
         setPathState(0);
 
         targetGoalId = APRILTAG_ID_GOAL_BLUE;
-        // Set the initial tray position immediately.
-        //TrayServo.setPosition(TRAY_POS_2_SCORE);
-
 
         // --- MAIN AUTONOMOUS LOOP ---
         while (opModeIsActive() && !isStopRequested()) {
@@ -99,13 +95,8 @@ public class BlueGoalSide2 extends DarienOpModeFSM {
 
             // Drive the state machine
             pathState = autonomousPathUpdate();
-
-
-
-
+            
             // Panels/driver telemetry
-            panelsTelemetry.addData("Tray Curr", currentTrayPosition);
-            //panelsTelemetry.addData("Tray Targ", targetTrayPosition);
             panelsTelemetry.addData("Path State", pathState);
             panelsTelemetry.addData("X", follower.getPose().getX());
             panelsTelemetry.addData("Y", follower.getPose().getY());

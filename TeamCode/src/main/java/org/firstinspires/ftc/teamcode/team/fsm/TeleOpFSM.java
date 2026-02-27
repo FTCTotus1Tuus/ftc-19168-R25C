@@ -371,7 +371,6 @@ public class TeleOpFSM extends DarienOpModeFSM {
                 telemetry.addData("Turret Min/Max/Inc", "%.3f / %.3f / %.3f", TURRET_ROTATION_MIN, TURRET_ROTATION_MAX, TURRET_ROTATION_INCREMENT); */
 
             //CONTROL: EJECTION MOTORS
-            //if (!trayFSM.isAutoIntakeRunning()) {
                 //Latch control
                 if (gamepad2.right_stick_y < -.05) {
                     shotgunPowerLatch = ShotgunPowerLevel.HIGH;

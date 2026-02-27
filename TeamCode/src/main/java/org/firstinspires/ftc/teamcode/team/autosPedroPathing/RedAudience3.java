@@ -81,9 +81,6 @@ public class RedAudience3 extends DarienOpModeFSM {
         setPathState(0);
 
         targetGoalId = APRILTAG_ID_GOAL_RED;
-        // Set the initial tray position immediately.
-        //  TrayServo.setPosition(TRAY_POS_1_SCORE);
-        // Constantly run top roller in intake mode
 
         // --- MAIN AUTONOMOUS LOOP ---
         while (opModeIsActive() && !isStopRequested()) {
@@ -94,22 +91,7 @@ public class RedAudience3 extends DarienOpModeFSM {
             // Drive the state machine
             pathState = autonomousPathUpdate();
 
-
-            /*
-            // Update tray servo FSM if running
-            if (trayServoFSM.isRunning()) {
-                trayServoFSM.update(getRuntime());
-                if (!trayServoFSM.isRunning()) {
-                    // Update current tray position when done
-                    currentTrayPosition = targetTrayPosition;
-                }
-            }
-
-             */
-
             // Panels/driver telemetry
-            // panelsTelemetry.addData("Tray Curr", currentTrayPosition);
-            //panelsTelemetry.addData("Tray Targ", targetTrayPosition);
             panelsTelemetry.addData("Path State", pathState);
             panelsTelemetry.addData("X", follower.getPose().getX());
             panelsTelemetry.addData("Y", follower.getPose().getY());
@@ -276,8 +258,6 @@ public class RedAudience3 extends DarienOpModeFSM {
                 //start reading april tags
                 telemetry.addLine("Case " + pathState + ": Wait for Camera");
 
-                // Set the initial tray position
-                //TrayServo.setPosition(TRAY_POS_1_SCORE);
                 tagFSM.start(getRuntime());
                 follower.setMaxPower(PATH_POWER_STANDARD * .75); //normal speed
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
@@ -333,8 +313,6 @@ public class RedAudience3 extends DarienOpModeFSM {
                 if (shootPatternFSM.isShootPatternDone() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
 
                     rubberBandsFront.setPower(INTAKE_RUBBER_BANDS_POWER);
-                    //  topIntake.setPower(-INTAKE_INTAKE_ROLLER_POWER);
-                    //setTrayPosition(TRAY_POS_3_INTAKE);
                     follower.followPath(paths.IntakePosition, true);
                     setPathState(pathState + 1);
                 }
@@ -358,7 +336,6 @@ public class RedAudience3 extends DarienOpModeFSM {
 
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) { // increased time to allow for motor to spin up
                     follower.setMaxPower(PATH_POWER_STANDARD); //reset to normal speed
-                    //setTrayPosition(TRAY_POS_2_SCORE);
 
                     shootArtifactFSM.shotGun(SHOT_GUN_POWER_UP_FAR);
                     follower.followPath(paths.ShootingPosition2, true);
@@ -384,13 +361,6 @@ public class RedAudience3 extends DarienOpModeFSM {
                 shootPatternFSM.updateShootPattern(getRuntime());
 
                 if (shootPatternFSM.isShootPatternDone() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
-                  /*
-                    rubberBands.setPower(0);
-                    topIntake.setPower(0);
-                    leftIntake.setPower(0);
-                    rightIntake.setPower(0);
-                   */
-                    //TrayServo.setPosition(TRAY_POS_2_INTAKE);
                     follower.followPath(paths.IntakePosition2, true);
                     setPathState(pathState + 1);
                 }
@@ -416,7 +386,6 @@ public class RedAudience3 extends DarienOpModeFSM {
 
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) { // increased time to allow for motor to spin up
                     follower.setMaxPower(PATH_POWER_STANDARD); //reset to normal speed
-                    //setTrayPosition(TRAY_POS_2_SCORE);
 
                     shootArtifactFSM.shotGun(SHOT_GUN_POWER_UP_FAR);
                     follower.followPath(paths.ShootingPosition3, true);
@@ -445,8 +414,6 @@ public class RedAudience3 extends DarienOpModeFSM {
                 if (shootPatternFSM.isShootPatternDone() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
 
                     rubberBandsFront.setPower(INTAKE_RUBBER_BANDS_POWER);
-                    //  topIntake.setPower(-INTAKE_INTAKE_ROLLER_POWER);
-                    //setTrayPosition(TRAY_POS_3_INTAKE);
                     follower.followPath(paths.IntakePosition3, true);
                     setPathState(pathState + 1);
                 }
@@ -470,7 +437,6 @@ public class RedAudience3 extends DarienOpModeFSM {
 
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) { // increased time to allow for motor to spin up
                     follower.setMaxPower(PATH_POWER_STANDARD); //reset to normal speed
-                    //setTrayPosition(TRAY_POS_2_SCORE);
 
                     shootArtifactFSM.shotGun(SHOT_GUN_POWER_UP_FAR);
                     follower.followPath(paths.ShootingPosition4, true);

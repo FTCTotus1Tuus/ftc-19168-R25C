@@ -35,7 +35,6 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     public AprilTagDetectionFSM tagFSM;
     public ShootPatternFSM shootPatternFSM;
     public ShootArtifactFSM shootArtifactFSM;
-    public TrayFSM trayFSM;
     public ShotgunFSM shotgunFSM;
     public TurretFSM turretFSM;
     public MotorHelper MotorHelper;
@@ -130,7 +129,6 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     public static int APRILTAG_GAIN = 255;       // 0-255 (higher = brighter in low light, start at max)
 
     // DYNAMIC VARIABLES
-    public double currentTrayPosition;
     public double currentTurretPosition;
 
     public int targetGoalId = 0;
@@ -197,10 +195,6 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
         turretFSM = new TurretFSM(this);
         gateFSM = new GateFSM(this.hardwareMap);
 
-        //trayServoFSM = new ServoIncrementalFSM(TrayServo);
-        //currentTrayPosition = TRAY_POS_1_SCORE; // set a default tray position
-
-
         telemetry.addLine("FTC 19168 Robot Initialization Done!");
         telemetry.update();
     }
@@ -211,37 +205,6 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
         DcMotor motor = hardwareMap.get(DcMotor.class, name);
         motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         return motor;
-    }
-
-    public void servoIncremental(Servo servo, double endPos, double startPos, double endDuration, double divisor) {
-        //calculate how many increments it will take to reach to position in the target time
-        double currentPos;
-        double startTime = getRuntime();
-        double currentTime = startTime;
-
-        while (currentTime - startTime < endDuration) {
-            if (endPos > startPos) {
-                // rotate tray clockwise
-                currentPos = ((endPos - startPos) / (endDuration - (currentTime - startTime))) * (currentTime - startTime) + startPos;
-            } else {
-                // rotate tray counterclockwise
-                currentPos = ((startPos - endPos) / (endDuration - (currentTime - startTime))) * (currentTime - startTime) + endPos;
-            }
-            servo.setPosition(currentPos / divisor);
-
-            //telemetry.addData("currentPos:", currentPos);
-            //telemetry.addData("currentTime:", currentTime);
-            //telemetry.update();
-            //tp.put("currentServo", currentPos);
-            //tp.put("currentTime", currentTime);
-
-            //dash.sendTelemetryPacket(tp);
-
-            if (currentPos >= endPos) {
-                return;
-            }
-            currentTime = getRuntime();
-        }
     }
 
     /**
@@ -445,13 +408,6 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
         ledRightRed.setState(true);
     }
 
-
-    //Red when start
-    //amber when intaking
-    //green when done intaking
-    //amber when shooting
-    //red when done shooting
-
     /** Clamp a value between a minimum and maximum.
      *
      * @param val The value to clamp.
@@ -463,35 +419,4 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
         return Math.max(min, Math.min(max, val));
     }
 
-    //goal: automate intake as much as possible, save tray positions, checking if there are balls in either of 3 slots, not just yes not but color aswell, automate intake, sensor checks if ball is in, then rotate, intake etc...
-   /* public void intakeColorSensorTelemetry() {
-        if (intakeColorSensor == null) {
-            telemetry.addLine("Intake Color Sensor: not configured");
-            return;
-        }
-
-        // Read once and reuse to keep values consistent
-        com.qualcomm.robotcore.hardware.NormalizedRGBA colors = intakeColorSensor.getNormalizedColors();
-
-        // Convert normalized 0.0-1.0 channels to 0-255 ints (clamped and rounded)
-        int r255 = (int) (clamp(colors.red, 0.0, 1.0) * 255.0 + 0.5);
-        int g255 = (int) (clamp(colors.green, 0.0, 1.0) * 255.0 + 0.5);
-        int b255 = (int) (clamp(colors.blue, 0.0, 1.0) * 255.0 + 0.5);
-        int a255 = (int) (clamp(colors.alpha, 0.0, 1.0) * 255.0 + 0.5);
-
-        // Compute HSV from 0-255 RGB
-        float[] hsvValues = new float[3];
-        android.graphics.Color.RGBToHSV(r255, g255, b255, hsvValues);
-
-        // Telemetry: normalized and 0-255 values plus hue
-        telemetry.addData("Intake Color - Alpha (0-1)", colors.alpha);
-        telemetry.addData("Intake Color - Alpha (0-255)", a255);
-        telemetry.addData("Intake Color - Red (0-1)  ", colors.red);
-        telemetry.addData("Intake Color - Red (0-255)", r255);
-        telemetry.addData("Intake Color - Green (0-1)", colors.green);
-        telemetry.addData("Intake Color - Green (0-255)", g255);
-        telemetry.addData("Intake Color - Blue (0-1) ", colors.blue);
-        telemetry.addData("Intake Color - Blue (0-255) ", b255);
-        telemetry.addData("Intake Color - Hue (deg)   ", hsvValues[0]);
-    }*/
 }

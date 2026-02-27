@@ -19,7 +19,6 @@ import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.team.fsm.DarienOpModeFSM;
-import org.firstinspires.ftc.teamcode.team.fsm.TrayFSM;
 
 /**
  * Pedro Pathing auto using LinearOpMode via DarienOpModeFSM.
@@ -100,8 +99,6 @@ public class RedGoalSide2 extends DarienOpModeFSM {
 
 
             // Panels/driver telemetry
-            panelsTelemetry.addData("Tray Curr", currentTrayPosition);
-            //panelsTelemetry.addData("Tray Targ", targetTrayPosition);
             panelsTelemetry.addData("Path State", pathState);
             panelsTelemetry.addData("X", follower.getPose().getX());
             panelsTelemetry.addData("Y", follower.getPose().getY());

@@ -92,11 +92,8 @@ public class RedGoalSide1 extends DarienOpModeFSM {
 
             // Drive the state machine
             pathState = autonomousPathUpdate();
-
-
+            
             // Panels/driver telemetry
-            panelsTelemetry.addData("Tray Curr", currentTrayPosition);
-            //panelsTelemetry.addData("Tray Targ", targetTrayPosition);
             panelsTelemetry.addData("Path State", pathState);
             panelsTelemetry.addData("X", follower.getPose().getX());
             panelsTelemetry.addData("Y", follower.getPose().getY());
