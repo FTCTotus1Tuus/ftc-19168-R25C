@@ -39,6 +39,7 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     public ShotgunFSM shotgunFSM;
     public TurretFSM turretFSM;
     public MotorHelper MotorHelper;
+    public GateFSM gateFSM;
 
     // AprilTag
     public ArrayList<AprilTagDetection> aprilTagDetections;
@@ -50,7 +51,7 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     public FtcDashboard dash;
 
     // HARDWARE DEVICES
-    public Servo turretServo, gateServo;
+    public Servo turretServo;
     public CRServo rampServoLow, rampServoHigh, rubberBandsMid, intakeRear;
     public DcMotorEx ejectionMotor, rubberBandsFront;
     public DigitalChannel ledRightGreen, ledLeftGreen, ledRightRed, ledLeftRed;
@@ -70,8 +71,6 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     public static final int RATIO_BETWEEN_TURRET_GEARS = 6;
 
     // HARDWARE TUNING CONSTANTS
-    public static double GATE_OPEN = .4;
-    public static double GATE_CLOSED = .55;
     public static double INTAKE_DISTANCE = 5; // cm
     public static double SHOT_GUN_POWER_UP = 0.60;
     public static double SHOT_GUN_POWER_UP_FAR = 0.64;//66
@@ -158,7 +157,7 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
         rampServoHigh = hardwareMap.get(CRServo.class, "rampServoHigh");
         rubberBandsMid = hardwareMap.get(CRServo.class, "rubberBandsMid");
         intakeRear = hardwareMap.get(CRServo.class, "intakeRear");
-        gateServo = hardwareMap.get(Servo.class, "gateServo");
+
         turretServo.setPosition(TURRET_POSITION_CENTER); // set to center position
         currentTurretPosition = TURRET_POSITION_CENTER;
 
@@ -196,6 +195,7 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
         shootPatternFSM = new ShootPatternFSM(this);
         shotgunFSM = new ShotgunFSM(SHOT_GUN_POWER_UP, SHOT_GUN_POWER_UP_FAR, ejectionMotor, this, MotorHelper);
         turretFSM = new TurretFSM(this);
+        gateFSM = new GateFSM(this.hardwareMap);
 
         //trayServoFSM = new ServoIncrementalFSM(TrayServo);
         //currentTrayPosition = TRAY_POS_1_SCORE; // set a default tray position
