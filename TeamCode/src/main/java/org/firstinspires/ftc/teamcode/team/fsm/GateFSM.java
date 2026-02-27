@@ -1,10 +1,12 @@
 package org.firstinspires.ftc.teamcode.team.fsm;
 
+import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
+@Config
 public class GateFSM {
 
     // HARDWARE DEVICES
