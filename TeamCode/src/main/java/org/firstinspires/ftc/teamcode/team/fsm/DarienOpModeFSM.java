@@ -4,7 +4,6 @@ import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.bylazar.configurables.annotations.Configurable;
-import com.qualcomm.hardware.rev.RevTouchSensor;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -13,7 +12,6 @@ import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
 import com.qualcomm.robotcore.hardware.Servo;
 
-import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.ExposureControl;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.GainControl;
 import org.firstinspires.ftc.teamcode.team.MotorHelper;
@@ -61,8 +59,6 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     public NormalizedColorSensor middleColorSensor;
     public NormalizedColorSensor turretColorSensor;
 
-    //public RevTouchSensor gateSensor;
-
     // HARDWARE FIXED CONSTANTS
     public static final double encoderResolution = 537.7; //no change unless we change motors
     public static final double wheelDiameter = 3.75; // inches
@@ -76,7 +72,7 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     // HARDWARE TUNING CONSTANTS
     public static double GATE_OPEN = .4;
     public static double GATE_CLOSED = .55;
-    public static double INTAKE_DISTANCE = 5;
+    public static double INTAKE_DISTANCE = 5; // cm
     public static double SHOT_GUN_POWER_UP = 0.60;
     public static double SHOT_GUN_POWER_UP_FAR = 0.64;//66
     public static double SHOT_GUN_POWER_UP_RPM = 850; // tuned to 6000 rpm motor
@@ -99,15 +95,15 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     public static double TIMEOUT_APRILTAG_DETECTION = 0.75; // seconds
 
     public static double INTAKE_RUBBER_BANDS_POWER = .3;
+    public static double INTAKE_RUBBER_BANDS_POWER_HIGH = 0.3;
     public static double OUTPUT_RUBBER_BANDS_POWER = 0.2;
     public static double INTAKE_INTAKE_ROLLER_POWER = 0.3;
+    public static double INTAKE_INTAKE_ROLLER_POWER_HIGH = 1;
     public static double OUTPUT_INTAKE_ROLLER_POWER = 0.2;
     public static double TURRET_ROTATION_INCREMENT = 0.002;
     public static double TURRET_ROTATION_MAX_LEFT = 0.63;
     public static double TURRET_ROTATION_MAX_RIGHT = 0.35;
     public static double TURRET_POSITION_CENTER = 0.5;
-
-    // PIDF Constants for DcMotorEx.setVelocityPIDFCoefficients()
 
     // PID Constants for custom MotorHelper PID functions
     public static double SHOT_GUN_PGAIN = 0.0015;
@@ -179,7 +175,7 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
         ejectionMotor = hardwareMap.get(DcMotorEx.class, "ejectionMotor");
         ejectionMotor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
         ejectionMotor.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-        //ejectionMotor.setVelocityPIDFCoefficients(EJECTION_P, EJECTION_I, EJECTION_D, EJECTION_F);
+        ejectionMotor.setDirection(DcMotorEx.Direction.REVERSE); // Reverse because it is geared
 
         //INITIALIZE LED
 

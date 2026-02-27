@@ -10,7 +10,6 @@ public class ShootArtifactFSM {
         IDLE,
         SHOTGUN_SPINUP,
         GATE_OPEN,
-        ELEVATOR_DOWN,
         FINISHED
     }
 
@@ -22,9 +21,9 @@ public class ShootArtifactFSM {
     private double shootingPower = 0;
 
     // Timings (seconds)
-    public static double ELEVATOR_UP_DELAY = .35;    // elevator up delay
-    public static double ELEVATOR_DOWN_DELAY = .25;   //elevator down delay
-    public static double SPINUP_DELAY = 0.0;    // shotgun running before elevator up
+    public static double GATE_OPEN_DELAY = .35;
+    public static double GATE_CLOSE_DELAY = .25;
+    public static double SPINUP_DELAY = 0.0;    // shotgun running before shooting artifact
 
     public ShootArtifactFSM(DarienOpModeFSM opMode) {
         this.opMode = opMode;
@@ -62,14 +61,14 @@ public class ShootArtifactFSM {
 
             case GATE_OPEN:
                 //opMode.Elevator.setPosition(DarienOpModeFSM.GATE_OPEN);
-                if (currentTime - shootingStartTime >= ELEVATOR_UP_DELAY) {
-                    shootingStage = ShootingStage.ELEVATOR_DOWN;
+                if (currentTime - shootingStartTime >= GATE_OPEN_DELAY) {
+                    shootingStage = ShootingStage.FINISHED;
                     shootingStartTime = currentTime; // Reset timer for next stage
                 }
                 break;
 /*
-            case ELEVATOR_DOWN:
-                opMode.Elevator.setPosition(DarienOpModeFSM.GATE_CLOSED);
+            case FINISHED:
+                //opMode.Elevator.setPosition(DarienOpModeFSM.GATE_CLOSED);
                 if (currentTime - shootingStartTime >= ELEVATOR_DOWN_DELAY) {
                     if (!ejectionMotorsControlledByPattern) {
                         shotGunStop();
@@ -79,6 +78,9 @@ public class ShootArtifactFSM {
                 break;
 
  */
+            case IDLE:
+            default:
+                break;
         }
     }
 
