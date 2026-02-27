@@ -9,14 +9,14 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 @Config
 public class GateFSM {
 
+    public enum GateStates {CLOSED, OPEN}
+
     // HARDWARE DEVICES
     private Servo gateServo;
 
     // HARDWARE TUNING CONSTANTS
     public static double GATE_OPEN = .4;
     public static double GATE_CLOSED = .55;
-
-    private enum GateStates {CLOSED, OPEN}
 
     private GateStates gateState = GateStates.CLOSED;
 
@@ -47,10 +47,11 @@ public class GateFSM {
         switch (gateState) {
             case CLOSED:
                 gateServo.setPosition(GATE_CLOSED);
+                close();
                 break;
             case OPEN:
             default:
-                gateServo.setPosition(GATE_OPEN);
+                open();
                 break;
         }
     }
@@ -60,22 +61,33 @@ public class GateFSM {
      *
      * @return Current state as a string.
      */
-    public String getState() {
-        return gateState.toString();
+    public GateStates getState() {
+        return gateState;
+    }
+
+    /**
+     * Sets the state
+     *
+     * @param state GateStates value
+     */
+    private void setState(GateStates state) {
+        this.gateState = state;
     }
 
     /**
      * Request to open the gate
      */
     public void open() {
-        gateState = GateStates.OPEN;
+        gateServo.setPosition(GATE_OPEN);
+        this.setState(GateStates.OPEN);
     }
 
     /**
      * Request to close the gate
      */
     public void close() {
-        gateState = GateStates.CLOSED;
+        gateServo.setPosition(GATE_CLOSED);
+        this.setState(GateStates.CLOSED);
     }
 
 }

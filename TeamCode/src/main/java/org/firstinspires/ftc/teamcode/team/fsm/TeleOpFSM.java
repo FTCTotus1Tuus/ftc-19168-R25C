@@ -270,7 +270,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
 
 
             // Add debug telemetry
-            telemetry.addData("Gate", gateFSM.getState());
+            telemetry.addData("Gate", gateFSM.getState().toString());
             telemetry.addData("rubberBandsFront Power", rubberBandsFront.getPower());
             telemetry.addData("rubberBandsMid Power", rubberBandsMid.getPower());
 
