@@ -12,8 +12,10 @@ import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
 import com.qualcomm.robotcore.hardware.Servo;
 
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.ExposureControl;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.GainControl;
+import org.firstinspires.ftc.teamcode.team.GoBildaPinpointDriver;
 import org.firstinspires.ftc.teamcode.team.MotorHelper;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 import org.firstinspires.ftc.vision.VisionPortal;
@@ -68,6 +70,8 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     public static final double TICKS_PER_ROTATION = 28*4; // for goBILDA 6000 rpm motor 5203. Each rotation has 28 ticks, and with 4x encoder mode, it's 28*4.
     public static final int FIVE_ROTATION_SERVO_SPAN_DEG = 1800; // Degrees of rotation (5-rotation goBILDA servo)
     public static final int RATIO_BETWEEN_TURRET_GEARS = 6;
+    public static double ROBOT_CENTER_OFFSET_X = 9;
+    public static double ROBOT_CENTER_OFFSET_Y = 9;
 
     // HARDWARE TUNING CONSTANTS
     public static double INTAKE_DISTANCE = 5; // cm
@@ -99,14 +103,25 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     public static double INTAKE_INTAKE_ROLLER_POWER_HIGH = 1;
     public static double OUTPUT_INTAKE_ROLLER_POWER = 0.2;
     public static double TURRET_ROTATION_INCREMENT = 0.002;
-    public static double TURRET_ROTATION_MAX_LEFT = 0.63;
-    public static double TURRET_ROTATION_MAX_RIGHT = 0.35;
     public static double TURRET_POSITION_CENTER = 0.5;
 
+    // Turret range of motion in turret degrees (physically measurable on the robot).
+    // Positive = CCW from center (left), Negative = CW from center (right).
+    // Change these when hardware changes; servo clamp limits are derived automatically.
+    public static double TURRET_MAX_DEG_LEFT = 90.0;  // degrees CCW from center
+    public static double TURRET_MAX_DEG_RIGHT = 90.0;  // degrees CW  from center
+
+    // Servo clamp limits derived from degree limits.
+    // Formula: servo = center ± (degrees / (FIVE_ROTATION_SERVO_SPAN_DEG / RATIO_BETWEEN_TURRET_GEARS))
+    //   = 0.5 ± (degrees / 300)
+    // These are computed at runtime so they always stay in sync with the degree constants above.
+    public double TURRET_ROTATION_MAX_LEFT = TURRET_POSITION_CENTER + TURRET_MAX_DEG_LEFT / ((double) FIVE_ROTATION_SERVO_SPAN_DEG / RATIO_BETWEEN_TURRET_GEARS);
+    public double TURRET_ROTATION_MAX_RIGHT = TURRET_POSITION_CENTER - TURRET_MAX_DEG_RIGHT / ((double) FIVE_ROTATION_SERVO_SPAN_DEG / RATIO_BETWEEN_TURRET_GEARS);
+
     // PID Constants for custom MotorHelper PID functions
-    public static double SHOT_GUN_PGAIN = 0.0015;
-    public static double SHOT_GUN_PGAIN2 = 0.0015;
-    public static double SHOT_GUN_IGAIN = 0.00002;
+    public static double SHOT_GUN_PGAIN = 0.015;
+    public static double SHOT_GUN_PGAIN2 = 0.015;
+    public static double SHOT_GUN_IGAIN = 0.0002;
     public static double SHOT_GUN_PDUTY_MIN = -0.5;
     public static double SHOT_GUN_PDUTY_MAX = 1;
     public static double SHOT_GUN_IDUTY_MIN = 0;
@@ -130,6 +145,22 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
 
     // DYNAMIC VARIABLES
     public double currentTurretPosition;
+
+    // FIELD GOAL POSITION CONSTANTS (in inches, Pedro Pathing coordinate system)
+    // (0,0) = left audience side (red loading zone), (72,72) = field center, (144,144) = red goal
+    public static final double GOAL_RED_X = 144;
+    public static final double GOAL_RED_Y = 144;
+    public static final double GOAL_BLUE_X = 0;
+    public static final double GOAL_BLUE_Y = 144;
+
+    // HUMAN PLAYER POSITION CONSTANTS (in inches, Pedro Pathing coordinate system)
+    public static final double HUMAN_PLAYER_RED_X = 0;
+    public static final double HUMAN_PLAYER_RED_Y = 0;
+    public static final double HUMAN_PLAYER_BLUE_X = 144;
+    public static final double HUMAN_PLAYER_BLUE_Y = 0;
+
+    // ODOMETRY AIMING TUNING
+    public static double CAMERA_FALLBACK_TIMEOUT_MS = 500; // Auto-switch to odometry after this timeout
 
     public int targetGoalId = 0;
     public enum ShotgunPowerLevel {
