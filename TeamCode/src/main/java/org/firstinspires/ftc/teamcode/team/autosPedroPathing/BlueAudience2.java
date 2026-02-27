@@ -92,7 +92,7 @@ public class BlueAudience2 extends DarienOpModeFSM {
 
             // Drive the state machine
             pathState = autonomousPathUpdate();
-            
+
             // Panels/driver telemetry
             panelsTelemetry.addData("Path State", pathState);
             panelsTelemetry.addData("X", follower.getPose().getX());
@@ -458,6 +458,19 @@ public class BlueAudience2 extends DarienOpModeFSM {
             case 17:
                 // finish the move to parking
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
+                    // Save final odometry position to SharedPreferences for TeleOp
+                    SharedPreferences prefs = AppUtil.getInstance().getActivity().getSharedPreferences("ftc_prefs", android.content.Context.MODE_PRIVATE);
+                    prefs.edit()
+                            .putFloat("auto_final_x", (float) follower.getPose().getX())
+                            .putFloat("auto_final_y", (float) follower.getPose().getY())
+                            .putFloat("auto_final_heading", (float) follower.getPose().getHeading())
+                            .apply();
+
+                    telemetry.addData("Saved Odometry", String.format("X=%.1f, Y=%.1f, H=%.1f°",
+                                                                      follower.getPose().getX(),
+                                                                      follower.getPose().getY(),
+                                                                      Math.toDegrees(follower.getPose().getHeading())));
+
                     setPathState(-1);
                 }
                 break;

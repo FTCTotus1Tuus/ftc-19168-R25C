@@ -95,7 +95,7 @@ public class BlueGoalSide2 extends DarienOpModeFSM {
 
             // Drive the state machine
             pathState = autonomousPathUpdate();
-            
+
             // Panels/driver telemetry
             panelsTelemetry.addData("Path State", pathState);
             panelsTelemetry.addData("X", follower.getPose().getX());
@@ -492,6 +492,20 @@ public class BlueGoalSide2 extends DarienOpModeFSM {
                 if (shootPatternFSM.isShootPatternDone()) {
                     telemetry.addLine("Case " + pathState + ": Done, setting state -1");
                     //rubberBands.setPower(0);
+
+                    // Save final odometry position to SharedPreferences for TeleOp
+                    SharedPreferences prefs = AppUtil.getInstance().getActivity().getSharedPreferences("ftc_prefs", android.content.Context.MODE_PRIVATE);
+                    prefs.edit()
+                            .putFloat("auto_final_x", (float) follower.getPose().getX())
+                            .putFloat("auto_final_y", (float) follower.getPose().getY())
+                            .putFloat("auto_final_heading", (float) follower.getPose().getHeading())
+                            .apply();
+
+                    telemetry.addData("Saved Odometry", String.format("X=%.1f, Y=%.1f, H=%.1f°",
+                                                                      follower.getPose().getX(),
+                                                                      follower.getPose().getY(),
+                                                                      Math.toDegrees(follower.getPose().getHeading())));
+
                     setPathState(-1); // done
                 }
                 break;
