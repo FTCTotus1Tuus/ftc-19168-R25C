@@ -43,6 +43,7 @@ public class ShotgunFSM {
     public void toOff() {
         current = State.OFF;
         shotgunMotor.setPower(0);
+        pidOutput = new double[]{0, 0, 0, 0}; // Reset pid output to prevent stale iduty from previous shot from carrying into the next spin-up.
     }
 
     public void toPowerUp(double power) {

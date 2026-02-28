@@ -63,16 +63,17 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     public static final double inchesToEncoder = encoderResolution / constMult;
     public static final double PI = 3.1416;
     public static final double TICKS_PER_ROTATION = 28*4; // for goBILDA 6000 rpm motor 5203. Each rotation has 28 ticks, and with 4x encoder mode, it's 28*4.
+    //public static double TICKS_PER_ROTATION = 103.8 * 4; // for goBILDA 1620 rpm motor 5202. Each rotation has 103.8 PPR at the Output Shaft, and with quadrature (4x) encoder mode, it's 103.8 * 4 = 415.2
     public static double ROBOT_CENTER_OFFSET_X = 8.5;
     public static double ROBOT_CENTER_OFFSET_Y = 8.25;
 
     // HARDWARE TUNING CONSTANTS
     public static double SHOT_GUN_POWER_UP = 0.60;
     public static double SHOT_GUN_POWER_UP_FAR = 0.64;//66
-    public static double SHOT_GUN_POWER_UP_RPM = 850; // tuned to 6000 rpm motor
-    public static double SHOT_GUN_POWER_UP_RPM_AUTO = 650;
-    public static double SHOT_GUN_POWER_UP_FAR_RPM_AUTO = 760;// tuned to 6000 rpm motor
-    public static double SHOT_GUN_POWER_UP_FAR_RPM_TELEOP = 1200; // tuned to 6000 rpm motor
+    public static double SHOT_GUN_POWER_UP_RPM = 1030; // tuned to 6000 rpm motor
+    public static double SHOT_GUN_POWER_UP_RPM_AUTO = 1030;
+    public static double SHOT_GUN_POWER_UP_FAR_RPM_AUTO = 1350;// tuned to 6000 rpm motor
+    public static double SHOT_GUN_POWER_UP_FAR_RPM_TELEOP = 1350; // tuned to 6000 rpm motor
     public static double SHOT_GUN_POWER_DOWN = 0.2; // tuned to 6000 rpm motor
 
     // For FTC AprilTag detection with a Logitech C910 webcam,
@@ -89,10 +90,10 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     public static double TIMEOUT_APRILTAG_DETECTION = 0.75; // seconds
 
     // PID Constants for custom MotorHelper PID functions
-    public static double SHOT_GUN_PGAIN = 0.0005;
+    public static double SHOT_GUN_PGAIN = 0.002;
     public static double SHOT_GUN_PGAIN2 = 0.0005;
-    public static double SHOT_GUN_IGAIN = 0.0001;
-    public static double SHOT_GUN_PDUTY_MIN = -0.5;
+    public static double SHOT_GUN_IGAIN = 0.00003;
+    public static double SHOT_GUN_PDUTY_MIN = -0.5; // SHOT_GUN_PDUTY_MIN = -0.5 may cause the PID to brake the motor if it overshoots — consider setting it to 0.0 for a flywheel since you never want reverse braking.
     public static double SHOT_GUN_PDUTY_MAX = 1;
     public static double SHOT_GUN_IDUTY_MIN = 0;
     public static double SHOT_GUN_IDUTY_MAX = 1;
