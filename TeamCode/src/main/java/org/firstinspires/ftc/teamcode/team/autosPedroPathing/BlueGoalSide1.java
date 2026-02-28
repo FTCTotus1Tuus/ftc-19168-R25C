@@ -264,7 +264,7 @@ public class BlueGoalSide1 extends DarienOpModeFSM {
 
                 if (shootPatternFSM.isShootPatternDone() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
 
-                    rubberBandsFront.setPower(INTAKE_RUBBER_BANDS_POWER);
+                    //rubberBandsFront.setPower(INTAKE_RUBBER_BANDS_POWER);
                     // topIntake.setPower(-INTAKE_INTAKE_ROLLER_POWER);
 
                     // now continue with next path
@@ -328,7 +328,7 @@ public class BlueGoalSide1 extends DarienOpModeFSM {
                     follower.setMaxPower(PATH_POWER_STANDARD);// resume normal speed
 
                     follower.followPath(paths.ShootingPosition2, true);
-                    rubberBandsFront.setPower(0);
+                    //rubberBandsFront.setPower(0);
                     //topIntake.setPower(0);
                     shootArtifactFSM.shotGun(SHOT_GUN_POWER_UP);
                     setPathState(pathState + 1);

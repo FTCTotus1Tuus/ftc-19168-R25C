@@ -119,12 +119,14 @@ public class TrayFSM {
     }
 
     // Dashboard-editable intake powers
-    public static double INTAKE_RUBBER_BANDS_POWER = DarienOpModeFSM.INTAKE_RUBBER_BANDS_POWER;
-    public static double INTAKE_INTAKE_ROLLER_POWER = DarienOpModeFSM.INTAKE_INTAKE_ROLLER_POWER;
+    public static double INTAKE_RUBBER_BANDS_POWER = 0;
+    public static double INTAKE_INTAKE_ROLLER_POWER = 0;
+    //public static double INTAKE_RUBBER_BANDS_POWER = DarienOpModeFSM.INTAKE_RUBBER_BANDS_POWER;
+    //public static double INTAKE_INTAKE_ROLLER_POWER = DarienOpModeFSM.INTAKE_INTAKE_ROLLER_POWER;
 
     // Start the automatic intake process. This will clear previous slot data and begin at first empty intake slot.
     public void startAutoIntake() {
-        opMode.setLedRed();
+        //opMode.setLedRed();
         Arrays.fill(slots, SlotState.EMPTY);
         // reset detection window so previous readings don't affect new intake
         Arrays.fill(detectionWindow, SlotState.EMPTY);
