@@ -12,7 +12,7 @@ public class GateFSM {
     public enum GateStates {CLOSED, OPEN}
 
     // HARDWARE DEVICES
-    private Servo gateServo;
+    private final Servo gateServo;
 
     // HARDWARE TUNING CONSTANTS
     public static double GATE_OPEN = .4;
@@ -33,7 +33,8 @@ public class GateFSM {
      * Initializes the hardware and state machine
      */
     public void init() {
-
+        gateState = GateStates.CLOSED;
+        gateServo.setPosition(GATE_CLOSED);
     }
 
     /**
@@ -46,7 +47,6 @@ public class GateFSM {
     public void update(double currentTime, boolean debug, Telemetry telemetry) {
         switch (gateState) {
             case CLOSED:
-                gateServo.setPosition(GATE_CLOSED);
                 close();
                 break;
             case OPEN:

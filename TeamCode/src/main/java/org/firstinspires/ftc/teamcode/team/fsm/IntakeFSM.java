@@ -103,8 +103,6 @@ public class IntakeFSM {
 
         // INITIALIZE MOTORS
         rubberBandsFront = hardwareMap.get(DcMotorEx.class, "rubberBandsFront");
-        rubberBandsFront.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
-        rubberBandsFront.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
 
         // INITIALIZE SERVOS
         rampServoLow = hardwareMap.get(CRServo.class, "rampServoLow");
@@ -133,7 +131,16 @@ public class IntakeFSM {
      * Initializes the hardware and state machine
      */
     public void init() {
+        rubberBandsFront.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+        rubberBandsFront.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+        // Set LED channels to OUTPUT once — never needs to change
+        ledLeftGreen.setMode(DigitalChannel.Mode.OUTPUT);
+        ledLeftRed.setMode(DigitalChannel.Mode.OUTPUT);
+        ledRightGreen.setMode(DigitalChannel.Mode.OUTPUT);
+        ledRightRed.setMode(DigitalChannel.Mode.OUTPUT);
         setLedRed();
+        mode = IntakeModes.OFF;
+        state = States.IDLE;
     }
 
     /**
@@ -334,48 +341,31 @@ public class IntakeFSM {
     // -------------------------------------------------------------------------
 
     public void setLedRed() {
-        ledLeftGreen.setMode(DigitalChannel.Mode.OUTPUT);
         ledLeftGreen.setState(false);
-        ledLeftRed.setMode(DigitalChannel.Mode.OUTPUT);
         ledLeftRed.setState(true);
-        ledRightGreen.setMode(DigitalChannel.Mode.OUTPUT);
         ledRightGreen.setState(false);
-        ledRightRed.setMode(DigitalChannel.Mode.OUTPUT);
         ledRightRed.setState(true);
     }
 
     public void setLedGreen() {
-        ledLeftGreen.setMode(DigitalChannel.Mode.OUTPUT);
         ledLeftGreen.setState(true);
-        ledLeftRed.setMode(DigitalChannel.Mode.OUTPUT);
         ledLeftRed.setState(false);
-        ledRightGreen.setMode(DigitalChannel.Mode.OUTPUT);
         ledRightGreen.setState(true);
-        ledRightRed.setMode(DigitalChannel.Mode.OUTPUT);
         ledRightRed.setState(false);
     }
 
     public void setLedAmber() {
-        ledLeftGreen.setMode(DigitalChannel.Mode.OUTPUT);
         ledLeftGreen.setState(false);
-        ledLeftRed.setMode(DigitalChannel.Mode.OUTPUT);
         ledLeftRed.setState(false);
-        ledRightGreen.setMode(DigitalChannel.Mode.OUTPUT);
         ledRightGreen.setState(false);
-        ledRightRed.setMode(DigitalChannel.Mode.OUTPUT);
         ledRightRed.setState(false);
     }
 
     public void setLedOff() {
-        ledLeftGreen.setMode(DigitalChannel.Mode.OUTPUT);
         ledLeftGreen.setState(true);
-        ledLeftRed.setMode(DigitalChannel.Mode.OUTPUT);
         ledLeftRed.setState(true);
-        ledRightGreen.setMode(DigitalChannel.Mode.OUTPUT);
         ledRightGreen.setState(true);
-        ledRightRed.setMode(DigitalChannel.Mode.OUTPUT);
         ledRightRed.setState(true);
     }
-
-
+    
 }
