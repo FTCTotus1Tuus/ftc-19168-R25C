@@ -38,8 +38,8 @@ public class TurretFSM {
     // Turret range of motion in turret degrees (physically measurable on the robot).
     // Positive = CCW from center (left), Negative = CW from center (right).
     // Change these when hardware changes; servo clamp limits are derived automatically.
-    public static double TURRET_MAX_DEG_LEFT = 90.0;  // degrees CCW from center
-    public static double TURRET_MAX_DEG_RIGHT = 90.0;  // degrees CW  from center
+    public static double TURRET_MAX_DEG_LEFT = 150.0;  // degrees CCW from center
+    public static double TURRET_MAX_DEG_RIGHT = 180.0;  // degrees CW  from center
 
     // DYNAMIC VARIABLES
     private double TURRET_SERVO_POSITION_MAX_LEFT = TURRET_POSITION_CENTER + 0.1; // Increases counter clockwise

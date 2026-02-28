@@ -452,6 +452,9 @@ public class TeleOpFSM extends DarienOpModeFSM {
             } else if (gamepad2.left_stick_x >= 0.05) {
                 turretFSM.rotateRight();
                 turretFSM.setState(TurretFSM.TurretStates.MANUAL);
+            } else if (gamepad2.left_stick_button) {
+                turretFSM.center();
+                turretFSM.setState(TurretFSM.TurretStates.MANUAL);
             }
             // Odometry-based turret aiming (when not in manual control)
             else if (turretFSM.getState() == TurretFSM.TurretStates.ODOMETRY) {
