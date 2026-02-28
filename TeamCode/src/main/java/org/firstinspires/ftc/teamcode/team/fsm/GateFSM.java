@@ -59,7 +59,7 @@ public class GateFSM {
     /**
      * Gets the state
      *
-     * @return Current state as a string.
+     * @return Current state.
      */
     public GateStates getState() {
         return gateState;

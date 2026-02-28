@@ -41,6 +41,8 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     public TurretFSM turretFSM;
     public MotorHelper MotorHelper;
     public GateFSM gateFSM;
+    public IntakeFSM intakeFSM;
+    public ShootingFSM shootingFSM;
 
     // AprilTag
     public ArrayList<AprilTagDetection> aprilTagDetections;
@@ -52,13 +54,7 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     public FtcDashboard dash;
 
     // HARDWARE DEVICES
-    public CRServo rampServoLow, rampServoHigh, rubberBandsMid, intakeRear;
-    public DcMotorEx ejectionMotor, rubberBandsFront;
-    public DigitalChannel ledRightGreen, ledLeftGreen, ledRightRed, ledLeftRed;
-
-    public NormalizedColorSensor intakeColorSensor;
-    public NormalizedColorSensor middleColorSensor;
-    public NormalizedColorSensor turretColorSensor;
+    public DcMotorEx ejectionMotor;
 
     // HARDWARE FIXED CONSTANTS
     public static final double encoderResolution = 537.7; //no change unless we change motors
@@ -71,7 +67,6 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     public static double ROBOT_CENTER_OFFSET_Y = 9;
 
     // HARDWARE TUNING CONSTANTS
-    public static double INTAKE_DISTANCE = 5; // cm
     public static double SHOT_GUN_POWER_UP = 0.60;
     public static double SHOT_GUN_POWER_UP_FAR = 0.64;//66
     public static double SHOT_GUN_POWER_UP_RPM = 850; // tuned to 6000 rpm motor
@@ -92,13 +87,6 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     //   Distance/size: Tags further away or smaller may need slightly more time
     //   Lighting: Poor lighting may require longer timeout
     public static double TIMEOUT_APRILTAG_DETECTION = 0.75; // seconds
-
-    public static double INTAKE_RUBBER_BANDS_POWER = .3;
-    public static double INTAKE_RUBBER_BANDS_POWER_HIGH = 0.3;
-    public static double OUTPUT_RUBBER_BANDS_POWER = 0.2;
-    public static double INTAKE_INTAKE_ROLLER_POWER = 0.3;
-    public static double INTAKE_INTAKE_ROLLER_POWER_HIGH = 1;
-    public static double OUTPUT_INTAKE_ROLLER_POWER = 0.2;
 
     // PID Constants for custom MotorHelper PID functions
     public static double SHOT_GUN_PGAIN = 0.015;
@@ -157,35 +145,11 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
         tp = new TelemetryPacket();
         dash = FtcDashboard.getInstance();
 
-        // INITIALIZE SERVOS
-        rampServoLow = hardwareMap.get(CRServo.class, "rampServoLow");
-        rampServoHigh = hardwareMap.get(CRServo.class, "rampServoHigh");
-        rubberBandsMid = hardwareMap.get(CRServo.class, "rubberBandsMid");
-        intakeRear = hardwareMap.get(CRServo.class, "intakeRear");
-
-        // INITIALIZE SENSORS
-        intakeColorSensor = hardwareMap.get(NormalizedColorSensor.class, "intakeColorSensor");
-        middleColorSensor = hardwareMap.get(NormalizedColorSensor.class, "middleColorSensor");
-        turretColorSensor = hardwareMap.get(NormalizedColorSensor.class, "turretColorSensor");
-
         // INITIALIZE MOTORS
-        rubberBandsFront = hardwareMap.get(DcMotorEx.class, "rubberBandsFront");
-        rubberBandsFront.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
-        rubberBandsFront.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
-
         ejectionMotor = hardwareMap.get(DcMotorEx.class, "ejectionMotor");
         ejectionMotor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
         ejectionMotor.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
         ejectionMotor.setDirection(DcMotorEx.Direction.REVERSE); // Reverse because it is geared
-
-        //INITIALIZE LED
-
-        ledRightGreen = hardwareMap.get(DigitalChannel.class, "LEDRight1");
-        ledLeftGreen = hardwareMap.get(DigitalChannel.class, "LEDLeft1");
-        ledRightRed = hardwareMap.get(DigitalChannel.class, "LEDRight2");
-        ledLeftRed = hardwareMap.get(DigitalChannel.class, "LEDLeft2");
-        setLedRed();
-
 
         initAprilTag();
 
@@ -200,6 +164,9 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
         turretFSM.init();
         gateFSM = new GateFSM(this.hardwareMap);
         gateFSM.init();
+        intakeFSM = new IntakeFSM(this.hardwareMap, this.gateFSM);
+        intakeFSM.init();
+        shootingFSM = new ShootingFSM(this.gateFSM, this.shotgunFSM, this.intakeFSM);
 
         telemetry.addLine("FTC 19168 Robot Initialization Done!");
         telemetry.update();
@@ -368,50 +335,6 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
             return ticksPerSecond; // if error, return requested power unmodified
         }
 
-    }
-
-    public void setLedRed() {
-        ledLeftGreen.setMode(DigitalChannel.Mode.OUTPUT);
-        ledLeftGreen.setState(false); // LOW turns LED on (typically)
-        ledLeftRed.setMode(DigitalChannel.Mode.OUTPUT);
-        ledLeftRed.setState(true);
-        ledRightGreen.setMode(DigitalChannel.Mode.OUTPUT);
-        ledRightGreen.setState(false);
-        ledRightRed.setMode(DigitalChannel.Mode.OUTPUT);
-        ledRightRed.setState(true);
-    }
-
-    public void setLedGreen() {
-        ledLeftGreen.setMode(DigitalChannel.Mode.OUTPUT);
-        ledLeftGreen.setState(true); // HIGH turns LED off (typically)
-        ledLeftRed.setMode(DigitalChannel.Mode.OUTPUT);
-        ledLeftRed.setState(false);
-        ledRightGreen.setMode(DigitalChannel.Mode.OUTPUT);
-        ledRightGreen.setState(true);
-        ledRightRed.setMode(DigitalChannel.Mode.OUTPUT);
-        ledRightRed.setState(false);
-    }
-
-    public void setLedAmber() {
-        ledLeftGreen.setMode(DigitalChannel.Mode.OUTPUT);
-        ledLeftGreen.setState(false);
-        ledLeftRed.setMode(DigitalChannel.Mode.OUTPUT);
-        ledLeftRed.setState(false);
-        ledRightGreen.setMode(DigitalChannel.Mode.OUTPUT);
-        ledRightGreen.setState(false);
-        ledRightRed.setMode(DigitalChannel.Mode.OUTPUT);
-        ledRightRed.setState(false);
-    }
-
-    public void setLedOff() {
-        ledLeftGreen.setMode(DigitalChannel.Mode.OUTPUT);
-        ledLeftGreen.setState(true); // HIGH turns LED off (typically)
-        ledLeftRed.setMode(DigitalChannel.Mode.OUTPUT);
-        ledLeftRed.setState(true);
-        ledRightGreen.setMode(DigitalChannel.Mode.OUTPUT);
-        ledRightGreen.setState(true);
-        ledRightRed.setMode(DigitalChannel.Mode.OUTPUT);
-        ledRightRed.setState(true);
     }
 
     /** Clamp a value between a minimum and maximum.
