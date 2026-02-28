@@ -18,6 +18,7 @@ import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.team.fsm.DarienOpModeFSM;
+import org.firstinspires.ftc.teamcode.team.fsm.ShootingFSM;
 
 /**
  * Pedro Pathing auto using LinearOpMode via DarienOpModeFSM.
@@ -235,7 +236,7 @@ public class BlueGoalSide3 extends DarienOpModeFSM {
             case 0:
                 telemetry.addLine("Case " + pathState + ": Start Path1");
                 follower.setMaxPower(PATH_POWER_STANDARD);
-                shootingFSM.start();
+                shootingFSM.start(getRuntime(), ShootingFSM.PowerLevel.CLOSE);
                 follower.followPath(paths.ShootingPosition1);
                 setPathState(pathState + 1);
                 break;
