@@ -39,13 +39,14 @@ public class TeleOpFSM extends DarienOpModeFSM {
     // TUNING CONSTANTS
     public static double SHOT_TIMEOUT = 2.0; // seconds
     public static double ROTATION_SCALE = 0.4;
+    public static double SPEED_SCALE = 0.5;
 
     // VARIABLES
     private double shotStartTime;
     private boolean shotStarted = false;
     private boolean isReadingAprilTag = false;
 
-    private ShotgunPowerLevel shotgunPowerLatch = ShotgunPowerLevel.LOW;
+    private ShotgunPowerLevel shotgunPowerLatch = ShotgunPowerLevel.OFF;
 
     private enum ShootingPowerModes {MANUAL, ODOMETRY}
 
@@ -164,7 +165,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
             // -----------------
             // ALWAYS RUN
             // -----------------
-            follower.setTeleOpDrive(-gamepad1.left_stick_y, -gamepad1.left_stick_x, -gamepad1.right_stick_x * ROTATION_SCALE, true);
+            follower.setTeleOpDrive(-gamepad1.left_stick_y * SPEED_SCALE, -gamepad1.left_stick_x * SPEED_SCALE, -gamepad1.right_stick_x * ROTATION_SCALE, true);
             follower.update();
             gateFSM.update(getRuntime(), true, telemetry);
             turretFSM.update();
@@ -269,11 +270,13 @@ public class TeleOpFSM extends DarienOpModeFSM {
                 // ALIGN TO RED GOAL
                 autoAlliance = "RED";
                 targetGoalTagId = APRILTAG_ID_GOAL_RED;
+                turretFSM.setOffsetRed();
                 telemetry.addLine("ALLIANCE SET TO RED!");
             } else if (gamepad2.x && !isReadingAprilTag) {
                 // ALIGN TO BLUE GOAL
                 autoAlliance = "BLUE";
                 targetGoalTagId = APRILTAG_ID_GOAL_BLUE;
+                turretFSM.setOffsetBlue();
                 telemetry.addLine("ALLIANCE SET TO BLUE!");
             }
 
@@ -354,7 +357,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
             } else if (gamepad2.right_stick_y > 0.05) {
                 shotgunPowerLatch = ShotgunPowerLevel.LOW;
                 shootingPowerMode = ShootingPowerModes.MANUAL;
-            } else if (gamepad2.rightStickButtonWasPressed()) {
+            } else if (gamepad2.rightStickButtonWasPressed() || gamepad2.a) {
                 shotgunPowerLatch = ShotgunPowerLevel.OFF;
                 shootingPowerMode = ShootingPowerModes.MANUAL;
             }

@@ -15,7 +15,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 public class IntakeFSM {
     public enum IntakeModes {OFF, FORWARD, REVERSE, FULL, SHOOT}
 
-    public enum States {IDLE, INTAKING, REVERSING, READYTOSHOOT}
+    public enum States {OFF, INTAKING, REVERSING, READYTOSHOOT}
 
     /**
      * Tracks detection state for a single distance sensor.
@@ -76,16 +76,16 @@ public class IntakeFSM {
 
     // HARDWARE TUNING CONSTANTS
     public static double INTAKE_DISTANCE = 5; // cm
-    public static double INTAKE_RUBBER_BANDS_POWER = .3;
-    public static double INTAKE_RUBBER_BANDS_POWER_HIGH = 0.3;
+    public static double INTAKE_RUBBER_BANDS_POWER = .35;
+    public static double INTAKE_RUBBER_BANDS_POWER_HIGH = 0.5;
     public static double OUTPUT_RUBBER_BANDS_POWER = 0.2;
     public static double INTAKE_INTAKE_ROLLER_POWER = 0.3;
     public static double INTAKE_INTAKE_ROLLER_POWER_HIGH = 1;
-    public static double DETECTION_HOLD_TIME = 2.0; // seconds — how long a sensor must see an object before confirming
+    public static double DETECTION_HOLD_TIME = 1.0; // seconds — how long a sensor must see an object before confirming
 
     // PRIVATE VARIABLES
     private IntakeModes mode = IntakeModes.OFF;
-    private States state = States.IDLE;
+    private States state = States.OFF;
 
     // One tracker per sensor — each tracks its own timing and detected flag independently
     private final SensorTracker intakeSensorTracker;
@@ -140,7 +140,7 @@ public class IntakeFSM {
         ledRightRed.setMode(DigitalChannel.Mode.OUTPUT);
         setLedRed();
         mode = IntakeModes.OFF;
-        state = States.IDLE;
+        state = States.OFF;
     }
 
     /**
@@ -195,6 +195,7 @@ public class IntakeFSM {
     public void updateIntaking(double currentTime, boolean debug, Telemetry telemetry) {
         switch (state) {
             case INTAKING:
+                setLedAmber();
                 // Poll each sensor through its own independent tracker
                 if (intakeColorSensor instanceof DistanceSensor) {
                     intakeSensorTracker.update(
@@ -227,17 +228,25 @@ public class IntakeFSM {
 
                 // Auto-stop: once the robot is full, switch to FULL mode (only mid-roller keeps running)
                 if (mode == IntakeModes.FORWARD && allDetected) {
+                    setLedGreen();
                     setMode(IntakeModes.FULL);
                     setState(States.READYTOSHOOT);
-                    setLedGreen();
-                    telemetry.addData("AUTO STOP", "All sensors detected — ready to shoot!");
                 }
                 break;
 
-            case IDLE:
-            case REVERSING:
             case READYTOSHOOT:
+                mode = IntakeModes.FULL;
+                setLedGreen();
+                telemetry.addData("AUTO STOP", "All sensors detected — ready to shoot!");
+                break;
+
+            case REVERSING:
+                mode = IntakeModes.REVERSE;
+                break;
+
+            case OFF:
             default:
+                mode = IntakeModes.OFF;
                 break;
         }
     }
@@ -259,7 +268,7 @@ public class IntakeFSM {
      * Stop all intake motors.
      */
     public void off() {
-        setState(States.IDLE);
+        setState(States.OFF);
         setMode(IntakeModes.OFF);
     }
 
@@ -284,13 +293,13 @@ public class IntakeFSM {
      */
     public void stopAfterShot() {
         setMode(IntakeModes.OFF);
-        setState(States.IDLE);
+        setState(States.OFF);
         setLedRed();
     }
 
-    // -------------------------------------------------------------------------
-    // PRIVATE — MOTOR CONTROL
-    // -------------------------------------------------------------------------
+    // ------------------------|
+    // PRIVATE — MOTOR CONTROL |
+    // ------------------------|
 
     private void setMode(IntakeModes mode) {
         this.mode = mode;
@@ -317,21 +326,21 @@ public class IntakeFSM {
                 rampServoHigh.setPower(-OUTPUT_RUBBER_BANDS_POWER);
                 intakeRear.setPower(OUTPUT_RUBBER_BANDS_POWER);
                 break;
-            case OFF:
-                rubberBandsFront.setPower(0);
+            case FULL:
+                // Front rubber bands stop — only mid-roller keeps the artifact seated
+                rubberBandsFront.setPower(-INTAKE_RUBBER_BANDS_POWER);
                 rubberBandsMid.setPower(0);
                 rampServoLow.setPower(0);
                 rampServoHigh.setPower(0);
                 intakeRear.setPower(0);
                 break;
-            case FULL:
+            case OFF:
             default:
-                // Front rubber bands stop — only mid-roller keeps the artifact seated
                 rubberBandsFront.setPower(0);
-                rubberBandsMid.setPower(-INTAKE_INTAKE_ROLLER_POWER);
-                rampServoLow.setPower(INTAKE_INTAKE_ROLLER_POWER);
-                rampServoHigh.setPower(INTAKE_INTAKE_ROLLER_POWER);
-                intakeRear.setPower(-INTAKE_INTAKE_ROLLER_POWER);
+                rubberBandsMid.setPower(0);
+                rampServoLow.setPower(0);
+                rampServoHigh.setPower(0);
+                intakeRear.setPower(0);
                 break;
         }
     }
@@ -340,14 +349,14 @@ public class IntakeFSM {
     // LED HELPERS
     // -------------------------------------------------------------------------
 
-    public void setLedRed() {
+    public void setLedGreen() {
         ledLeftGreen.setState(false);
         ledLeftRed.setState(true);
         ledRightGreen.setState(false);
         ledRightRed.setState(true);
     }
 
-    public void setLedGreen() {
+    public void setLedRed() {
         ledLeftGreen.setState(true);
         ledLeftRed.setState(false);
         ledRightGreen.setState(true);

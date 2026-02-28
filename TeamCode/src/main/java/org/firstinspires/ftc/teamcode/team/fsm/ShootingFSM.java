@@ -127,6 +127,7 @@ public class ShootingFSM {
 
         switch (stage) {
             case SPINNING_UP:
+                intakeFSM.setLedAmber();
                 telemetry.addData("SHOOTING", "Spinning up — %.2fs / %.2fs", elapsed, SPINUP_DELAY);
                 if (elapsed >= SPINUP_DELAY) {
                     intakeFSM.shootForward(); // run rollers at SHOOT power as gate opens

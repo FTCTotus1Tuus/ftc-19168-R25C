@@ -31,8 +31,15 @@ public class TurretFSM {
     // HARDWARE TUNING CONSTANTS
     public static double TURRET_ROTATION_INCREMENT = 0.004;
     public static double TURRET_POSITION_CENTER = 0.5;
-    public static double TURRET_OFFSET_RED = 0.01;
-    public static double TURRET_OFFSET_BLUE = 0.01;
+    public static double TURRET_OFFSET_DEG_RED = 7;
+    public static double TURRET_OFFSET_DEG_BLUE = -10;
+
+    /**
+     * Distance (inches) from the robot's odometry center of rotation to the turret pivot,
+     * measured along the robot's forward axis. Negative = toward the rear of the robot.
+     * Corrects the parallax aiming error that grows as the robot turns away from the goal.
+     */
+    public static double TURRET_PIVOT_OFFSET_INCHES = -2.0;
 
 
     // Turret range of motion in turret degrees (physically measurable on the robot).
@@ -46,7 +53,10 @@ public class TurretFSM {
     private double TURRET_SERVO_POSITION_MAX_RIGHT = TURRET_POSITION_CENTER - 0.1; // Decreases clockwise
 
     private double currentTurretPosition;
-    private double turretOffset = 0;
+
+    // Alliance flag — determines which static offset constant is read live each loop.
+    // Reading the static directly (not copying it) means Dashboard changes take effect immediately.
+    private boolean isBlueAlliance = false;
 
 
     /**
@@ -91,9 +101,15 @@ public class TurretFSM {
     private double calculateTurretAngleFromOdometry(double goalX, double goalY,
                                                    double robotX, double robotY,
                                                    double robotHeadingRadians) {
-        // Calculate vector from robot to goal
-        double deltaX = goalX - robotX;
-        double deltaY = goalY - robotY;
+        // Shift origin from robot center-of-rotation to the turret pivot.
+        // TURRET_PIVOT_OFFSET_INCHES is negative (pivot is behind the robot center),
+        // so we project it along the robot's current heading into field coordinates.
+        double pivotX = robotX + Math.cos(robotHeadingRadians) * TURRET_PIVOT_OFFSET_INCHES;
+        double pivotY = robotY + Math.sin(robotHeadingRadians) * TURRET_PIVOT_OFFSET_INCHES;
+
+        // Calculate vector from turret pivot to goal
+        double deltaX = goalX - pivotX;
+        double deltaY = goalY - pivotY;
 
         // Calculate bearing angle to goal in radians (0 = along X axis, counterclockwise positive)
         double bearingToGoalRadians = Math.atan2(deltaY, deltaX);
@@ -102,13 +118,14 @@ public class TurretFSM {
         // Positive = counterclockwise from robot forward = left
         double relativeAngleRadians = bearingToGoalRadians - robotHeadingRadians;
 
-        // Normalize to [-π, π] range
-        while (relativeAngleRadians > Math.PI) {
-            relativeAngleRadians -= 2 * Math.PI;
-        }
-        while (relativeAngleRadians < -Math.PI) {
-            relativeAngleRadians += 2 * Math.PI;
-        }
+        // Normalize to [-π, π] range (pure wrapping only — no offset applied here)
+        while (relativeAngleRadians > Math.PI) relativeAngleRadians -= 2 * Math.PI;
+        while (relativeAngleRadians < -Math.PI) relativeAngleRadians += 2 * Math.PI;
+
+        // Apply fine mechanical trim AFTER normalization.
+        // Read the static constant directly so FTC Dashboard changes take effect immediately.
+        double offsetDeg = isBlueAlliance ? TURRET_OFFSET_DEG_BLUE : TURRET_OFFSET_DEG_RED;
+        relativeAngleRadians += Math.toRadians(offsetDeg);
 
         // Convert to degrees
         return Math.toDegrees(relativeAngleRadians);
@@ -129,7 +146,7 @@ public class TurretFSM {
         // Example: 30 deg left  → 0.5 + 30/300 = 0.60  (within left clamp 0.63) ✓
         //          45 deg left  → 0.5 + 45/300 = 0.65  → clamped to 0.63        ✓
         //          20 deg right → 0.5 - 20/300 = 0.433 (within right clamp 0.35) ✓
-        double servoPosition = TURRET_POSITION_CENTER + turretOffset +
+        double servoPosition = TURRET_POSITION_CENTER +
                 (angleDegrees / TURRET_DEG_PER_SERVO_UNIT);
 
         // Clamp to servo physical limits to prevent damage
@@ -195,7 +212,7 @@ public class TurretFSM {
     }
 
     public void alignToBearing(double bearingDeg) {
-        double targetServoPos = TURRET_POSITION_CENTER + turretOffset + RATIO_BETWEEN_TURRET_GEARS * bearingDeg / FIVE_ROTATION_SERVO_SPAN_DEG;
+        double targetServoPos = TURRET_POSITION_CENTER + RATIO_BETWEEN_TURRET_GEARS * bearingDeg / FIVE_ROTATION_SERVO_SPAN_DEG;
         if (!Double.isNaN(targetServoPos)) {
             this.setPosition(targetServoPos);
         }
@@ -228,11 +245,11 @@ public class TurretFSM {
     }
 
     public void setOffsetBlue() {
-        this.turretOffset = TURRET_OFFSET_BLUE;
+        this.isBlueAlliance = true;
     }
 
     public void setOffsetRed() {
-        this.turretOffset = TURRET_OFFSET_RED;
+        this.isBlueAlliance = false;
     }
 
     /**
