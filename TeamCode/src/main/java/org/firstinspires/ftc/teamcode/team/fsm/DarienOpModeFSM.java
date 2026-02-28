@@ -63,8 +63,8 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     public static final double inchesToEncoder = encoderResolution / constMult;
     public static final double PI = 3.1416;
     public static final double TICKS_PER_ROTATION = 28*4; // for goBILDA 6000 rpm motor 5203. Each rotation has 28 ticks, and with 4x encoder mode, it's 28*4.
-    public static double ROBOT_CENTER_OFFSET_X = 9;
-    public static double ROBOT_CENTER_OFFSET_Y = 9;
+    public static double ROBOT_CENTER_OFFSET_X = 8.5;
+    public static double ROBOT_CENTER_OFFSET_Y = 8.25;
 
     // HARDWARE TUNING CONSTANTS
     public static double SHOT_GUN_POWER_UP = 0.60;
@@ -72,7 +72,7 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     public static double SHOT_GUN_POWER_UP_RPM = 850; // tuned to 6000 rpm motor
     public static double SHOT_GUN_POWER_UP_RPM_AUTO = 650;
     public static double SHOT_GUN_POWER_UP_FAR_RPM_AUTO = 760;// tuned to 6000 rpm motor
-    public static double SHOT_GUN_POWER_UP_FAR_RPM_TELEOP = 1100; // tuned to 6000 rpm motor
+    public static double SHOT_GUN_POWER_UP_FAR_RPM_TELEOP = 1200; // tuned to 6000 rpm motor
     public static double SHOT_GUN_POWER_DOWN = 0.2; // tuned to 6000 rpm motor
 
     // For FTC AprilTag detection with a Logitech C910 webcam,
@@ -89,9 +89,9 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     public static double TIMEOUT_APRILTAG_DETECTION = 0.75; // seconds
 
     // PID Constants for custom MotorHelper PID functions
-    public static double SHOT_GUN_PGAIN = 0.015;
-    public static double SHOT_GUN_PGAIN2 = 0.015;
-    public static double SHOT_GUN_IGAIN = 0.0002;
+    public static double SHOT_GUN_PGAIN = 0.0005;
+    public static double SHOT_GUN_PGAIN2 = 0.0005;
+    public static double SHOT_GUN_IGAIN = 0.0001;
     public static double SHOT_GUN_PDUTY_MIN = -0.5;
     public static double SHOT_GUN_PDUTY_MAX = 1;
     public static double SHOT_GUN_IDUTY_MIN = 0;
@@ -100,7 +100,7 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     public static double SHOT_GUN_POWER_MAX = 1;
     public static double SHOT_GUN_GAIN = 1;
     public static double SHOT_GUN_MIN_RPM = 0;
-    public static double SHOT_GUN_MAX_RPM = 1000;
+    public static double SHOT_GUN_MAX_RPM = 3000;
 
     public final int APRILTAG_ID_GOAL_BLUE = 20;
     public final int APRILTAG_ID_GOAL_RED = 24;
