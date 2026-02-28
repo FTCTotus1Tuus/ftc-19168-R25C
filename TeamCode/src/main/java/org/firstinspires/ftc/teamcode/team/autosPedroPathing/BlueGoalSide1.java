@@ -18,6 +18,7 @@ import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.team.fsm.DarienOpModeFSM;
+import org.firstinspires.ftc.teamcode.team.fsm.TurretFSM;
 
 /**
  * Pedro Pathing auto using LinearOpMode via DarienOpModeFSM.
@@ -43,6 +44,8 @@ public class BlueGoalSide1 extends DarienOpModeFSM {
     public static double SHOTGUN_SPINUP_DELAY = 0.3;
     public static double STANDARD_PATH_TIMEOUT = 2.0;
     public static double SHOOT_TRIPLE_TIMEOUT = 7.0;
+    public double targetGoalX = DarienOpModeFSM.GOAL_BLUE_X;
+    public double targetGoalY = DarienOpModeFSM.GOAL_BLUE_Y;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -56,6 +59,7 @@ public class BlueGoalSide1 extends DarienOpModeFSM {
         opmodeTimer.resetTimer();
 
         panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
+        turretFSM.setState(TurretFSM.TurretStates.ODOMETRY);
 
         follower = Constants.createFollower(hardwareMap);
         // Starting pose – same as your OpMode version
@@ -91,6 +95,13 @@ public class BlueGoalSide1 extends DarienOpModeFSM {
 
             // Pedro follower must be updated every loop
             follower.update();
+
+            // Get current robot pose from follower
+            double robotX = follower.getPose().getX();
+            double robotY = follower.getPose().getY();
+            double robotHeadingRadians = follower.getPose().getHeading();
+
+            turretFSM.setPositionFromOdometry(targetGoalX, targetGoalY, robotX, robotY, robotHeadingRadians);
 
             // Drive the state machine
             pathState = autonomousPathUpdate();
