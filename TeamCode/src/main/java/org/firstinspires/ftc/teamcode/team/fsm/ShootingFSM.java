@@ -44,8 +44,10 @@ public class ShootingFSM {
     public enum Stage {
         IDLE,        // waiting for start()
         SPINNING_UP, // ejection motor spinning up to target RPM before opening gate
-        GATE_OPEN,   // gate is open — artifact is passing through
-        GATE_CLOSE,  // gate has closed — brief settle before declaring done
+        OPENING_GATE,   // gate is open — artifact is passing through
+        SHOOTING,
+        START_CLOSING_GATE,
+        CLOSING_GATE,  // gate has closed — brief settle before declaring done
         DONE         // sequence complete, motor still running (caller decides when to stop)
     }
 
@@ -72,7 +74,7 @@ public class ShootingFSM {
 
     public static double SPINUP_DELAY = 0.0;  // seconds to wait for motor to reach speed before opening gate
     public static double GATE_OPEN_DELAY = 0.35; // seconds to hold gate open
-    public static double GATE_CLOSE_DELAY = 0.25; // seconds to settle after gate closes
+    public static double GATE_CLOSE_DELAY = 0; // seconds to settle after gate closes
 
     // -------------------------------------------------------------------------
     // PRIVATE STATE
@@ -113,6 +115,10 @@ public class ShootingFSM {
         stageStartTime = currentTime;
     }
 
+    public void finish() {
+        stage = Stage.START_CLOSING_GATE;
+    }
+
     /**
      * Call every loop after start().
      * Drives: SPINNING_UP → GATE_OPEN → GATE_CLOSE → DONE
@@ -130,23 +136,31 @@ public class ShootingFSM {
                 intakeFSM.setLedAmber();
                 telemetry.addData("SHOOTING", "Spinning up — %.2fs / %.2fs", elapsed, SPINUP_DELAY);
                 if (elapsed >= SPINUP_DELAY) {
-                    intakeFSM.shootForward(); // run rollers at SHOOT power as gate opens
                     gateFSM.open();
-                    stage = Stage.GATE_OPEN;
+                    stage = Stage.OPENING_GATE;
                     stageStartTime = currentTime;
                 }
                 break;
 
-            case GATE_OPEN:
+            case OPENING_GATE:
                 telemetry.addData("SHOOTING", "Gate open — %.2fs / %.2fs", elapsed, GATE_OPEN_DELAY);
                 if (elapsed >= GATE_OPEN_DELAY) {
-                    gateFSM.close();
-                    stage = Stage.GATE_CLOSE;
+                    intakeFSM.shootForward(); // run rollers at SHOOT power as gate opens
+                    stage = Stage.SHOOTING;
                     stageStartTime = currentTime;
                 }
                 break;
 
-            case GATE_CLOSE:
+            case SHOOTING:
+                //do nothing
+                break;
+
+            case START_CLOSING_GATE:
+                gateFSM.close();
+                stage = Stage.CLOSING_GATE;
+                break;
+
+            case CLOSING_GATE:
                 telemetry.addData("SHOOTING", "Gate closing — %.2fs / %.2fs", elapsed, GATE_CLOSE_DELAY);
                 if (elapsed >= GATE_CLOSE_DELAY) {
                     intakeFSM.stopAfterShot(); // stop rollers, LED red, intake back to IDLE

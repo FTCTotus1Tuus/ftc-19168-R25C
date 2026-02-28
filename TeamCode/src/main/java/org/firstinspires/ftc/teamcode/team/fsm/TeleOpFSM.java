@@ -206,12 +206,14 @@ public class TeleOpFSM extends DarienOpModeFSM {
 
             if (gamepad2.left_bumper) {
                 gateFSM.close();
-            } else if (gamepad2.right_bumper) {
+            } else if (gamepad2.rightBumperWasPressed()) {
                 // Start shoot sequence — FAR power if right stick pushed up, CLOSE power otherwise
                 ShootingFSM.PowerLevel power = (gamepad2.right_stick_y < -0.05)
                         ? ShootingFSM.PowerLevel.FAR
                         : ShootingFSM.PowerLevel.CLOSE;
                 shootingFSM.start(getRuntime(), power);
+            } else if (gamepad2.rightBumperWasReleased()) {
+                shootingFSM.finish();
             }
 
             // Add debug telemetry
