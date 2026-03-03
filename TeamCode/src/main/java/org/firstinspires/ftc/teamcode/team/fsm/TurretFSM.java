@@ -18,29 +18,67 @@ public class TurretFSM {
 
     // HARDWARE FIXED CONSTANTS
     public static final int FIVE_ROTATION_SERVO_SPAN_DEG = 1800; // Degrees of rotation (5-rotation goBILDA servo)
-    public static final int RATIO_BETWEEN_TURRET_GEARS = 6;
 
     /**
-     * Effective turret degrees of rotation per full servo unit (0.0 to 1.0).
-     * The 5-rotation servo spans 1800 servo-degrees across 0..1.
-     * The 6:1 turret gear reduces that to 1800/6 = 300 turret-degrees per servo unit.
+     * Turret gear reduction ratio (input:output).
+     *
+     * A gear reduction of N:1 means the servo (input) must turn N times for the
+     * turret (output) to turn once.  Equivalently, one full servo sweep of 1800°
+     * produces  1800 / N  degrees of turret rotation.
+     *
+     * History:
+     *   6.0  – original code assumption (gave 1800/6 = 300 °/unit — turret overshot)
+     *   5.0  – CAD-specified ratio       (gives 1800/5 = 360 °/unit)
+     *   ~4.55 – tape-measured on robot   (gives 1800/4.55 ≈ 395.6 °/unit)
+     *   5.8  – field-tuned 3/3/2026      (gives 1800/5.8 ≈ 310.3 °/unit — aims on target)
+     *
+     * This is a public static (not final) so it can be tuned live via FTC Dashboard.
+     *
+     * HOW TO TUNE:
+     *   If the turret OVERSHOOTS (aims too far left when pointing left, too far
+     *   right when pointing right), the real ratio is LOWER than the current value
+     *   → DECREASE this number.
+     *
+     *   If the turret UNDERSHOOTS (doesn't turn far enough), the real ratio is
+     *   HIGHER → INCREASE this number.
      */
-    private static final double TURRET_DEG_PER_SERVO_UNIT =
-            (double) FIVE_ROTATION_SERVO_SPAN_DEG / RATIO_BETWEEN_TURRET_GEARS; // = 300
+    public static double TURRET_GEAR_RATIO = 5.8;
+
+    /**
+     * Returns the effective turret degrees of rotation per full servo unit (0.0→1.0).
+     * Recomputed from the live TURRET_GEAR_RATIO every call so FTC Dashboard
+     * changes take effect immediately.
+     * <p>
+     * Example values:
+     * ratio 6.0  → 1800/6    = 300.0 °/unit  (old, wrong)
+     * ratio 5.8  → 1800/5.8  ≈ 310.3 °/unit  (current, field-tuned)
+     * ratio 5.0  → 1800/5    = 360.0 °/unit  (CAD)
+     * ratio 4.55 → 1800/4.55 ≈ 395.6 °/unit  (tape)
+     */
+    private static double turretDegPerServoUnit() {
+        return (double) FIVE_ROTATION_SERVO_SPAN_DEG / TURRET_GEAR_RATIO;
+    }
 
     // HARDWARE TUNING CONSTANTS
     public static double TURRET_ROTATION_INCREMENT = 0.004;
     public static double TURRET_POSITION_CENTER = 0.5;
-    public static double TURRET_OFFSET_DEG_RED = 7;
-    public static double TURRET_OFFSET_DEG_BLUE = -10;
-
+    public static double TURRET_OFFSET_DEG_RED = 1.0;
+    public static double TURRET_OFFSET_DEG_BLUE = -3.0;
     /**
      * Distance (inches) from the robot's odometry center of rotation to the turret pivot,
      * measured along the robot's forward axis. Negative = toward the rear of the robot.
      * Corrects the parallax aiming error that grows as the robot turns away from the goal.
      */
-    public static double TURRET_PIVOT_OFFSET_INCHES = -2.0;
+    public static double TURRET_PIVOT_OFFSET_INCHES = -1.5;
 
+    /**
+     * Distance (inches) from the robot's odometry center of rotation to the turret pivot,
+     * measured perpendicular to the robot's forward axis (i.e. sideways).
+     * Positive = turret pivot is to the LEFT of center, Negative = to the RIGHT.
+     * Corrects a lateral parallax error that causes heading-dependent aiming drift
+     * (the turret aims too far right at some headings and too far left at others).
+     */
+    public static double TURRET_PIVOT_OFFSET_LATERAL_INCHES = 0;
 
     // Turret range of motion in turret degrees (physically measurable on the robot).
     // Positive = CCW from center (left), Negative = CW from center (right).
@@ -81,10 +119,10 @@ public class TurretFSM {
      * Positive degrees = left, negative degrees = right.
      * @return The turret heading in degrees.
      */
-    public double getTurretHeading(){
-        // (servo - center) * 300 deg/unit gives turret degrees offset from forward
+    public double getTurretHeading() {
+        // (servo - center) * degreesPerUnit gives turret degrees offset from forward
         return (currentTurretPosition - TURRET_POSITION_CENTER)
-                * TURRET_DEG_PER_SERVO_UNIT;
+                * turretDegPerServoUnit();
     }
 
     /**
@@ -102,33 +140,52 @@ public class TurretFSM {
                                                    double robotX, double robotY,
                                                    double robotHeadingRadians) {
         // Shift origin from robot center-of-rotation to the turret pivot.
-        // TURRET_PIVOT_OFFSET_INCHES is negative (pivot is behind the robot center),
-        // so we project it along the robot's current heading into field coordinates.
-        double pivotX = robotX + Math.cos(robotHeadingRadians) * TURRET_PIVOT_OFFSET_INCHES;
-        double pivotY = robotY + Math.sin(robotHeadingRadians) * TURRET_PIVOT_OFFSET_INCHES;
+        //
+        // The turret pivot may be offset from the odometry center in TWO directions:
+        //   TURRET_PIVOT_OFFSET_INCHES         — forward/backward along the robot's heading axis
+        //                                        (negative = toward the rear of the robot)
+        //   TURRET_PIVOT_OFFSET_LATERAL_INCHES — left/right perpendicular to the heading axis
+        //                                        (positive = left of robot center, negative = right)
+        //
+        // To convert these robot-frame offsets into field coordinates, we project each
+        // offset along its corresponding field-frame unit vector:
+        //   Forward axis  in field frame:  ( cos(heading),  sin(heading) )
+        //   Left    axis  in field frame:  ( -sin(heading), cos(heading) )   ← 90° CCW from forward
+        //
+        // Combined:
+        //   pivotX = robotX + cos(h) * forward + (-sin(h)) * lateral
+        //   pivotY = robotY + sin(h) * forward + cos(h)    * lateral
+        double pivotX = robotX
+                + Math.cos(robotHeadingRadians) * TURRET_PIVOT_OFFSET_INCHES
+                - Math.sin(robotHeadingRadians) * TURRET_PIVOT_OFFSET_LATERAL_INCHES;
+        double pivotY = robotY
+                + Math.sin(robotHeadingRadians) * TURRET_PIVOT_OFFSET_INCHES
+                + Math.cos(robotHeadingRadians) * TURRET_PIVOT_OFFSET_LATERAL_INCHES;
 
         // Calculate vector from turret pivot to goal
         double deltaX = goalX - pivotX;
         double deltaY = goalY - pivotY;
 
         // Calculate bearing angle to goal in radians (0 = along X axis, counterclockwise positive)
-        double bearingToGoalRadians = Math.atan2(deltaY, deltaX);
+        double bearingRobotToGoalRadians = Math.atan2(deltaY, deltaX);
 
         // Calculate the angle relative to robot heading
         // Positive = counterclockwise from robot forward = left
-        double relativeAngleRadians = bearingToGoalRadians - robotHeadingRadians;
+        double angleTurretRelativeToRobotRadians = bearingRobotToGoalRadians - robotHeadingRadians;
 
         // Normalize to [-π, π] range (pure wrapping only — no offset applied here)
-        while (relativeAngleRadians > Math.PI) relativeAngleRadians -= 2 * Math.PI;
-        while (relativeAngleRadians < -Math.PI) relativeAngleRadians += 2 * Math.PI;
+        while (angleTurretRelativeToRobotRadians > Math.PI)
+            angleTurretRelativeToRobotRadians -= 2 * Math.PI;
+        while (angleTurretRelativeToRobotRadians < -Math.PI)
+            angleTurretRelativeToRobotRadians += 2 * Math.PI;
 
         // Apply fine mechanical trim AFTER normalization.
         // Read the static constant directly so FTC Dashboard changes take effect immediately.
         double offsetDeg = isBlueAlliance ? TURRET_OFFSET_DEG_BLUE : TURRET_OFFSET_DEG_RED;
-        relativeAngleRadians += Math.toRadians(offsetDeg);
+        angleTurretRelativeToRobotRadians += Math.toRadians(offsetDeg);
 
         // Convert to degrees
-        return Math.toDegrees(relativeAngleRadians);
+        return Math.toDegrees(angleTurretRelativeToRobotRadians);
     }
 
     /**
@@ -140,14 +197,15 @@ public class TurretFSM {
      * @return Servo position (0.0 to 1.0), clamped to [TURRET_ROTATION_MAX_RIGHT, TURRET_ROTATION_MAX_LEFT]
      */
     private double calculateServoPositionFromAngle(double angleDegrees) {
-        // Convert turret angle to servo position.
-        // TURRET_DEG_PER_SERVO_UNIT = 300 deg/unit (1800 servo-degrees / 6:1 gear ratio).
-        // So: servo = center + (turretDegrees / 300)
-        // Example: 30 deg left  → 0.5 + 30/300 = 0.60  (within left clamp 0.63) ✓
-        //          45 deg left  → 0.5 + 45/300 = 0.65  → clamped to 0.63        ✓
-        //          20 deg right → 0.5 - 20/300 = 0.433 (within right clamp 0.35) ✓
+        // Convert turret angle to servo position using the tunable gear ratio.
+        // servo = center + (turretDegrees / turretDegPerServoUnit())
+        //
+        // With ratio 5.8 (field-tuned):  turretDegPerServoUnit ≈ 310.3
+        //   30° left  → 0.5 + 30/310.3 ≈ 0.597
+        //   45° left  → 0.5 + 45/310.3 ≈ 0.645
+        //   20° right → 0.5 − 20/310.3 ≈ 0.436
         double servoPosition = TURRET_POSITION_CENTER +
-                (angleDegrees / TURRET_DEG_PER_SERVO_UNIT);
+                (angleDegrees / turretDegPerServoUnit());
 
         // Clamp to servo physical limits to prevent damage
         servoPosition = Math.max(TURRET_SERVO_POSITION_MAX_RIGHT,
@@ -184,7 +242,6 @@ public class TurretFSM {
      * @param robotX              Robot X position in inches
      * @param robotY              Robot Y position in inches
      * @param robotHeadingRadians Robot heading in radians
-     * @return Servo position (0.0 to 1.0), clamped to safe limits
      */
     public void setPositionFromOdometry(double goalX, double goalY,
                                         double robotX, double robotY,
@@ -212,7 +269,9 @@ public class TurretFSM {
     }
 
     public void alignToBearing(double bearingDeg) {
-        double targetServoPos = TURRET_POSITION_CENTER + RATIO_BETWEEN_TURRET_GEARS * bearingDeg / FIVE_ROTATION_SERVO_SPAN_DEG;
+        // Convert a field-relative bearing (degrees) to a servo position.
+        // Same math as calculateServoPositionFromAngle but without clamping.
+        double targetServoPos = TURRET_POSITION_CENTER + bearingDeg / turretDegPerServoUnit();
         if (!Double.isNaN(targetServoPos)) {
             this.setPosition(targetServoPos);
         }
@@ -253,15 +312,15 @@ public class TurretFSM {
     }
 
     /**
-     * Servo clamp limits derived from degree limits.
-     * Formula: servo = center ± (degrees / (FIVE_ROTATION_SERVO_SPAN_DEG / RATIO_BETWEEN_TURRET_GEARS))
-     * = 0.5 ± (degrees / 300)
-     * These are computed at runtime so they always stay in sync with the degree constants above.
-     *
+     * Servo clamp limits derived from degree limits and the current gear ratio.
+     * Formula: servo = center ± (degrees / turretDegPerServoUnit())
+     * Recomputed every loop so FTC Dashboard changes to TURRET_GEAR_RATIO,
+     * TURRET_POSITION_CENTER, or the degree limits take effect immediately.
      */
     public void updateTurretServoLimits() {
-        TURRET_SERVO_POSITION_MAX_LEFT = TURRET_POSITION_CENTER + TURRET_MAX_DEG_LEFT / ((double) FIVE_ROTATION_SERVO_SPAN_DEG / RATIO_BETWEEN_TURRET_GEARS);
-        TURRET_SERVO_POSITION_MAX_RIGHT = TURRET_POSITION_CENTER - TURRET_MAX_DEG_RIGHT / ((double) FIVE_ROTATION_SERVO_SPAN_DEG / RATIO_BETWEEN_TURRET_GEARS);
+        double degPerUnit = turretDegPerServoUnit();
+        TURRET_SERVO_POSITION_MAX_LEFT = TURRET_POSITION_CENTER + TURRET_MAX_DEG_LEFT / degPerUnit;
+        TURRET_SERVO_POSITION_MAX_RIGHT = TURRET_POSITION_CENTER - TURRET_MAX_DEG_RIGHT / degPerUnit;
     }
 
     public void update() {
