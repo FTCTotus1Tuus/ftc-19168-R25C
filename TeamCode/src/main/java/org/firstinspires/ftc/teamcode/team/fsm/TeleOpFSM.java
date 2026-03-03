@@ -43,7 +43,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
 
     // VARIABLES
     private double shotStartTime;
-    private boolean shotStarted = false;
+    //private boolean shotStarted = false;
     private boolean isReadingAprilTag = false;
 
     private ShotgunPowerLevel shotgunPowerLatch = ShotgunPowerLevel.OFF;
@@ -178,6 +178,10 @@ public class TeleOpFSM extends DarienOpModeFSM {
             // SHOOTING FSM UPDATE — drives spin-up → gate open → gate close → done
             if (shootingFSM.getStage() != ShootingFSM.Stage.IDLE) {
                 shootingFSM.update(getRuntime(), telemetry);
+                if (shootingFSM.isDone()) {
+                    shootingFSM.reset();
+                    intakeFSM.startIntaking();
+                }
             }
 
             // CAMERA-BASED TURRET CONTROL
@@ -193,7 +197,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
             // GAMEPAD1 CONTROLS
             // -----------------
 
-            if (gamepad1.y) {
+            if (gamepad1.y || gamepad1.right_bumper) {
                 // Intake on
                 intakeFSM.startIntaking();
             } else if (gamepad1.a) {
@@ -225,7 +229,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
 
 
             // ODOMETRY RESET BUTTON - Reset to human player starting position
-            if (gamepad1.backWasPressed()) {
+            if (gamepad1.dpadUpWasPressed()) {
                 // Determine which human player position based on alliance color
                 double resetX = 0, resetY = 0, resetHdeg = 0;
                 if ("RED".equals(autoAlliance)) {
@@ -283,14 +287,15 @@ public class TeleOpFSM extends DarienOpModeFSM {
             }
 
             //TURRET STATE CHANGE CONTROLS
-            if (gamepad2.left_trigger > 0.1) {
+            if (gamepad2.dpadUpWasPressed()) {
                 turretFSM.setState(TurretFSM.TurretStates.ODOMETRY);
                 shootingPowerMode = ShootingPowerModes.ODOMETRY;
-            } else if (gamepad2.right_trigger > 0.1) {
+            } else if (gamepad2.dpadDownWasPressed()) {
                 turretFSM.setState(TurretFSM.TurretStates.CAMERA);
                 startReadingGoalId();
             }
 
+            /* NOT BEING USED
             // -----------------
             // SHOOTING MACRO (dpad_down) — start a timed single-shot sequence
             // -----------------
@@ -308,6 +313,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
                     shotStarted = false;
                 }
             }
+             */
 
 
             // Get current robot pose from follower
@@ -316,11 +322,20 @@ public class TeleOpFSM extends DarienOpModeFSM {
             robotHeadingRadians = follower.getPose().getHeading();
 
             // TURRET CONTROLS
+            // Stick direction is checked first; trigger modulates speed within that direction.
             if (gamepad2.left_stick_x <= -0.05) {
-                turretFSM.rotateLeft();
+                if (gamepad2.left_trigger > 0.25) {
+                    turretFSM.rotateLeftFast();
+                } else {
+                    turretFSM.rotateLeft();
+                }
                 turretFSM.setState(TurretFSM.TurretStates.MANUAL);
             } else if (gamepad2.left_stick_x >= 0.05) {
-                turretFSM.rotateRight();
+                if (gamepad2.left_trigger > 0.25) {
+                    turretFSM.rotateRightFast();
+                } else {
+                    turretFSM.rotateRight();
+                }
                 turretFSM.setState(TurretFSM.TurretStates.MANUAL);
             } else if (gamepad2.left_stick_button) {
                 turretFSM.center();

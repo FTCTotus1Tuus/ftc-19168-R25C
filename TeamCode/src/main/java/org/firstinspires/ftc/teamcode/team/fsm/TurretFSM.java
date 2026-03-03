@@ -60,7 +60,8 @@ public class TurretFSM {
     }
 
     // HARDWARE TUNING CONSTANTS
-    public static double TURRET_ROTATION_INCREMENT = 0.004;
+    public static double TURRET_ROTATION_INCREMENT = 0.001;
+    public static double TURRET_ROTATION_INCREMENT_FAST = 0.003;
     public static double TURRET_POSITION_CENTER = 0.5;
     public static double TURRET_OFFSET_DEG_RED = 1.0;
     public static double TURRET_OFFSET_DEG_BLUE = -3.0;
@@ -286,15 +287,31 @@ public class TurretFSM {
     }
 
     public void rotateLeft() {
+        rotateLeft(TURRET_ROTATION_INCREMENT);
+    }
+
+    public void rotateLeftFast() {
+        rotateLeft(TURRET_ROTATION_INCREMENT_FAST);
+    }
+
+    public void rotateLeft(double rotationIncrement) {
         //updating the current turret position to be in range of the min and max
-        double clampedTargetPosition = clampT(currentTurretPosition + TURRET_ROTATION_INCREMENT, TURRET_SERVO_POSITION_MAX_LEFT, TURRET_SERVO_POSITION_MAX_RIGHT);
+        double clampedTargetPosition = clampT(currentTurretPosition + rotationIncrement, TURRET_SERVO_POSITION_MAX_LEFT, TURRET_SERVO_POSITION_MAX_RIGHT);
         //sets turret position
         this.setPosition(clampedTargetPosition);
     }
 
     public void rotateRight() {
+        rotateRight(TURRET_ROTATION_INCREMENT);
+    }
+
+    public void rotateRightFast() {
+        rotateRight(TURRET_ROTATION_INCREMENT_FAST);
+    }
+
+    public void rotateRight(double rotationIncrement) {
         //updating the current turret position to be in range of the min and max
-        double clampedTargetPosition = clampT(currentTurretPosition - TURRET_ROTATION_INCREMENT, TURRET_SERVO_POSITION_MAX_LEFT, TURRET_SERVO_POSITION_MAX_RIGHT);
+        double clampedTargetPosition = clampT(currentTurretPosition - rotationIncrement, TURRET_SERVO_POSITION_MAX_LEFT, TURRET_SERVO_POSITION_MAX_RIGHT);
         //sets turret position
         this.setPosition(clampedTargetPosition);
     }
