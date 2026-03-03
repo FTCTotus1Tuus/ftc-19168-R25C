@@ -14,7 +14,7 @@ public class TurretFSM {
     private final HardwareMap hardwareMap;
 
     // HARDWARE DEVICES
-    public Servo turretServo;
+    private Servo turretServo;
 
     // HARDWARE FIXED CONSTANTS
     public static final int FIVE_ROTATION_SERVO_SPAN_DEG = 1800; // Degrees of rotation (5-rotation goBILDA servo)
