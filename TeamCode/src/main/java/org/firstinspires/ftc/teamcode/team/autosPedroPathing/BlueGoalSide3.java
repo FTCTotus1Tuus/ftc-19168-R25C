@@ -35,8 +35,8 @@ public class BlueGoalSide3 extends DarienOpModeFSM {
     private Paths paths;                        // Paths
     private Timer pathTimer, opmodeTimer;
 
-    public static double PATH_POWER_STANDARD = 1.0;
-    public static double PATH_POWER_SLOW = 0.4;
+    public static double PATH_POWER_STANDARD = 0.5;
+    public static double PATH_POWER_SLOW = 0.2;
 
 
     public static double INTAKE_RUBBER_BANDS_DELAY = 0.2;
@@ -44,6 +44,8 @@ public class BlueGoalSide3 extends DarienOpModeFSM {
     public static double SHOTGUN_SPINUP_DELAY = 0;
     public static double STANDARD_PATH_TIMEOUT = 2.0;
     public static double SHOOT_TRIPLE_TIMEOUT = 7.0;
+    public double targetGoalX = DarienOpModeFSM.GOAL_BLUE_X;
+    public double targetGoalY = DarienOpModeFSM.GOAL_BLUE_Y;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -71,6 +73,8 @@ public class BlueGoalSide3 extends DarienOpModeFSM {
         telemetry.addLine("BlueGoalSidePedro: READY");
         telemetry.update();
 
+        turretFSM.center();
+
         // Save alliance color to shared preferences for TeleOp
         SharedPreferences prefs = AppUtil.getInstance().getActivity().getSharedPreferences("ftc_prefs", android.content.Context.MODE_PRIVATE);
         prefs.edit().putString("auto_alliance", "BLUE").apply();
@@ -92,6 +96,12 @@ public class BlueGoalSide3 extends DarienOpModeFSM {
 
             // Pedro follower must be updated every loop
             follower.update();
+
+            double robotX = follower.getPose().getX();
+            double robotY = follower.getPose().getY();
+            double robotHeadingRadians = follower.getPose().getHeading();
+
+            turretFSM.setPositionFromOdometry(targetGoalX, targetGoalY, robotX, robotY, robotHeadingRadians);
 
             // Drive the state machine
             pathState = autonomousPathUpdate();
@@ -234,77 +244,71 @@ public class BlueGoalSide3 extends DarienOpModeFSM {
 
         switch (pathState) {
             case 0:
+                shootingFSM.start(getRuntime(), ShootingFSM.PowerLevel.CLOSE);
+                if (pathTimer.getElapsedTimeSeconds() > SHOTGUN_SPINUP_DELAY) {
+                    setPathState(pathState + 1);
+                }
+                break;
+            case 1:
+
+                shootingFSM.update(getRuntime(), telemetry);
                 telemetry.addLine("Case " + pathState + ": Start Path1");
                 follower.setMaxPower(PATH_POWER_STANDARD);
-                shootingFSM.start(getRuntime(), ShootingFSM.PowerLevel.CLOSE);
                 follower.followPath(paths.ShootingPosition1);
                 setPathState(pathState + 1);
                 break;
 
-            case 1:
+            case 2:
                 telemetry.addLine("Case " + pathState + ": Wait for Path1 and camera, then start read AprilTag");
 
-                if ((!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT)) {
-
+                if (!follower.isBusy() && pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
                     telemetry.addLine("Case " + pathState + ": exiting");
-
-
                     setPathState(pathState + 1);
                 }
                 break;
 
-            case 2:
+            case 3:
                 telemetry.addLine("Case " + pathState + ": Read AprilTag then start Path2");
 
-                //tagFSM.update(getRuntime(), true, telemetry);
+                intakeFSM.startIntaking();
+                follower.setMaxPower(PATH_POWER_SLOW); //slow down for pickup
 
-                if (follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
-
-                    //aprilTagDetections = tagFSM.getDetections();
-                    intakeFSM.startIntaking();
+                if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
                     telemetry.addLine("Case " + pathState + ": exiting");
                     follower.followPath(paths.IntakeBallSet1);
                     setPathState(pathState + 1);
                 }
                 break;
 
-            case 3:
+            case 4:
                 telemetry.addLine("Case " + pathState + ": Wait for Path2, then shoot artifact");
+
                 intakeFSM.updateIntaking(getRuntime(), true, telemetry);
+
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT * .25) {
                     telemetry.addLine("Case " + pathState + ": exiting");
-                    follower.followPath(paths.ShootingPosition2);
-                    setPathState(pathState + 1);
-                }
-                break;
-
-            case 4:
-                telemetry.addLine("Case " + pathState + ": start shooting");
-
-                //shootPatternFSM.startShootPattern(aprilTagDetections, getRuntime(), SHOT_GUN_POWER_UP);
-
-                if (pathTimer.getElapsedTimeSeconds() > SHOTGUN_SPINUP_DELAY) {
+                    follower.followPath(paths.OpenGate);
                     setPathState(pathState + 1);
                 }
                 break;
 
             case 5:
                 telemetry.addLine("Case " + pathState + ": updateShooting...");
-                //shootPatternFSM.updateShootPattern(getRuntime());
-
-                if (pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
-
-                    //rubberBandsFront.setPower(INTAKE_RUBBER_BANDS_POWER);
-                    // topIntake.setPower(-INTAKE_INTAKE_ROLLER_POWER);
-
+                shootingFSM.start(getRuntime(), ShootingFSM.PowerLevel.CLOSE);
+                follower.setMaxPower    (PATH_POWER_STANDARD); //speed up again
+                if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
                     // now continue with next path
-                    follower.followPath(paths.OpenGate, true);
+                    follower.followPath(paths.ShootingPosition2, true);
                     setPathState(pathState + 1);
                 }
                 break;
 
             case 6: //apples
                 telemetry.addLine("Case " + pathState + ": Wait for Path3, then start Path4");
+
+                shootingFSM.update(getRuntime(), telemetry);
+                intakeFSM.startIntaking();
+
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
                     telemetry.addLine("Case " + pathState + ": Move forward to pick up artifact 1p");
 
@@ -315,21 +319,13 @@ public class BlueGoalSide3 extends DarienOpModeFSM {
                 }
                 break;
 
-
             case 7:
-                telemetry.addLine("Case " + pathState + ": Wait for Path6 to pick up artifact, then start Path7");
-
-                if (!follower.isBusy() && pathTimer.getElapsedTimeSeconds() > BALL_INTAKE_DELAY) {
-                    telemetry.addLine("Case " + pathState + ": Moving to shooting position");
-                    follower.setMaxPower(PATH_POWER_STANDARD);// resume normal speed
-                    intakeFSM.startIntaking();
-                    setPathState(pathState + 1);
-                }
-                break;
-
-            case 8:
                 telemetry.addLine("Case " + pathState + ": Wait for Path7 to get into position, then start Path8");
+                follower.setMaxPower(PATH_POWER_STANDARD);// resume normal speed
+
                 intakeFSM.updateIntaking(getRuntime(),true, telemetry);
+                shootingFSM.start(getRuntime(), ShootingFSM.PowerLevel.CLOSE);
+
                 if (!follower.isBusy() && pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT * .25) {
                     telemetry.addLine("Case " + pathState + ": exiting");
                     follower.followPath(paths.ShootingPosition3);
@@ -338,14 +334,15 @@ public class BlueGoalSide3 extends DarienOpModeFSM {
                 }
                 break;
 
-            case 9:
-                if (pathTimer.getElapsedTimeSeconds() > SHOTGUN_SPINUP_DELAY) {
-                    setPathState(pathState + 1);
+            case 8:
+                shootingFSM.update(getRuntime(), telemetry);
+                if (!follower.isBusy() && pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
+                    follower.followPath(paths.Parking);
                 }
                 break;
 
 
-            case 10:
+            case 9:
                 telemetry.addLine("Case " + pathState + ": Wait for Path6 to finish, then stop");
                 //shootPatternFSM.updateShootPattern(getRuntime());
                 if (shootPatternFSM.isShootPatternDone()) {
