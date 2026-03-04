@@ -364,7 +364,7 @@ public class BlueGoalSide3 extends DarienOpModeFSM {
                 }
                 break;
 
-            case 11:
+            /*case 11:
                 //after shooting, move to intakepos3
                 shootingFSM.update(getRuntime(), telemetry);
                 if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
@@ -402,7 +402,9 @@ public class BlueGoalSide3 extends DarienOpModeFSM {
                 }
                 break;
 
-            case 15:
+             */
+
+            case 11:
                 //after done shooting, send odometry values to teleop
                 shootingFSM.update(getRuntime(), telemetry);
                 if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
