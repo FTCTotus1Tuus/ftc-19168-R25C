@@ -279,6 +279,10 @@ public class IntakeFSM {
         return state == States.READYTOSHOOT;
     }
 
+    public void setModeFull() {
+        setMode(IntakeModes.FULL);
+    }
+
     /**
      * Run all rollers at full SHOOT power to push the artifact through the gate.
      * Called by ShootingFSM when it opens the gate — IntakeFSM just handles the motors.
