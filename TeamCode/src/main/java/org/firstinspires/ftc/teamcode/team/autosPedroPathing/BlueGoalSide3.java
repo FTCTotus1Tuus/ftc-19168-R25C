@@ -36,12 +36,7 @@ public class BlueGoalSide3 extends DarienOpModeFSM {
     private Timer pathTimer, opmodeTimer;
 
     public static double PATH_POWER_STANDARD = 0.8;
-    public static double PATH_POWER_SLOW = 0.2;
-
-
-    public static double INTAKE_RUBBER_BANDS_DELAY = 0.2;
-    public static double BALL_INTAKE_DELAY = 0;
-    public static double SHOTGUN_SPINUP_DELAY = 0;
+    public static double PATH_POWER_SLOW = 0.4;
     public static double STANDARD_PATH_TIMEOUT = 2.0;
     public static double SHOOT_TRIPLE_TIMEOUT = 4.0;
     public double targetGoalX = DarienOpModeFSM.GOAL_BLUE_X;
@@ -81,7 +76,6 @@ public class BlueGoalSide3 extends DarienOpModeFSM {
 
         telemetry.addLine("Alliance Color: BLUE (Saved to Preferences)");
 
-
         // --- WAIT FOR START ---
         waitForStart();
         if (isStopRequested()) return;
@@ -102,6 +96,19 @@ public class BlueGoalSide3 extends DarienOpModeFSM {
             double robotHeadingRadians = follower.getPose().getHeading();
 
             turretFSM.setPositionFromOdometry(targetGoalX, targetGoalY, robotX, robotY, robotHeadingRadians);
+
+            // Save final odometry position to SharedPreferences for TeleOp
+            prefs = AppUtil.getInstance().getActivity().getSharedPreferences("ftc_prefs", android.content.Context.MODE_PRIVATE);
+            prefs.edit()
+                    .putFloat("auto_final_x", (float) follower.getPose().getX())
+                    .putFloat("auto_final_y", (float) follower.getPose().getY())
+                    .putFloat("auto_final_heading", (float) follower.getPose().getHeading())
+                    .apply();
+
+            telemetry.addData("Saved Odometry", String.format("X=%.1f, Y=%.1f, H=%.1f°",
+                    follower.getPose().getX(),
+                    follower.getPose().getY(),
+                    Math.toDegrees(follower.getPose().getHeading())));
 
             // Drive the state machine
             pathState = autonomousPathUpdate();
@@ -124,11 +131,12 @@ public class BlueGoalSide3 extends DarienOpModeFSM {
      */
     public static class Paths {
         public PathChain ShootingPosition1;
+        public PathChain IntakePos1;
         public PathChain IntakeBallSet1;
         public PathChain OpenGate;
         public PathChain ShootingPosition2;
         public PathChain IntakePos2;
-        public PathChain IntakeBallSet2;
+        public PathChain InatkeBallSet2;
         public PathChain ShootingPosition3;
         public PathChain IntakePos3;
         public PathChain IntakeBallSet3;
@@ -145,13 +153,24 @@ public class BlueGoalSide3 extends DarienOpModeFSM {
 
                     .build();
 
-            IntakeBallSet1 = follower.pathBuilder().addPath(
+            IntakePos1 = follower.pathBuilder().addPath(
                             new BezierLine(
                                     new Pose(57.000, 84.000),
+
+                                    new Pose(44.000, 84.000)
+                            )
+                    ).setTangentHeadingInterpolation()
+
+                    .build();
+
+            IntakeBallSet1 = follower.pathBuilder().addPath(
+                            new BezierLine(
+                                    new Pose(44.000, 84.000),
 
                                     new Pose(28.000, 84.000)
                             )
                     ).setTangentHeadingInterpolation()
+
                     .build();
 
             OpenGate = follower.pathBuilder().addPath(
@@ -184,13 +203,14 @@ public class BlueGoalSide3 extends DarienOpModeFSM {
 
                     .build();
 
-            IntakeBallSet2 = follower.pathBuilder().addPath(
+            InatkeBallSet2 = follower.pathBuilder().addPath(
                             new BezierLine(
                                     new Pose(44.000, 60.000),
 
                                     new Pose(28.000, 60.000)
                             )
                     ).setTangentHeadingInterpolation()
+
                     .build();
 
             ShootingPosition3 = follower.pathBuilder().addPath(
@@ -220,6 +240,7 @@ public class BlueGoalSide3 extends DarienOpModeFSM {
                                     new Pose(28.000, 36.000)
                             )
                     ).setTangentHeadingInterpolation()
+
                     .build();
 
             Parking = follower.pathBuilder().addPath(
@@ -254,24 +275,32 @@ public class BlueGoalSide3 extends DarienOpModeFSM {
                 // when at shootingPosition 1, start shooting
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
                     shootingFSM.start(getRuntime(), ShootingFSM.PowerLevel.CLOSE);
-                    follower.setMaxPower(PATH_POWER_SLOW); //slow down for pickup
                     setPathState(pathState + 1);
                 }
                 break;
 
             case 2:
-                // when shooting is done, Intake ballset 1
+                // when shooting is done, move to intakePos1
                 shootingFSM.update(getRuntime(), telemetry);
                 telemetry.addLine("Case " + pathState + ": Start IntakeBallSet1");
                 if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
                     shootingFSM.reset();
+                    follower.followPath(paths.IntakePos1);
+                    setPathState(pathState + 1);
+                }
+                break;
+
+            case 3:
+                //when in intakepos1, intake ball set 1
+                if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
+                    follower.setMaxPower(PATH_POWER_SLOW);
                     intakeFSM.startIntaking();
                     follower.followPath(paths.IntakeBallSet1);
                     setPathState(pathState + 1);
                 }
                 break;
 
-            case 3:
+            case 4:
                 // when done intaking, open the gate
                 intakeFSM.updateIntaking(getRuntime(), true, telemetry);
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
@@ -280,7 +309,7 @@ public class BlueGoalSide3 extends DarienOpModeFSM {
                 }
                 break;
 
-            case 4:
+            case 5:
                 //after open gate, move to shoot pos 2
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
                     follower.setMaxPower(PATH_POWER_STANDARD); //speed up again
@@ -289,7 +318,7 @@ public class BlueGoalSide3 extends DarienOpModeFSM {
                 }
                 break;
 
-            case 5 :
+            case 6:
                 //after moving to shoot pos 2, start shooting
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT + 1.5) {
                     shootingFSM.start(getRuntime(), ShootingFSM.PowerLevel.CLOSE);
@@ -297,7 +326,7 @@ public class BlueGoalSide3 extends DarienOpModeFSM {
                 }
                 break;
 
-            case 6:
+            case 7:
                 //after shooting, move to intakepos2
                 shootingFSM.update(getRuntime(), telemetry);
                 if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
@@ -307,17 +336,17 @@ public class BlueGoalSide3 extends DarienOpModeFSM {
                 }
                 break;
 
-            case 7:
+            case 8:
                 //after moving to intakepos2, intake ball set 2
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
                     follower.setMaxPower(PATH_POWER_SLOW);
                     intakeFSM.startIntaking();
-                    follower.followPath(paths.IntakeBallSet2, true);
+                    follower.followPath(paths.InatkeBallSet2, true);
                     setPathState(pathState + 1);
                 }
                 break;
 
-            case 8:
+            case 9:
                 //after intaking, move to shoot pos 3
                 intakeFSM.updateIntaking(getRuntime(), true, telemetry);
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
@@ -327,7 +356,7 @@ public class BlueGoalSide3 extends DarienOpModeFSM {
                 }
                 break;
 
-            case 9:
+            case 10:
                 //after reaching shoot pos 3, start shooting
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
                     shootingFSM.start(getRuntime(), ShootingFSM.PowerLevel.CLOSE);
@@ -335,7 +364,7 @@ public class BlueGoalSide3 extends DarienOpModeFSM {
                 }
                 break;
 
-            case 10:
+            case 11:
                 //after shooting, move to intakepos3
                 shootingFSM.update(getRuntime(), telemetry);
                 if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
@@ -345,7 +374,7 @@ public class BlueGoalSide3 extends DarienOpModeFSM {
                 }
                 break;
 
-            case 11:
+            case 12:
                 //after reaching intakepos3, intake ballset 3
                 if (!follower.isBusy() && pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
                     follower.setMaxPower(PATH_POWER_SLOW);
@@ -355,7 +384,7 @@ public class BlueGoalSide3 extends DarienOpModeFSM {
                 }
                 break;
 
-            case 12:
+            case 13:
                 // after intaking ball set 3, move to park/shooting pos 4
                 intakeFSM.updateIntaking(getRuntime(), true, telemetry);
                 if (!follower.isBusy() && pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
@@ -365,33 +394,20 @@ public class BlueGoalSide3 extends DarienOpModeFSM {
                 }
                 break;
 
-            case 13:
+            case 14:
                 // after moving to park/shooting pos 4, start shooting
-                if (!follower.isBusy() && pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
+                if (!follower.isBusy() && pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT + 1.5) {
                     shootingFSM.start(getRuntime(), ShootingFSM.PowerLevel.CLOSE);
                     setPathState(pathState + 1);
                 }
                 break;
 
-            case 14:
+            case 15:
                 //after done shooting, send odometry values to teleop
                 shootingFSM.update(getRuntime(), telemetry);
                 if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
 
                     telemetry.addLine("Case " + pathState + ": Done, setting state -1");
-
-                    // Save final odometry position to SharedPreferences for TeleOp
-                    SharedPreferences prefs = AppUtil.getInstance().getActivity().getSharedPreferences("ftc_prefs", android.content.Context.MODE_PRIVATE);
-                    prefs.edit()
-                            .putFloat("auto_final_x", (float) follower.getPose().getX())
-                            .putFloat("auto_final_y", (float) follower.getPose().getY())
-                            .putFloat("auto_final_heading", (float) follower.getPose().getHeading())
-                            .apply();
-
-                    telemetry.addData("Saved Odometry", String.format("X=%.1f, Y=%.1f, H=%.1f°",
-                            follower.getPose().getX(),
-                            follower.getPose().getY(),
-                            Math.toDegrees(follower.getPose().getHeading())));
 
                     setPathState(-1); // done
                 }
