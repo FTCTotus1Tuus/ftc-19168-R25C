@@ -264,6 +264,7 @@ public class BlueGoalSide3 extends DarienOpModeFSM {
                 shootingFSM.update(getRuntime(), telemetry);
                 telemetry.addLine("Case " + pathState + ": Start IntakeBallSet1");
                 if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
+                    shootingFSM.reset();
                     intakeFSM.startIntaking();
                     follower.followPath(paths.IntakeBallSet1);
                     setPathState(pathState + 1);
@@ -290,7 +291,7 @@ public class BlueGoalSide3 extends DarienOpModeFSM {
 
             case 5 :
                 //after moving to shoot pos 2, start shooting
-                if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
+                if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT + 1.5) {
                     shootingFSM.start(getRuntime(), ShootingFSM.PowerLevel.CLOSE);
                     setPathState(pathState + 1);
                 }
@@ -300,10 +301,12 @@ public class BlueGoalSide3 extends DarienOpModeFSM {
                 //after shooting, move to intakepos2
                 shootingFSM.update(getRuntime(), telemetry);
                 if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
+                    shootingFSM.reset();
                     follower.followPath(paths.IntakePos2, true);
                     setPathState(pathState + 1);
                 }
                 break;
+
             case 7:
                 //after moving to intakepos2, intake ball set 2
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
@@ -323,6 +326,7 @@ public class BlueGoalSide3 extends DarienOpModeFSM {
                     setPathState(pathState + 1);
                 }
                 break;
+
             case 9:
                 //after reaching shoot pos 3, start shooting
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
@@ -335,6 +339,7 @@ public class BlueGoalSide3 extends DarienOpModeFSM {
                 //after shooting, move to intakepos3
                 shootingFSM.update(getRuntime(), telemetry);
                 if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
+                    shootingFSM.reset();
                     follower.followPath(paths.IntakePos3);
                     setPathState(pathState + 1);
                 }
