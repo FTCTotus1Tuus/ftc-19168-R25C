@@ -103,13 +103,6 @@ public class BlueGoalSide1 extends DarienOpModeFSM {
 
             turretFSM.setPositionFromOdometry(targetGoalX, targetGoalY, robotX, robotY, robotHeadingRadians);
 
-            // Get current robot pose from follower
-            double robotX = follower.getPose().getX();
-            double robotY = follower.getPose().getY();
-            double robotHeadingRadians = follower.getPose().getHeading();
-
-            turretFSM.setPositionFromOdometry(targetGoalX, targetGoalY, robotX, robotY, robotHeadingRadians);
-
             // Drive the state machine
             pathState = autonomousPathUpdate();
 

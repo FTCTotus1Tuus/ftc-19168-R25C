@@ -189,6 +189,10 @@ public class ShootingFSM {
         return stage == Stage.DONE;
     }
 
+    public boolean isBusy() {
+        return stage != Stage.DONE || stage != Stage.IDLE;
+    }
+
     /**
      * Returns the current stage — useful for telemetry and autonomous logic.
      */
