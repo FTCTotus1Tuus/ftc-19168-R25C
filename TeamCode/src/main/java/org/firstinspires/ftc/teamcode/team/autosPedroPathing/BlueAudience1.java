@@ -162,7 +162,7 @@ public class BlueAudience1 extends DarienOpModeFSM {
                             new BezierLine(
                                     new Pose(57.000, 8.750),
 
-                                    new Pose(57.000, 15.000)
+                                    new Pose(57.000, 18.000)
                             )
                     ).setTangentHeadingInterpolation()
 
@@ -170,7 +170,7 @@ public class BlueAudience1 extends DarienOpModeFSM {
 
             IntakePos1 = follower.pathBuilder().addPath(
                             new BezierLine(
-                                    new Pose(57.000, 15.000),
+                                    new Pose(57.000, 18.000),
 
                                     new Pose(42.000, 36.000)
                             )
@@ -192,7 +192,7 @@ public class BlueAudience1 extends DarienOpModeFSM {
                             new BezierLine(
                                     new Pose(12.000, 36.000),
 
-                                    new Pose(57.000, 15.000)
+                                    new Pose(57.000, 18.000)
                             )
                     ).setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(90))
 
@@ -200,7 +200,7 @@ public class BlueAudience1 extends DarienOpModeFSM {
 
             IntakePos2 = follower.pathBuilder().addPath(
                             new BezierLine(
-                                    new Pose(57.000, 15.000),
+                                    new Pose(57.000, 18.000),
 
                                     new Pose(42.000, 60.000)
                             )
@@ -212,7 +212,7 @@ public class BlueAudience1 extends DarienOpModeFSM {
                             new BezierLine(
                                     new Pose(42.000, 60.000),
 
-                                    new Pose(20.000, 60.000)
+                                    new Pose(22.000, 60.000)
                             )
                     ).setTangentHeadingInterpolation()
 
@@ -220,7 +220,7 @@ public class BlueAudience1 extends DarienOpModeFSM {
 
             OpenGate = follower.pathBuilder().addPath(
                             new BezierLine(
-                                    new Pose(20.000, 60.000),
+                                    new Pose(22.000, 60.000),
 
                                     new Pose(19.000, 70.000)
                     )
@@ -232,7 +232,7 @@ public class BlueAudience1 extends DarienOpModeFSM {
                             new BezierLine(
                                     new Pose(19.000, 70.000),
 
-                                    new Pose(57.000, 15.000)
+                                    new Pose(57.000, 18.000)
                     )
                     ).setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(90))
 
@@ -240,7 +240,7 @@ public class BlueAudience1 extends DarienOpModeFSM {
 
             IntakePos3 = follower.pathBuilder().addPath(
                             new BezierLine(
-                                    new Pose(57.000, 15.000),
+                                    new Pose(57.000, 18.000),
 
                                     new Pose(42.000, 84.000)
                     )
@@ -252,7 +252,7 @@ public class BlueAudience1 extends DarienOpModeFSM {
                             new BezierLine(
                                     new Pose(42.000, 84.000),
 
-                                    new Pose(20.000, 84.000)
+                                    new Pose(22.000, 84.000)
                     )
                     ).setTangentHeadingInterpolation()
 
@@ -260,9 +260,9 @@ public class BlueAudience1 extends DarienOpModeFSM {
 
             ShootingPosition4 = follower.pathBuilder().addPath(
                             new BezierLine(
-                                    new Pose(20.000, 84.000),
+                                    new Pose(22.000, 84.000),
 
-                                    new Pose(57.000, 15.000)
+                                    new Pose(57.000, 18.000)
                             )
                     ).setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(90))
 
@@ -272,7 +272,7 @@ public class BlueAudience1 extends DarienOpModeFSM {
                     .pathBuilder()
                     .addPath(
                             new BezierLine(
-                                    new Pose(57.000, 15.000),
+                                    new Pose(57.000, 18.000),
 
                                     new Pose(57.000, 31.000)
                     )

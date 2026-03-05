@@ -45,8 +45,8 @@ public class RedAudience1 extends DarienOpModeFSM {
     public static double STANDARD_PATH_TIMEOUT = 2.0;
     public static double SHOOT_TRIPLE_TIMEOUT = 4.0;
     public static double TURRET_ROTATE_DELAY = 4;
-    public double targetGoalX = DarienOpModeFSM.GOAL_BLUE_X;
-    public double targetGoalY = DarienOpModeFSM.GOAL_BLUE_Y;
+    public double targetGoalX = DarienOpModeFSM.GOAL_RED_X;
+    public double targetGoalY = DarienOpModeFSM.GOAL_RED_Y;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -211,7 +211,7 @@ public class RedAudience1 extends DarienOpModeFSM {
                             new BezierLine(
                                     new Pose(102.000, 60.000),
 
-                                    new Pose(122.000, 60.000)
+                                    new Pose(120.000, 60.000)
                             )
                     ).setTangentHeadingInterpolation()
 
@@ -219,7 +219,7 @@ public class RedAudience1 extends DarienOpModeFSM {
 
             OpenGate = follower.pathBuilder().addPath(
                             new BezierLine(
-                                    new Pose(122.000, 60.000),
+                                    new Pose(120.000, 60.000),
 
                                     new Pose(125.000, 70.000)
                             )
@@ -251,7 +251,7 @@ public class RedAudience1 extends DarienOpModeFSM {
                             new BezierLine(
                                     new Pose(102.000, 84.000),
 
-                                    new Pose(122.000, 84.000)
+                                    new Pose(120.000, 84.000)
                             )
                     ).setTangentHeadingInterpolation()
 
@@ -259,7 +259,7 @@ public class RedAudience1 extends DarienOpModeFSM {
 
             ShootingPosition4 = follower.pathBuilder().addPath(
                             new BezierLine(
-                                    new Pose(122.000, 84.000),
+                                    new Pose(120.000, 84.000),
 
                                     new Pose(87.000, 15.000)
                             )

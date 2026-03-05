@@ -177,6 +177,7 @@ public class ShootingFSM {
 
             case IDLE:
             default:
+                gateFSM.close();
                 break;
         }
     }
