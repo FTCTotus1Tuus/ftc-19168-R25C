@@ -410,8 +410,7 @@ public class BlueGoalSide3 extends DarienOpModeFSM {
                 if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
 
                     telemetry.addLine("Case " + pathState + ": Done, setting state -1");
-
-                    setPathState(-1); // done
+                     setPathState(-1); // done
                 }
                 break;
 
