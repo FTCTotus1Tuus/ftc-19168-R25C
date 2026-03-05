@@ -36,7 +36,7 @@ public class BlueGoalSide1 extends DarienOpModeFSM {
     private Timer pathTimer, opmodeTimer;
 
     public static double PATH_POWER_STANDARD = 0.8;
-    public static double PATH_POWER_SLOW = 0.2;
+    public static double PATH_POWER_SLOW = 0.4;
     public static double SHORT_PATH_TIMEOUT = 1.0;
     public static double STANDARD_PATH_TIMEOUT = 2.0;
     public static double LONG_PATH_TIMEOUT = 4.0;
@@ -168,7 +168,7 @@ public class BlueGoalSide1 extends DarienOpModeFSM {
                             new BezierLine(
                                     new Pose(44.000, 84.000),
 
-                                    new Pose(25.000, 84.000)
+                                    new Pose(19.000, 84.000)
                             )
                     ).setTangentHeadingInterpolation()
 
@@ -177,7 +177,7 @@ public class BlueGoalSide1 extends DarienOpModeFSM {
             Parking = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(25.000, 84.000), new Pose(47.557, 122.383))
+                            new BezierLine(new Pose(19.000, 84.000), new Pose(60.000, 122.000))
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(180))
                     .build();
@@ -253,6 +253,7 @@ public class BlueGoalSide1 extends DarienOpModeFSM {
                 shootingFSM.update(getRuntime(), telemetry);
                 if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
                     shootingFSM.reset();
+                    intakeFSM.off();
                     telemetry.addLine("Case " + pathState + ": Done, setting state -1");
                      setPathState(-1); // done
                 }
