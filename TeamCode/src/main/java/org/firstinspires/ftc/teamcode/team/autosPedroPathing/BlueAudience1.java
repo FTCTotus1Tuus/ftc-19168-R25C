@@ -36,7 +36,7 @@ public class BlueAudience1 extends DarienOpModeFSM {
     private Timer pathTimer, opmodeTimer;
 
     public static double PATH_POWER_STANDARD = 0.8;
-    public static double PATH_POWER_SLOW = 0.2;
+    public static double PATH_POWER_SLOW = 0.4;
 
 
     public static double INTAKE_RUBBER_BANDS_DELAY = 0.2;
@@ -182,7 +182,7 @@ public class BlueAudience1 extends DarienOpModeFSM {
                             new BezierLine(
                                     new Pose(42.000, 36.000),
 
-                                    new Pose(23.000, 36.000)
+                                    new Pose(12.000, 36.000)
                             )
                     ).setTangentHeadingInterpolation()
 
@@ -190,7 +190,7 @@ public class BlueAudience1 extends DarienOpModeFSM {
 
             ShootingPosition2 = follower.pathBuilder().addPath(
                             new BezierLine(
-                                    new Pose(23.000, 36.000),
+                                    new Pose(12.000, 36.000),
 
                                     new Pose(57.000, 15.000)
                             )
@@ -212,7 +212,7 @@ public class BlueAudience1 extends DarienOpModeFSM {
                             new BezierLine(
                                     new Pose(42.000, 60.000),
 
-                                    new Pose(23.000, 60.000)
+                                    new Pose(20.000, 60.000)
                             )
                     ).setTangentHeadingInterpolation()
 
@@ -220,7 +220,7 @@ public class BlueAudience1 extends DarienOpModeFSM {
 
             OpenGate = follower.pathBuilder().addPath(
                             new BezierLine(
-                                    new Pose(23.000, 60.000),
+                                    new Pose(20.000, 60.000),
 
                                     new Pose(19.000, 70.000)
                     )
@@ -252,7 +252,7 @@ public class BlueAudience1 extends DarienOpModeFSM {
                             new BezierLine(
                                     new Pose(42.000, 84.000),
 
-                                    new Pose(23.000, 84.000)
+                                    new Pose(20.000, 84.000)
                     )
                     ).setTangentHeadingInterpolation()
 
@@ -260,7 +260,7 @@ public class BlueAudience1 extends DarienOpModeFSM {
 
             ShootingPosition4 = follower.pathBuilder().addPath(
                             new BezierLine(
-                                    new Pose(23.000, 84.000),
+                                    new Pose(20.000, 84.000),
 
                                     new Pose(57.000, 15.000)
                             )
@@ -314,7 +314,6 @@ public class BlueAudience1 extends DarienOpModeFSM {
                 shootingFSM.update(getRuntime(), telemetry);
                 telemetry.addLine("Case " + pathState + ": Start IntakeBallSet1");
                 if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
-                    shootingFSM.reset();
                     follower.followPath(paths.IntakePos1);
                     setPathState(pathState + 1);
                 }
@@ -322,7 +321,7 @@ public class BlueAudience1 extends DarienOpModeFSM {
 
             case 3:
                 telemetry.addLine("Case " + pathState + ": Read AprilTag then start Path2");
-
+                shootingFSM.reset();
                 if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
                     follower.setMaxPower(PATH_POWER_SLOW);
                     intakeFSM.startIntaking();
@@ -355,6 +354,8 @@ public class BlueAudience1 extends DarienOpModeFSM {
                 shootingFSM.update(getRuntime(), telemetry);
                 if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
                     follower.followPath(paths.Parking, true);
+                    shootingFSM.reset();
+                    intakeFSM.off();
                     setPathState(pathState + 1);
                 }
                 break;

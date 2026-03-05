@@ -76,8 +76,8 @@ public class IntakeFSM {
 
     // HARDWARE TUNING CONSTANTS
     public static double INTAKE_DISTANCE = 5; // cm
-    public static double INTAKE_RUBBER_BANDS_POWER = .35;
-    public static double INTAKE_RUBBER_BANDS_POWER_HIGH = 0.5;
+    public static double INTAKE_RUBBER_BANDS_POWER = .5;
+    public static double INTAKE_RUBBER_BANDS_POWER_HIGH = 0.6;
     public static double OUTPUT_RUBBER_BANDS_POWER = 0.2;
     public static double INTAKE_INTAKE_ROLLER_POWER = 0.3;
     public static double INTAKE_INTAKE_ROLLER_POWER_HIGH = 1;
