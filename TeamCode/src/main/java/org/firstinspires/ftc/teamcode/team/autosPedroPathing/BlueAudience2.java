@@ -313,6 +313,7 @@ public class BlueAudience2 extends DarienOpModeFSM {
             case 3:
                 telemetry.addLine("Case " + pathState + ": Read AprilTag then start Path2");
                 shootingFSM.reset();
+                shotgunFSM.toOff();
                 if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
                     follower.setMaxPower(PATH_POWER_SLOW);
                     intakeFSM.startIntaking();
@@ -353,6 +354,7 @@ public class BlueAudience2 extends DarienOpModeFSM {
             case 7:
                 telemetry.addLine("Case " + pathState + ": Read AprilTag then start Path2");
                 shootingFSM.reset();
+                shotgunFSM.toOff();
                 if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
                     follower.setMaxPower(PATH_POWER_SLOW);
                     intakeFSM.startIntaking();
@@ -386,6 +388,7 @@ public class BlueAudience2 extends DarienOpModeFSM {
                 if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
                     follower.followPath(paths.Parking, true);
                     shootingFSM.reset();
+                    shotgunFSM.toOff();
                     intakeFSM.off();
                     setPathState(pathState + 1);
                 }

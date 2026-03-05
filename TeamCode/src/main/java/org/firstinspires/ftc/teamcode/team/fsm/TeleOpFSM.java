@@ -382,8 +382,8 @@ public class TeleOpFSM extends DarienOpModeFSM {
                     shotgunFSM.toPowerUpFar(SHOT_GUN_POWER_UP_FAR_RPM_TELEOP);
                     telemetry.addData("Requested ShotGun RPM", SHOT_GUN_POWER_UP_FAR_RPM_TELEOP);
                     break;
-                default:
                 case LOW:
+                default:
                     shotgunFSM.toPowerUp(SHOT_GUN_POWER_UP_RPM);
                     telemetry.addData("Requested ShotGun RPM", SHOT_GUN_POWER_UP_RPM);
                     break;

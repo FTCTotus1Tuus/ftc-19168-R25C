@@ -161,6 +161,7 @@ public class ShootingFSM {
             case START_CLOSING_GATE:
                 gateFSM.close();
                 stage = Stage.CLOSING_GATE;
+                stageStartTime = currentTime;
                 break;
 
             case CLOSING_GATE:
@@ -191,7 +192,7 @@ public class ShootingFSM {
     }
 
     public boolean isBusy() {
-        return stage != Stage.DONE || stage != Stage.IDLE;
+        return stage != Stage.DONE && stage != Stage.IDLE;
     }
 
     /**
@@ -202,21 +203,23 @@ public class ShootingFSM {
     }
 
     /**
-     * Stop the ejection motor and reset back to IDLE.
-     * Call this after isDone(), or to abort a shot in progress.
+     * Reset the shooting FSM back to IDLE without touching the shotgun motor.
+     * In TeleOp the shotgun power latch is the single owner of motor power.
+     * In autonomous, call {@code shotgunFSM.toOff()} explicitly after reset()
+     * if the motor should stop.
      */
     public void reset() {
-        shotgunFSM.toOff();
         stage = Stage.IDLE;
         stageStartTime = Double.NaN;
     }
 
     /**
-     * Convenience: stop motor and return to IDLE without affecting gate state.
+     * Convenience: stop motor and return to IDLE, also closing the gate.
      * Useful when aborting due to timeout.
      */
     public void abort() {
         gateFSM.close();
+        shotgunFSM.toOff();
         reset();
     }
 

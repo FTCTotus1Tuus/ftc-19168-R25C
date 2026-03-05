@@ -209,6 +209,7 @@ public class BlueGoalSide1 extends DarienOpModeFSM {
                 telemetry.addLine("Case " + pathState + ": Start IntakeBallSet1");
                 if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
                     shootingFSM.reset();
+                    shotgunFSM.toOff();
                     follower.followPath(paths.IntakePos1);
                     setPathState(pathState + 1);
                 }
@@ -247,6 +248,7 @@ public class BlueGoalSide1 extends DarienOpModeFSM {
                 shootingFSM.update(getRuntime(), telemetry);
                 if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
                     shootingFSM.reset();
+                    shotgunFSM.toOff();
                     intakeFSM.off();
                     telemetry.addLine("Case " + pathState + ": Done, setting state -1");
                      setPathState(-1); // done
