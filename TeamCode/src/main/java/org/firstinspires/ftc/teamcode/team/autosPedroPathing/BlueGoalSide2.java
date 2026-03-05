@@ -5,6 +5,7 @@ import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
 import com.pedropathing.follower.Follower;
+import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
@@ -35,7 +36,7 @@ public class BlueGoalSide2 extends DarienOpModeFSM {
     private Timer pathTimer, opmodeTimer;
 
     public static double PATH_POWER_STANDARD = 0.8;
-    public static double PATH_POWER_SLOW = 0.2;
+    public static double PATH_POWER_SLOW = 0.4;
     public static double SHORT_PATH_TIMEOUT = 1.0;
     public static double STANDARD_PATH_TIMEOUT = 2.0;
     public static double LONG_PATH_TIMEOUT = 4.0;
@@ -170,7 +171,7 @@ public class BlueGoalSide2 extends DarienOpModeFSM {
                             new BezierLine(
                                     new Pose(44.000, 84.000),
 
-                                    new Pose(25.000, 84.000)
+                                    new Pose(28.000, 84.000)
                             )
                     ).setTangentHeadingInterpolation()
 
@@ -178,11 +179,11 @@ public class BlueGoalSide2 extends DarienOpModeFSM {
 
             ShootingPosition2 = follower.pathBuilder().addPath(
                             new BezierLine(
-                                    new Pose(25.000, 84.000),
+                                    new Pose(28.000, 84.000),
 
                                     new Pose(57.000, 84.000)
                             )
-                    ).setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(180))
+                    ).setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(180))
 
                     .build();
 
@@ -200,22 +201,25 @@ public class BlueGoalSide2 extends DarienOpModeFSM {
                             new BezierLine(
                                     new Pose(44.000, 60.000),
 
-                                    new Pose(25.000, 60.000)
+                                    new Pose(14.500, 60.000)
                             )
-                    ).setTangentHeadingInterpolation()
+                    ).setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(180))
 
                     .build();
 
             Parking = follower.pathBuilder().addPath(
-                            new BezierLine(
-                                    new Pose(25.000, 60.000),
-
+                            new BezierCurve(
+                                    new Pose(14.500, 60.000),
+                                    new Pose(65.890, 56.335),
+                                    new Pose(56.192, 88.344),
                                     new Pose(57.000, 120.000)
                             )
                     ).setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(180))
+
                     .build();
         }
     }
+
 
 
     public int autonomousPathUpdate() {
