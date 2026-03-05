@@ -43,10 +43,13 @@ public class ShotgunFSM {
     public void toOff() {
         current = State.OFF;
         shotgunMotor.setPower(0);
-        pidOutput = new double[]{0, 0, 0, 0}; // Reset pid output to prevent stale iduty from previous shot from carrying into the next spin-up.
     }
 
     public void toPowerUp(double power) {
+        // Reset PID state on cold start so stale integral doesn't carry across separate spin-ups
+        if (current == State.OFF) {
+            pidOutput = new double[]{0, 0, 0, 0};
+        }
         current = State.POWER_UP;
         //shotgunMotor.setPower(opmode.getVoltageAdjustedMotorPower(SHOT_GUN_POWER_UP));
         //shotgunMotor.setVelocity(opmode.getTicksPerSecond(opmode.SHOT_GUN_POWER_UP_RPM));
@@ -73,6 +76,10 @@ public class ShotgunFSM {
     }
 
     public void toPowerUpFar(double power) {
+        // Reset PID state on cold start so stale integral doesn't carry across separate spin-ups
+        if (current == State.OFF) {
+            pidOutput = new double[]{0, 0, 0, 0};
+        }
         current = State.POWER_UP_FAR;
         //shotgunMotor.setPower(opmode.getVoltageAdjustedMotorPower(SHOT_GUN_POWER_UP_FAR));
         //shotgunMotor.setVelocity(opmode.getTicksPerSecond(power));

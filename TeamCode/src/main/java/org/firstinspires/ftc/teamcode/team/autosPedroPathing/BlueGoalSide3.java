@@ -11,7 +11,6 @@ import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 import android.content.SharedPreferences;
 
@@ -24,10 +23,11 @@ import org.firstinspires.ftc.teamcode.team.fsm.ShootingFSM;
  * Pedro Pathing auto using LinearOpMode via DarienOpModeFSM.
  */
 
-@Autonomous(name = "Blue Audience 9", group = "Pedro:Blues", preselectTeleOp = "TeleopFSM")
-@Configurable
+@Autonomous(name = "Blue Goal 12", group = "Pedro:Blues", preselectTeleOp = "TeleopFSM")
 @Config
-public class BlueAudience2 extends DarienOpModeFSM {
+@Configurable
+public class BlueGoalSide3 extends DarienOpModeFSM {
+
     private TelemetryManager panelsTelemetry;   // Panels Telemetry instance
     // follower is inherited from DarienOpModeFSM
     private int pathState;                      // State machine state
@@ -36,14 +36,8 @@ public class BlueAudience2 extends DarienOpModeFSM {
 
     public static double PATH_POWER_STANDARD = 0.8;
     public static double PATH_POWER_SLOW = 0.4;
-
-
-    public static double INTAKE_RUBBER_BANDS_DELAY = 0.2;
-    public static double BALL_INTAKE_DELAY = 0;
-    public static double SHOTGUN_SPINUP_DELAY = 0;
     public static double STANDARD_PATH_TIMEOUT = 2.0;
     public static double SHOOT_TRIPLE_TIMEOUT = 4.0;
-    public static double TURRET_ROTATE_DELAY = 4;
     public double targetGoalX = DarienOpModeFSM.GOAL_BLUE_X;
     public double targetGoalY = DarienOpModeFSM.GOAL_BLUE_Y;
 
@@ -61,13 +55,13 @@ public class BlueAudience2 extends DarienOpModeFSM {
         panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
 
         // Starting pose
-        follower.setStartingPose(new Pose(57, 8.75, Math.toRadians(90)));
+        follower.setStartingPose(new Pose(57, 135, Math.toRadians(180)));
 
         // Build all the paths once
         paths = new Paths(follower);
 
         panelsTelemetry.debug("Status", "Initialized");
-        telemetry.addLine("BlueAudienceSidePedro: READY");
+        telemetry.addLine("BlueGoalSidePedro: READY");
         panelsTelemetry.update(telemetry);
 
         turretFSM.center();
@@ -78,7 +72,6 @@ public class BlueAudience2 extends DarienOpModeFSM {
 
         telemetry.addLine("Alliance Color: BLUE (Saved to Preferences)");
 
-
         // --- WAIT FOR START ---
         waitForStart();
         if (isStopRequested()) return;
@@ -87,7 +80,6 @@ public class BlueAudience2 extends DarienOpModeFSM {
         setPathState(0);
 
         targetGoalId = APRILTAG_ID_GOAL_BLUE;
-        // Constantly run top roller in intake mode
 
         // --- MAIN AUTONOMOUS LOOP ---
         while (opModeIsActive() && !isStopRequested()) {
@@ -110,9 +102,9 @@ public class BlueAudience2 extends DarienOpModeFSM {
                     .apply();
 
             telemetry.addData("Saved Odometry", String.format("X=%.1f, Y=%.1f, H=%.1f°",
-                                                              follower.getPose().getX(),
-                                                              follower.getPose().getY(),
-                                                              Math.toDegrees(follower.getPose().getHeading())));
+                    follower.getPose().getX(),
+                    follower.getPose().getY(),
+                    Math.toDegrees(follower.getPose().getHeading())));
 
             // Drive the state machine
             pathState = autonomousPathUpdate();
@@ -128,7 +120,6 @@ public class BlueAudience2 extends DarienOpModeFSM {
         }
     }
 
-
     /**
      * Inner class defining all the Pedro paths.
      */
@@ -136,72 +127,41 @@ public class BlueAudience2 extends DarienOpModeFSM {
         public PathChain ShootingPosition1;
         public PathChain IntakePos1;
         public PathChain IntakeBallSet1;
+        public PathChain OpenGate;
         public PathChain ShootingPosition2;
         public PathChain IntakePos2;
-        public PathChain IntakeBallSet2;
-        public PathChain OpenGate;
+        public PathChain InatkeBallSet2;
         public PathChain ShootingPosition3;
         public PathChain IntakePos3;
         public PathChain IntakeBallSet3;
-        public PathChain ShootingPosition4;
         public PathChain Parking;
 
         public Paths(Follower follower) {
             ShootingPosition1 = follower.pathBuilder().addPath(
                             new BezierLine(
-                                    new Pose(57.000, 8.750),
+                                    new Pose(57.000, 135.000),
 
-                                    new Pose(57.000, 18.000)
-                    )
-                    ).setTangentHeadingInterpolation()
+                                    new Pose(57.000, 84.000)
+                            )
+                    ).setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(180))
 
                     .build();
 
             IntakePos1 = follower.pathBuilder().addPath(
                             new BezierLine(
-                                    new Pose(57.000, 18.000),
+                                    new Pose(57.000, 84.000),
 
-                                    new Pose(42.000, 36.000)
-                    )
-                    ).setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(180))
+                                    new Pose(44.000, 84.000)
+                            )
+                    ).setTangentHeadingInterpolation()
 
                     .build();
 
             IntakeBallSet1 = follower.pathBuilder().addPath(
                             new BezierLine(
-                                    new Pose(42.000, 36.000),
+                                    new Pose(44.000, 84.000),
 
-                                    new Pose(12.000, 36.000)
-                    )
-                    ).setTangentHeadingInterpolation()
-
-                    .build();
-
-            ShootingPosition2 = follower.pathBuilder().addPath(
-                            new BezierLine(
-                                    new Pose(12.000, 36.000),
-
-                                    new Pose(57.000, 18.000)
-                    )
-                    ).setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(90))
-
-                    .build();
-
-            IntakePos2 = follower.pathBuilder().addPath(
-                            new BezierLine(
-                                    new Pose(57.000, 18.000),
-
-                                    new Pose(42.000, 60.000)
-                    )
-                    ).setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(180))
-
-                    .build();
-
-            IntakeBallSet2 = follower.pathBuilder().addPath(
-                            new BezierLine(
-                                    new Pose(42.000, 60.000),
-
-                                    new Pose(22.000, 60.000)
+                                    new Pose(28.000, 84.000)
                             )
                     ).setTangentHeadingInterpolation()
 
@@ -209,66 +169,85 @@ public class BlueAudience2 extends DarienOpModeFSM {
 
             OpenGate = follower.pathBuilder().addPath(
                             new BezierLine(
-                                    new Pose(22.000, 60.000),
+                                    new Pose(28.000, 84.000),
 
-                                    new Pose(19.000, 70.000)
+                                    new Pose(18.121, 70.437)
                             )
                     ).setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(90))
 
                     .build();
 
-            ShootingPosition3 = follower.pathBuilder().addPath(
+            ShootingPosition2 = follower.pathBuilder().addPath(
                             new BezierLine(
-                                    new Pose(19.000, 70.000),
+                                    new Pose(18.121, 70.437),
 
-                                    new Pose(57.000, 18.000)
-                            )
-                    ).setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(90))
-
-                    .build();
-
-            IntakePos3 = follower.pathBuilder().addPath(
-                            new BezierLine(
-                                    new Pose(57.000, 18.000),
-
-                                    new Pose(42.000, 84.000)
+                                    new Pose(57.000, 84.000)
                             )
                     ).setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(180))
 
                     .build();
 
-            IntakeBallSet3 = follower.pathBuilder().addPath(
+            IntakePos2 = follower.pathBuilder().addPath(
                             new BezierLine(
-                                    new Pose(42.000, 84.000),
+                                    new Pose(57.000, 84.000),
 
-                                    new Pose(22.000, 84.000)
+                                    new Pose(44.000, 60.000)
+                            )
+                    ).setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(180))
+
+                    .build();
+
+            InatkeBallSet2 = follower.pathBuilder().addPath(
+                            new BezierLine(
+                                    new Pose(44.000, 60.000),
+
+                                    new Pose(28.000, 60.000)
                             )
                     ).setTangentHeadingInterpolation()
 
                     .build();
 
-            ShootingPosition4 = follower.pathBuilder().addPath(
+            ShootingPosition3 = follower.pathBuilder().addPath(
                             new BezierLine(
-                                    new Pose(22.000, 84.000),
+                                    new Pose(28.000, 60.000),
 
-                                    new Pose(57.000, 18.000)
+                                    new Pose(57.000, 84.000)
                             )
-                    ).setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(90))
+                    ).setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(180))
+
+                    .build();
+
+            IntakePos3 = follower.pathBuilder().addPath(
+                            new BezierLine(
+                                    new Pose(57.000, 84.000),
+
+                                    new Pose(44.000, 36.000)
+                            )
+                    ).setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(180))
+
+                    .build();
+
+            IntakeBallSet3 = follower.pathBuilder().addPath(
+                            new BezierLine(
+                                    new Pose(44.000, 36.000),
+
+                                    new Pose(28.000, 36.000)
+                            )
+                    ).setTangentHeadingInterpolation()
 
                     .build();
 
             Parking = follower.pathBuilder().addPath(
                             new BezierLine(
-                                    new Pose(57.000, 18.000),
+                                    new Pose(28.000, 36.000),
 
-                                    new Pose(57.000, 31.000)
+                                    new Pose(57.000, 120.000)
                             )
-                    ).setTangentHeadingInterpolation()
+                    ).setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(180))
 
                     .build();
         }
     }
-
 
 
     public int autonomousPathUpdate() {
@@ -284,32 +263,30 @@ public class BlueAudience2 extends DarienOpModeFSM {
                 follower.setMaxPower(PATH_POWER_STANDARD);
                 intakeFSM.setModeFull();
                 follower.followPath(paths.ShootingPosition1);
-                    setPathState(pathState + 1);
-
+                setPathState(pathState + 1);
                 break;
-
             case 1:
                 // when at shootingPosition 1, start shooting
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
-                    shootingFSM.start(getRuntime(), ShootingFSM.PowerLevel.FAR);
+                    shootingFSM.start(getRuntime(), ShootingFSM.PowerLevel.CLOSE);
                     setPathState(pathState + 1);
                 }
                 break;
 
             case 2:
-                // when shooting is done, Intake ballset 1
+                // when shooting is done, move to intakePos1
                 shootingFSM.update(getRuntime(), telemetry);
                 telemetry.addLine("Case " + pathState + ": Start IntakeBallSet1");
                 if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
+                    shootingFSM.reset();
+                    shotgunFSM.toOff();
                     follower.followPath(paths.IntakePos1);
                     setPathState(pathState + 1);
                 }
                 break;
 
             case 3:
-                telemetry.addLine("Case " + pathState + ": Read AprilTag then start Path2");
-                shootingFSM.reset();
-                shotgunFSM.toOff();
+                //when in intakepos1, intake ball set 1
                 if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
                     follower.setMaxPower(PATH_POWER_SLOW);
                     intakeFSM.startIntaking();
@@ -319,85 +296,120 @@ public class BlueAudience2 extends DarienOpModeFSM {
                 break;
 
             case 4:
-                telemetry.addLine("Case " + pathState + ": Wait for Path2, then shoot artifact");
+                // when done intaking, open the gate
                 intakeFSM.updateIntaking(getRuntime(), true, telemetry);
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
-                    telemetry.addLine("Case " + pathState + ": exiting");
-                    follower.setMaxPower(PATH_POWER_STANDARD); //speed up again
-                    follower.followPath(paths.ShootingPosition2, true);
+                    follower.followPath(paths.OpenGate);
                     setPathState(pathState + 1);
                 }
                 break;
 
             case 5:
-                shootingFSM.start(getRuntime(), ShootingFSM.PowerLevel.FAR);
-                if (!follower.isBusy() && pathTimer.getElapsedTimeSeconds() > TURRET_ROTATE_DELAY) {
+                //after open gate, move to shoot pos 2
+                if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
+                    follower.setMaxPower(PATH_POWER_STANDARD); //speed up again
+                    follower.followPath(paths.ShootingPosition2);
                     setPathState(pathState + 1);
                 }
                 break;
 
             case 6:
-                telemetry.addLine("Case " + pathState + ": updateShooting...");
-
-                shootingFSM.update(getRuntime(), telemetry);
-
-                if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
-                    follower.followPath(paths.IntakePos2);
+                //after moving to shoot pos 2, start shooting
+                if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT + 1.5) {
+                    shootingFSM.start(getRuntime(), ShootingFSM.PowerLevel.CLOSE);
                     setPathState(pathState + 1);
                 }
                 break;
 
             case 7:
-                telemetry.addLine("Case " + pathState + ": Read AprilTag then start Path2");
-                shootingFSM.reset();
-                shotgunFSM.toOff();
-                if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
-                    follower.setMaxPower(PATH_POWER_SLOW);
-                    intakeFSM.startIntaking();
-                    follower.followPath(paths.IntakeBallSet2);
+                //after shooting, move to intakepos2
+                shootingFSM.update(getRuntime(), telemetry);
+                if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
+                    shootingFSM.reset();
+                    shotgunFSM.toOff();
+                    follower.followPath(paths.IntakePos2, true);
                     setPathState(pathState + 1);
                 }
                 break;
 
             case 8:
-                telemetry.addLine("Case " + pathState + ": Wait for Path2, then shoot artifact");
-                intakeFSM.updateIntaking(getRuntime(), true, telemetry);
+                //after moving to intakepos2, intake ball set 2
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
-                    telemetry.addLine("Case " + pathState + ": exiting");
-                    follower.setMaxPower(PATH_POWER_STANDARD); //speed up again
-                    follower.followPath(paths.ShootingPosition3, true);
+                    follower.setMaxPower(PATH_POWER_SLOW);
+                    intakeFSM.startIntaking();
+                    follower.followPath(paths.InatkeBallSet2, true);
                     setPathState(pathState + 1);
                 }
                 break;
 
             case 9:
-                shootingFSM.start(getRuntime(), ShootingFSM.PowerLevel.FAR);
-                if (!follower.isBusy() && pathTimer.getElapsedTimeSeconds() > TURRET_ROTATE_DELAY) {
+                //after intaking, move to shoot pos 3
+                intakeFSM.updateIntaking(getRuntime(), true, telemetry);
+                if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
+                    follower.setMaxPower(PATH_POWER_STANDARD);
+                    follower.followPath(paths.ShootingPosition3, true);
                     setPathState(pathState + 1);
                 }
                 break;
 
             case 10:
-                telemetry.addLine("Case " + pathState + ": updateShooting...");
-
-                shootingFSM.update(getRuntime(), telemetry);
-                if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
-                    follower.followPath(paths.Parking, true);
-                    shootingFSM.reset();
-                    shotgunFSM.toOff();
-                    intakeFSM.off();
+                //after reaching shoot pos 3, start shooting
+                if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
+                    shootingFSM.start(getRuntime(), ShootingFSM.PowerLevel.CLOSE);
                     setPathState(pathState + 1);
                 }
                 break;
 
-            case 11:
-
-                // finish the move to parking
-                if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
-                    setPathState(-1);
+            /*case 11:
+                //after shooting, move to intakepos3
+                shootingFSM.update(getRuntime(), telemetry);
+                if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
+                    shootingFSM.reset();
+                    shotgunFSM.toOff();
+                    follower.followPath(paths.IntakePos3);
+                    setPathState(pathState + 1);
                 }
                 break;
 
+            case 12:
+                //after reaching intakepos3, intake ballset 3
+                if (!follower.isBusy() && pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
+                    follower.setMaxPower(PATH_POWER_SLOW);
+                    intakeFSM.startIntaking();
+                    follower.followPath(paths.IntakeBallSet3);
+                    setPathState(pathState + 1);
+                }
+                break;
+
+            case 13:
+                // after intaking ball set 3, move to park/shooting pos 4
+                intakeFSM.updateIntaking(getRuntime(), true, telemetry);
+                if (!follower.isBusy() && pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
+                    follower.setMaxPower(PATH_POWER_STANDARD);
+                    follower.followPath(paths.Parking);
+                    setPathState(pathState + 1);
+                }
+                break;
+
+            case 14:
+                // after moving to park/shooting pos 4, start shooting
+                if (!follower.isBusy() && pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT + 1.5) {
+                    shootingFSM.start(getRuntime(), ShootingFSM.PowerLevel.CLOSE);
+                    setPathState(pathState + 1);
+                }
+                break;
+
+             */
+
+            case 11:
+                //after done shooting, send odometry values to teleop
+                shootingFSM.update(getRuntime(), telemetry);
+                if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
+
+                    telemetry.addLine("Case " + pathState + ": Done, setting state -1");
+                     setPathState(-1); // done
+                }
+                break;
 
             default:
                 // -1 or any undefined state: do nothing, stay idle

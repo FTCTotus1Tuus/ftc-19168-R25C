@@ -12,9 +12,12 @@ import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
 import com.qualcomm.robotcore.hardware.Servo;
 
+import com.pedropathing.follower.Follower;
+
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.ExposureControl;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.GainControl;
+import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.team.GoBildaPinpointDriver;
 import org.firstinspires.ftc.teamcode.team.MotorHelper;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
@@ -54,6 +57,7 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     public FtcDashboard dash;
 
     // HARDWARE DEVICES
+    public Follower follower;                       // Pedro Pathing follower — created during initControls()
     public DcMotorEx ejectionMotor;
 
     // HARDWARE FIXED CONSTANTS
@@ -183,17 +187,20 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
         intakeFSM.init();
         shootingFSM = new ShootingFSM(this.gateFSM, this.shotgunFSM, this.intakeFSM, this);
 
+        // Create Pedro Pathing follower — available to all subclasses (Teleop + Autos)
+        follower = Constants.createFollower(hardwareMap);
+
         telemetry.addLine("FTC 19168 Robot Initialization Done!");
         telemetry.update();
     }
 
     /**
      * Returns the robot's Y position from odometry.
-     * Subclasses should override this to return follower.getPose().getY().
-     * Default implementation returns NaN to indicate odometry is not available.
+     * Uses the follower created during initControls().
+     * Returns NaN if follower is not yet initialized.
      */
     public double getRobotY() {
-        return Double.NaN;
+        return (follower != null) ? follower.getPose().getY() : Double.NaN;
     }
 
     /**

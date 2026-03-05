@@ -17,7 +17,6 @@ import android.content.SharedPreferences;
 
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 
-import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.team.fsm.DarienOpModeFSM;
 
 /**
@@ -30,7 +29,7 @@ import org.firstinspires.ftc.teamcode.team.fsm.DarienOpModeFSM;
 public class RedGoalSide2 extends DarienOpModeFSM {
 
     private TelemetryManager panelsTelemetry;   // Panels Telemetry instance
-    public Follower follower;                   // Pedro Pathing follower instance
+    // follower is inherited from DarienOpModeFSM
     private int pathState;                      // State machine state
     private Paths paths;                        // Paths
     private Timer pathTimer, opmodeTimer;
@@ -58,18 +57,15 @@ public class RedGoalSide2 extends DarienOpModeFSM {
 
         panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
 
-        follower = Constants.createFollower(hardwareMap);
-        // Starting pose – same as your OpMode version
+        // Starting pose
         follower.setStartingPose(new Pose(123.714, 124.378, Math.toRadians(126)));
 
         // Build all the paths once
         paths = new Paths(follower);
 
         panelsTelemetry.debug("Status", "Initialized");
-        panelsTelemetry.update(telemetry);
-
         telemetry.addLine("RedGoalSidePedro: READY");
-        telemetry.update();
+        panelsTelemetry.update(telemetry);
 
         // Save alliance color to shared preferences for TeleOp
         SharedPreferences prefs = AppUtil.getInstance().getActivity().getSharedPreferences("ftc_prefs", android.content.Context.MODE_PRIVATE);
@@ -104,17 +100,11 @@ public class RedGoalSide2 extends DarienOpModeFSM {
             panelsTelemetry.addData("Y", follower.getPose().getY());
             panelsTelemetry.addData("Heading", follower.getPose().getHeading());
             panelsTelemetry.addData("Alliance Color", "RED");
-            panelsTelemetry.update(telemetry);
             telemetry.addData("Alliance Color Saved", "RED");
-
-            telemetry.update();
+            panelsTelemetry.update(telemetry);
         }
     }
 
-    @Override
-    public double getRobotY() {
-        return (follower != null) ? follower.getPose().getY() : Double.NaN;
-    }
 
     /**
      * Inner class defining all the Pedro paths.
