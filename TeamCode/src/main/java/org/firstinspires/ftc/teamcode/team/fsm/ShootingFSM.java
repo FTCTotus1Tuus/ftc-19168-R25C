@@ -67,6 +67,7 @@ public class ShootingFSM {
     private final GateFSM gateFSM;
     private final ShotgunFSM shotgunFSM;
     private final IntakeFSM intakeFSM;
+    private final DarienOpModeFSM parent;
 
     // -------------------------------------------------------------------------
     // TUNING CONSTANTS  (visible in FTC Dashboard)
@@ -91,11 +92,13 @@ public class ShootingFSM {
      * @param gateFSM    Gate dependency — ShootingFSM calls open() and close()
      * @param shotgunFSM Ejection motor dependency — ShootingFSM calls toPowerUp/toPowerUpFar/toOff
      * @param intakeFSM  Intake dependency — ShootingFSM calls shootForward() and stopAfterShot()
+     * @param parent     Parent OpMode reference for accessing shooting power mode and odometry
      */
-    public ShootingFSM(GateFSM gateFSM, ShotgunFSM shotgunFSM, IntakeFSM intakeFSM) {
+    public ShootingFSM(GateFSM gateFSM, ShotgunFSM shotgunFSM, IntakeFSM intakeFSM, DarienOpModeFSM parent) {
         this.gateFSM = gateFSM;
         this.shotgunFSM = shotgunFSM;
         this.intakeFSM = intakeFSM;
+        this.parent = parent;
     }
 
     // -------------------------------------------------------------------------
@@ -217,10 +220,32 @@ public class ShootingFSM {
     // -------------------------------------------------------------------------
 
     private void spinUp(PowerLevel powerLevel) {
-        if (powerLevel == PowerLevel.FAR) {
-            shotgunFSM.toPowerUpFar(DarienOpModeFSM.SHOT_GUN_POWER_UP_FAR_RPM_TELEOP);
+        // Determine effective power level (may be overridden by odometry)
+        PowerLevel effectivePowerLevel = powerLevel;
+
+        // If in ODOMETRY mode, override power level based on robot Y position
+        if (parent.shootingPowerMode == DarienOpModeFSM.ShootingPowerModes.ODOMETRY) {
+            double robotY = parent.getRobotY();
+            if (!Double.isNaN(robotY)) {
+                // FAR power if Y <= threshold (closer to audience side), CLOSE otherwise
+                effectivePowerLevel = (robotY <= DarienOpModeFSM.SHOOTING_POWER_ODOMETRY_Y_THRESHOLD)
+                    ? PowerLevel.FAR
+                    : PowerLevel.CLOSE;
+            }
+        }
+
+        // Select appropriate RPM constant based on power level and autonomous/teleop mode
+        double targetRPM;
+        if (effectivePowerLevel == PowerLevel.FAR) {
+            targetRPM = parent.isAutonomousMode()
+                ? DarienOpModeFSM.SHOT_GUN_POWER_UP_FAR_RPM_AUTO
+                : DarienOpModeFSM.SHOT_GUN_POWER_UP_FAR_RPM_TELEOP;
+            shotgunFSM.toPowerUpFar(targetRPM);
         } else {
-            shotgunFSM.toPowerUp(DarienOpModeFSM.SHOT_GUN_POWER_UP_RPM);
+            targetRPM = parent.isAutonomousMode()
+                ? DarienOpModeFSM.SHOT_GUN_POWER_UP_RPM_AUTO
+                : DarienOpModeFSM.SHOT_GUN_POWER_UP_RPM;
+            shotgunFSM.toPowerUp(targetRPM);
         }
     }
 }

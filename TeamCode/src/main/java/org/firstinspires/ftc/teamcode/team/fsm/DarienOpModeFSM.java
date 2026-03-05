@@ -70,11 +70,14 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     // HARDWARE TUNING CONSTANTS
     public static double SHOT_GUN_POWER_UP = 0.60;
     public static double SHOT_GUN_POWER_UP_FAR = 0.64;//66
-    public static double SHOT_GUN_POWER_UP_RPM = 1030; // tuned to 6000 rpm motor
-    public static double SHOT_GUN_POWER_UP_RPM_AUTO = 1030;
-    public static double SHOT_GUN_POWER_UP_FAR_RPM_AUTO = 1350;// tuned to 6000 rpm motor
-    public static double SHOT_GUN_POWER_UP_FAR_RPM_TELEOP = 1350; // tuned to 6000 rpm motor
+    public static double SHOT_GUN_POWER_UP_RPM = 1100; // tuned to 6000 rpm motor mounted vertically with small bevel gears
+    public static double SHOT_GUN_POWER_UP_RPM_AUTO = 1000;
+    public static double SHOT_GUN_POWER_UP_FAR_RPM_AUTO = 1350;// tuned to 6000 rpm motor mounted vertically with small bevel gears
+    public static double SHOT_GUN_POWER_UP_FAR_RPM_TELEOP = 1350; // tuned to 6000 rpm motor mounted vertically with small bevel gears
     public static double SHOT_GUN_POWER_DOWN = 0.2; // tuned to 6000 rpm motor
+
+    // SHOOTING POWER ODOMETRY TUNING
+    public static double SHOOTING_POWER_ODOMETRY_Y_THRESHOLD = 48.0; // Y threshold for automatic FAR vs CLOSE power selection
 
     // For FTC AprilTag detection with a Logitech C910 webcam,
     // 1.0 to 1.5 seconds is typically sufficient and more reasonable than 3 seconds.
@@ -129,11 +132,19 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     public static double CAMERA_FALLBACK_TIMEOUT_MS = 500; // Auto-switch to odometry after this timeout
 
     public int targetGoalId = 0;
+
     public enum ShotgunPowerLevel {
         OFF,
         LOW,
         HIGH
     }
+
+    public enum ShootingPowerModes {
+        MANUAL,    // Driver manually selects power level
+        ODOMETRY   // Automatic power selection based on robot Y position
+    }
+
+    protected ShootingPowerModes shootingPowerMode = ShootingPowerModes.MANUAL;
 
     // Abstract method for child classes to implement
     @Override
@@ -156,6 +167,9 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
 
         MotorHelper = new MotorHelper(telemetry, TICKS_PER_ROTATION);
 
+        // Set default shooting power mode: ODOMETRY for Autos, MANUAL for TeleOp
+        shootingPowerMode = isAutonomousMode() ? ShootingPowerModes.ODOMETRY : ShootingPowerModes.MANUAL;
+
         // INSTANTIATE THE STATE MACHINES
         tagFSM = new AprilTagDetectionFSM(aprilTag, TIMEOUT_APRILTAG_DETECTION);
         shootArtifactFSM = new ShootArtifactFSM(this);
@@ -167,10 +181,27 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
         gateFSM.init();
         intakeFSM = new IntakeFSM(this.hardwareMap, this.gateFSM);
         intakeFSM.init();
-        shootingFSM = new ShootingFSM(this.gateFSM, this.shotgunFSM, this.intakeFSM);
+        shootingFSM = new ShootingFSM(this.gateFSM, this.shotgunFSM, this.intakeFSM, this);
 
         telemetry.addLine("FTC 19168 Robot Initialization Done!");
         telemetry.update();
+    }
+
+    /**
+     * Returns the robot's Y position from odometry.
+     * Subclasses should override this to return follower.getPose().getY().
+     * Default implementation returns NaN to indicate odometry is not available.
+     */
+    public double getRobotY() {
+        return Double.NaN;
+    }
+
+    /**
+     * Helper method to determine if this OpMode is running in autonomous mode.
+     * Checks for @Autonomous annotation on the class.
+     */
+    public boolean isAutonomousMode() {
+        return this.getClass().isAnnotationPresent(com.qualcomm.robotcore.eventloop.opmode.Autonomous.class);
     }
 
     public DcMotor initializeMotor(String name) {

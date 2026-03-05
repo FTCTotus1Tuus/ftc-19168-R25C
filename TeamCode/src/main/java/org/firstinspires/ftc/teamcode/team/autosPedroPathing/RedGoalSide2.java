@@ -107,8 +107,13 @@ public class RedGoalSide2 extends DarienOpModeFSM {
             panelsTelemetry.update(telemetry);
             telemetry.addData("Alliance Color Saved", "RED");
 
-            //telemetry.update();
+            telemetry.update();
         }
+    }
+
+    @Override
+    public double getRobotY() {
+        return (follower != null) ? follower.getPose().getY() : Double.NaN;
     }
 
     /**

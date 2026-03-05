@@ -48,9 +48,6 @@ public class TeleOpFSM extends DarienOpModeFSM {
 
     private ShotgunPowerLevel shotgunPowerLatch = ShotgunPowerLevel.OFF;
 
-    private enum ShootingPowerModes {MANUAL, ODOMETRY}
-
-    private ShootingPowerModes shootingPowerMode = ShootingPowerModes.MANUAL;
 
     // Turret fallback tracking
     private double lastCameraDetectionTime = 0;  // Timestamp of last successful camera detection
@@ -83,6 +80,11 @@ public class TeleOpFSM extends DarienOpModeFSM {
 
         // Initialize GoBildaPinpointDriver for odometry position reset
         odo = hardwareMap.get(GoBildaPinpointDriver.class, "odo");
+    }
+
+    @Override
+    public double getRobotY() {
+        return (follower != null) ? follower.getPose().getY() : Double.NaN;
     }
 
     @Override
@@ -360,14 +362,15 @@ public class TeleOpFSM extends DarienOpModeFSM {
             //CONTROL: EJECTION MOTORS
             //ODOMETRY BASED SHOOT POWER
             if (shootingPowerMode == ShootingPowerModes.ODOMETRY) {
-                if (robotY <= 48) {
+                // Automatic power selection based on robot Y position
+                if (robotY <= SHOOTING_POWER_ODOMETRY_Y_THRESHOLD) {
                     shotgunPowerLatch = ShotgunPowerLevel.HIGH;
                 } else {
                     shotgunPowerLatch = ShotgunPowerLevel.LOW;
                 }
             }
 
-            //Latch control
+            //Latch control - manual override switches back to MANUAL mode
             if (gamepad2.right_stick_y < -.05) {
                 shotgunPowerLatch = ShotgunPowerLevel.HIGH;
                 shootingPowerMode = ShootingPowerModes.MANUAL;
@@ -396,6 +399,8 @@ public class TeleOpFSM extends DarienOpModeFSM {
             telemetry.addData("Actual ShotGun RPM", ejectionMotor.getVelocity() * 60 / TICKS_PER_ROTATION); // convert from ticks per second to RPM
             telemetry.addData("ejectionMotor power", ejectionMotor.getPower());
             telemetry.addData("Actual ShotGun TPS", ejectionMotor.getVelocity()); // convert from ticks per second to RPM
+            telemetry.addData("Shooting Power Mode", shootingPowerMode.toString());
+            telemetry.addData("Shotgun Power Latch", shotgunPowerLatch.toString());
 
             // Display alliance color from SharedPreferences
             telemetry.addData("Alliance Color from Auto", autoAlliance);

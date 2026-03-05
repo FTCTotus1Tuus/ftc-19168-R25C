@@ -106,6 +106,11 @@ public class RedAudience1 extends DarienOpModeFSM {
         }
     }
 
+    @Override
+    public double getRobotY() {
+        return (follower != null) ? follower.getPose().getY() : Double.NaN;
+    }
+
     /**
      * Inner class defining all the Pedro paths.
      */
