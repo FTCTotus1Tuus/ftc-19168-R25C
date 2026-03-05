@@ -11,11 +11,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import com.pedropathing.geometry.Pose;
 
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
-
-import com.pedropathing.follower.Follower;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 
 import com.bylazar.configurables.annotations.Configurable;
@@ -33,7 +30,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
 
     // INSTANCES
     private TelemetryManager panelsTelemetry;   // Panels Telemetry instance
-    public Follower follower;                   // Pedro Pathing follower instance
+    // follower is inherited from DarienOpModeFSM
     private GoBildaPinpointDriver odo;          // Pinpoint odometry driver for position reset
 
     // TUNING CONSTANTS
@@ -74,7 +71,6 @@ public class TeleOpFSM extends DarienOpModeFSM {
     @Override
     public void initControls() {
         super.initControls();
-        follower = Constants.createFollower(hardwareMap);
         gateFSM.close();
         turretFSM.center(); // set to center position
 
@@ -82,10 +78,6 @@ public class TeleOpFSM extends DarienOpModeFSM {
         odo = hardwareMap.get(GoBildaPinpointDriver.class, "odo");
     }
 
-    @Override
-    public double getRobotY() {
-        return (follower != null) ? follower.getPose().getY() : Double.NaN;
-    }
 
     @Override
     public void runOpMode() throws InterruptedException {

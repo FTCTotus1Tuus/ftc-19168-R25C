@@ -16,7 +16,6 @@ import android.content.SharedPreferences;
 
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 
-import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.team.fsm.DarienOpModeFSM;
 import org.firstinspires.ftc.teamcode.team.fsm.ShootingFSM;
 
@@ -30,7 +29,7 @@ import org.firstinspires.ftc.teamcode.team.fsm.ShootingFSM;
 public class BlueGoalSide1 extends DarienOpModeFSM {
 
     private TelemetryManager panelsTelemetry;   // Panels Telemetry instance
-    public Follower follower;                   // Pedro Pathing follower instance
+    // follower is inherited from DarienOpModeFSM
     private int pathState;                      // State machine state
     private Paths paths;                        // Paths
     private Timer pathTimer, opmodeTimer;
@@ -57,8 +56,7 @@ public class BlueGoalSide1 extends DarienOpModeFSM {
 
         panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
 
-        follower = Constants.createFollower(hardwareMap);
-        // Starting pose – same as your OpMode version
+        // Starting pose
         follower.setStartingPose(new Pose(57, 135, Math.toRadians(180)));
 
         // Build all the paths once
@@ -129,10 +127,6 @@ public class BlueGoalSide1 extends DarienOpModeFSM {
         }
     }
 
-    @Override
-    public double getRobotY() {
-        return (follower != null) ? follower.getPose().getY() : Double.NaN;
-    }
 
     /**
      * Inner class defining all the Pedro paths.
