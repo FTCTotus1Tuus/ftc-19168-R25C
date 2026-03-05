@@ -67,10 +67,8 @@ public class RedAudience1 extends DarienOpModeFSM {
         paths = new Paths(follower);
 
         panelsTelemetry.debug("Status", "Initialized");
-        panelsTelemetry.update(telemetry);
-
         telemetry.addLine("RedAudienceSidePedro: READY");
-        telemetry.update();
+        panelsTelemetry.update(telemetry);
 
         turretFSM.center();
 
@@ -125,10 +123,8 @@ public class RedAudience1 extends DarienOpModeFSM {
             panelsTelemetry.addData("Y", follower.getPose().getY());
             panelsTelemetry.addData("Heading", follower.getPose().getHeading());
             panelsTelemetry.addData("Alliance Color", "RED");
-            panelsTelemetry.update(telemetry);
             telemetry.addData("Alliance Color Saved", "RED");
-
-            telemetry.update();
+            panelsTelemetry.update(telemetry);
         }
     }
 

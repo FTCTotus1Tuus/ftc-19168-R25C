@@ -63,10 +63,8 @@ public class BlueGoalSide1 extends DarienOpModeFSM {
         paths = new Paths(follower);
 
         panelsTelemetry.debug("Status", "Initialized");
-        panelsTelemetry.update(telemetry);
-
         telemetry.addLine("BlueGoalSidePedro: READY");
-        telemetry.update();
+        panelsTelemetry.update(telemetry);
 
         turretFSM.center();
 
@@ -120,10 +118,8 @@ public class BlueGoalSide1 extends DarienOpModeFSM {
             panelsTelemetry.addData("Y", follower.getPose().getY());
             panelsTelemetry.addData("Heading", follower.getPose().getHeading());
             panelsTelemetry.addData("Alliance Color", "BLUE");
-            panelsTelemetry.update(telemetry);
             telemetry.addData("Alliance Color Saved", "BLUE");
-
-            telemetry.update();
+            panelsTelemetry.update(telemetry);
         }
     }
 

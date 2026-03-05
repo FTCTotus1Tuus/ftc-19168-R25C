@@ -64,10 +64,8 @@ public class RedGoalSide2 extends DarienOpModeFSM {
         paths = new Paths(follower);
 
         panelsTelemetry.debug("Status", "Initialized");
-        panelsTelemetry.update(telemetry);
-
         telemetry.addLine("RedGoalSidePedro: READY");
-        telemetry.update();
+        panelsTelemetry.update(telemetry);
 
         // Save alliance color to shared preferences for TeleOp
         SharedPreferences prefs = AppUtil.getInstance().getActivity().getSharedPreferences("ftc_prefs", android.content.Context.MODE_PRIVATE);
@@ -102,10 +100,8 @@ public class RedGoalSide2 extends DarienOpModeFSM {
             panelsTelemetry.addData("Y", follower.getPose().getY());
             panelsTelemetry.addData("Heading", follower.getPose().getHeading());
             panelsTelemetry.addData("Alliance Color", "RED");
-            panelsTelemetry.update(telemetry);
             telemetry.addData("Alliance Color Saved", "RED");
-
-            telemetry.update();
+            panelsTelemetry.update(telemetry);
         }
     }
 
