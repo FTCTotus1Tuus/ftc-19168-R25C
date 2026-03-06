@@ -33,6 +33,7 @@ public class BlueGoalSide1 extends DarienOpModeFSM {
     private int pathState;                      // State machine state
     private Paths paths;                        // Paths
     private Timer pathTimer, opmodeTimer;
+    private boolean shotgunRunning = false;     // Keep shotgun PID running continuously
 
     public static double PATH_POWER_STANDARD = 0.8;
     public static double PATH_POWER_SLOW = 0.4;
@@ -90,6 +91,11 @@ public class BlueGoalSide1 extends DarienOpModeFSM {
             // Pedro follower must be updated every loop
             follower.update();
 
+            // Keep shotgun motor at target RPM every loop cycle (PID needs continuous updates)
+            if (shotgunRunning) {
+                shotgunFSM.toPowerUp(DarienOpModeFSM.SHOT_GUN_POWER_UP_RPM_AUTO);
+            }
+
             double robotX = follower.getPose().getX();
             double robotY = follower.getPose().getY();
             double robotHeadingRadians = follower.getPose().getHeading();
@@ -119,6 +125,7 @@ public class BlueGoalSide1 extends DarienOpModeFSM {
             panelsTelemetry.addData("Heading", follower.getPose().getHeading());
             panelsTelemetry.addData("Alliance Color", "BLUE");
             telemetry.addData("Alliance Color Saved", "BLUE");
+            displayRpmTelemetry();
             panelsTelemetry.update(telemetry);
         }
     }
@@ -184,9 +191,10 @@ public class BlueGoalSide1 extends DarienOpModeFSM {
 
         switch (pathState) {
             case 0:
-                // move to shooting position 1
+                // move to shooting position 1, start shotgun spinning immediately
                 follower.setMaxPower(PATH_POWER_STANDARD);
                 intakeFSM.setModeFull();
+                shotgunRunning = true;  // start shotgun — PID runs every loop via main loop
                 follower.followPath(paths.ShootingPosition1);
                 setPathState(pathState + 1);
                 break;
@@ -205,7 +213,8 @@ public class BlueGoalSide1 extends DarienOpModeFSM {
                 telemetry.addLine("Case " + pathState + ": Start IntakeBallSet1");
                 if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
                     shootingFSM.reset();
-                    shotgunFSM.toOff();
+                    gateFSM.close();  // close gate to prevent illegal shooting while moving
+                    // shotgun stays spinning — no toOff() here
                     follower.followPath(paths.IntakePos1);
                     setPathState(pathState + 1);
                 }
@@ -244,6 +253,7 @@ public class BlueGoalSide1 extends DarienOpModeFSM {
                 shootingFSM.update(getRuntime(), telemetry);
                 if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
                     shootingFSM.reset();
+                    shotgunRunning = false;  // stop continuous PID loop
                     shotgunFSM.toOff();
                     intakeFSM.off();
                     telemetry.addLine("Case " + pathState + ": Done, setting state -1");

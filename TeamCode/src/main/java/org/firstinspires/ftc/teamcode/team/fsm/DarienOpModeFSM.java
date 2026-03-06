@@ -387,4 +387,11 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
         return Math.max(min, Math.min(max, val));
     }
 
+    public void displayRpmTelemetry() {
+        telemetry.addData("Actual ShotGun RPM", ejectionMotor.getVelocity() * 60 / TICKS_PER_ROTATION); // convert from ticks per second to RPM
+        telemetry.addData("ejectionMotor power", ejectionMotor.getPower());
+        telemetry.addData("Actual ShotGun TPS", ejectionMotor.getVelocity()); // convert from ticks per second to RPM
+        telemetry.addData("Shooting Power Mode", shootingPowerMode.toString());
+    }
+
 }
