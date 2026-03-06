@@ -20,6 +20,7 @@ import org.firstinspires.ftc.teamcode.team.fsm.DarienOpModeFSM;
 
 
 @Autonomous(name = "Red Audience 12", group = "Pedro:Reds", preselectTeleOp = "TeleopFSM")
+@Disabled
 @Configurable
 @Config
 public class RedAudience3 extends DarienOpModeFSM {

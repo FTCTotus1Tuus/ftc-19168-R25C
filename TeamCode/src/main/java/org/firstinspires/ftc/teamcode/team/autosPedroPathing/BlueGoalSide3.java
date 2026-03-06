@@ -11,6 +11,7 @@ import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 import android.content.SharedPreferences;
 
@@ -24,6 +25,7 @@ import org.firstinspires.ftc.teamcode.team.fsm.ShootingFSM;
  */
 
 @Autonomous(name = "Blue Goal 12", group = "Pedro:Blues", preselectTeleOp = "TeleopFSM")
+@Disabled
 @Config
 @Configurable
 public class BlueGoalSide3 extends DarienOpModeFSM {
