@@ -132,6 +132,17 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     public static final double HUMAN_PLAYER_BLUE_X = 144;
     public static final double HUMAN_PLAYER_BLUE_Y = 0;
 
+    // AUTO-PARK POSITION CONSTANTS (in inches + degrees, Pedro Pathing coordinate system)
+    // Tune these via FTC Dashboard or update them here for each alliance's park zone.
+    public static double PARK_RED_X = 39.0;
+    public static double PARK_RED_Y = 33.0;
+    public static double PARK_RED_H_DEG = 180.0;
+    public static double PARK_BLUE_X = 105.0;
+    public static double PARK_BLUE_Y = 33.0;
+    public static double PARK_BLUE_H_DEG = 0.0;
+    public static double AUTO_PARK_TIMEOUT = 10.0;       // seconds — safety timeout to abort auto-park
+    public static double AUTO_PARK_POWER = 0.7;          // max follower power during auto-park
+
     // ODOMETRY AIMING TUNING
     public static double CAMERA_FALLBACK_TIMEOUT_MS = 500; // Auto-switch to odometry after this timeout
 

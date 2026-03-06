@@ -8,7 +8,9 @@ import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
+import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
+import com.pedropathing.paths.PathChain;
 
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -48,6 +50,11 @@ public class TeleOpFSM extends DarienOpModeFSM {
 
     // Turret fallback tracking
     private double lastCameraDetectionTime = 0;  // Timestamp of last successful camera detection
+
+    // AUTO-PARK STATE
+    private boolean isAutoParking = false;
+    private double autoParkStartTime = 0;
+    private static final double AUTO_PARK_STICK_DEADZONE = 0.1; // stick threshold to cancel auto-park
 
     // AUTOMATIC TURRET CONTROLS BASED ON CAMERA APRILTAG DETECTION
     AprilTagDetection detection;
@@ -159,7 +166,32 @@ public class TeleOpFSM extends DarienOpModeFSM {
             // -----------------
             // ALWAYS RUN
             // -----------------
-            follower.setTeleOpDrive(-gamepad1.left_stick_y * SPEED_SCALE, -gamepad1.left_stick_x * SPEED_SCALE, -gamepad1.right_stick_x * ROTATION_SCALE, true);
+
+            // AUTO-PARK: cancel if any driver stick input is detected
+            if (isAutoParking) {
+                boolean driverStickInput =
+                        Math.abs(gamepad1.left_stick_x) > AUTO_PARK_STICK_DEADZONE ||
+                        Math.abs(gamepad1.left_stick_y) > AUTO_PARK_STICK_DEADZONE ||
+                        Math.abs(gamepad1.right_stick_x) > AUTO_PARK_STICK_DEADZONE;
+                boolean timedOut = (getRuntime() - autoParkStartTime) > AUTO_PARK_TIMEOUT;
+
+                if (driverStickInput) {
+                    // Driver wants manual control — abort auto-park
+                    isAutoParking = false;
+                    follower.startTeleopDrive(true);
+                    telemetry.addLine("AUTO-PARK: Cancelled by driver!");
+                } else if (!follower.isBusy() || timedOut) {
+                    // Path complete or timed out — end auto-park
+                    isAutoParking = false;
+                    follower.startTeleopDrive(true);
+                    telemetry.addLine("AUTO-PARK: Complete!");
+                }
+            }
+
+            if (!isAutoParking) {
+                follower.setTeleOpDrive(-gamepad1.left_stick_y * SPEED_SCALE, -gamepad1.left_stick_x * SPEED_SCALE, -gamepad1.right_stick_x * ROTATION_SCALE, true);
+            }
+
             follower.update();
             gateFSM.update(getRuntime(), true, telemetry);
             turretFSM.update();
@@ -200,6 +232,46 @@ public class TeleOpFSM extends DarienOpModeFSM {
             } else if (gamepad1.x) {
                 // Intake "Off"
                 intakeFSM.off();
+            }
+
+            // AUTO-PARK — build path to alliance parking zone, shut down subsystems
+            if (gamepad1.bWasPressed() && !isAutoParking) {
+                // Determine park target based on alliance
+                double parkX, parkY, parkHDeg;
+                if ("RED".equals(autoAlliance)) {
+                    parkX = PARK_RED_X;
+                    parkY = PARK_RED_Y;
+                    parkHDeg = PARK_RED_H_DEG;
+                } else {
+                    parkX = PARK_BLUE_X;
+                    parkY = PARK_BLUE_Y;
+                    parkHDeg = PARK_BLUE_H_DEG;
+                }
+
+                // Build path from current pose to park pose
+                Pose currentPose = follower.getPose();
+                PathChain parkPath = follower.pathBuilder()
+                        .addPath(new BezierLine(
+                                new Pose(currentPose.getX(), currentPose.getY()),
+                                new Pose(parkX, parkY)
+                        ))
+                        .setLinearHeadingInterpolation(currentPose.getHeading(), Math.toRadians(parkHDeg))
+                        .build();
+
+                // Shut down subsystems
+                intakeFSM.off();
+                shotgunPowerLatch = ShotgunPowerLevel.OFF;
+                shotgunFSM.toOff();
+                shootingFSM.reset();
+                turretFSM.center();
+                turretFSM.setState(TurretFSM.TurretStates.MANUAL);
+                gateFSM.close();
+
+                // Start path following
+                follower.setMaxPower(AUTO_PARK_POWER);
+                follower.followPath(parkPath, true);
+                isAutoParking = true;
+                autoParkStartTime = getRuntime();
             }
 
             if (gamepad2.left_bumper) {
@@ -403,6 +475,16 @@ public class TeleOpFSM extends DarienOpModeFSM {
             telemetry.addData("Odometry Bearing (deg)", String.format("%.1f", Math.toDegrees(robotHeadingRadians)));
             telemetry.addData("TURRET: State", turretFSM.getState().toString());
             telemetry.addData("TURRET: Current Turret Pos", turretFSM.getPosition());
+
+            // AUTO-PARK STATUS
+            if (isAutoParking) {
+                double parkX = "RED".equals(autoAlliance) ? PARK_RED_X : PARK_BLUE_X;
+                double parkY = "RED".equals(autoAlliance) ? PARK_RED_Y : PARK_BLUE_Y;
+                telemetry.addLine(">>> AUTO-PARKING <<<");
+                telemetry.addData("Park Target", String.format("(%.1f, %.1f)", parkX, parkY));
+                telemetry.addData("Park Time Remaining", String.format("%.1fs", AUTO_PARK_TIMEOUT - (getRuntime() - autoParkStartTime)));
+                telemetry.addLine("Move any stick to cancel");
+            }
 
             telemetry.update();
         } //while opModeIsActive
