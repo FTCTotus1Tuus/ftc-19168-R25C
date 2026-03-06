@@ -73,7 +73,7 @@ public class ShootingFSM {
     // TUNING CONSTANTS  (visible in FTC Dashboard)
     // -------------------------------------------------------------------------
 
-    public static double SPINUP_DELAY = 0.2;  // seconds to wait for motor to reach speed before opening gate
+    public static double SPINUP_DELAY = 1;  // seconds to wait for motor to reach speed before opening gate
     public static double GATE_OPEN_DELAY = 0.35; // seconds to hold gate open
     public static double GATE_CLOSE_DELAY = 0.1; // seconds to settle after gate closes
 

@@ -41,6 +41,8 @@ public class BlueGoalSide1 extends DarienOpModeFSM {
     public static double STANDARD_PATH_TIMEOUT = 2.0;
     public static double LONG_PATH_TIMEOUT = 4.0;
     public static double SHOOT_TRIPLE_TIMEOUT = 4.0;
+    public static double SHOOT_TRIPLE_TIME_MIN = 5.0;
+    public static double SHOOT_TRIPLE_TIME_MAX = 7.0;
     public double targetGoalX = DarienOpModeFSM.GOAL_BLUE_X;
     public double targetGoalY = DarienOpModeFSM.GOAL_BLUE_Y;
 
@@ -211,7 +213,7 @@ public class BlueGoalSide1 extends DarienOpModeFSM {
                 // when shooting is done, move to intakePos1
                 shootingFSM.update(getRuntime(), telemetry);
                 telemetry.addLine("Case " + pathState + ": Start IntakeBallSet1");
-                if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
+                if (SHOOT_TRIPLE_TIME_MIN < pathTimer.getElapsedTimeSeconds() && pathTimer.getElapsedTimeSeconds() < SHOOT_TRIPLE_TIME_MAX) {
                     shootingFSM.reset();
                     gateFSM.close();  // close gate to prevent illegal shooting while moving
                     // shotgun stays spinning — no toOff() here
@@ -251,7 +253,7 @@ public class BlueGoalSide1 extends DarienOpModeFSM {
             case 6:
                 //after done shooting, send odometry values to teleop
                 shootingFSM.update(getRuntime(), telemetry);
-                if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
+                if (SHOOT_TRIPLE_TIME_MIN < pathTimer.getElapsedTimeSeconds() && pathTimer.getElapsedTimeSeconds() < SHOOT_TRIPLE_TIME_MAX) {
                     shootingFSM.reset();
                     shotgunRunning = false;  // stop continuous PID loop
                     shotgunFSM.toOff();

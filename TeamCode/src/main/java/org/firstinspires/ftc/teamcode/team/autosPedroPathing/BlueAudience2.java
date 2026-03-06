@@ -94,7 +94,7 @@ public class BlueAudience2 extends DarienOpModeFSM {
 
             // Keep shotgun motor at target RPM every loop cycle (PID needs continuous updates)
             if (shotgunRunning) {
-                shotgunFSM.toPowerUp(DarienOpModeFSM.SHOT_GUN_POWER_UP_RPM_AUTO);
+                shotgunFSM.toPowerUp(DarienOpModeFSM.SHOT_GUN_POWER_UP_FAR_RPM_AUTO);
             }
 
             double robotX = follower.getPose().getX();
@@ -142,11 +142,7 @@ public class BlueAudience2 extends DarienOpModeFSM {
         public PathChain ShootingPosition2;
         public PathChain IntakePos2;
         public PathChain IntakeBallSet2;
-        public PathChain OpenGate;
         public PathChain ShootingPosition3;
-        public PathChain IntakePos3;
-        public PathChain IntakeBallSet3;
-        public PathChain ShootingPosition4;
         public PathChain Parking;
 
         public Paths(Follower follower) {
@@ -194,7 +190,7 @@ public class BlueAudience2 extends DarienOpModeFSM {
                             new BezierLine(
                                     new Pose(57.000, 18.000),
 
-                                    new Pose(42.000, 60.000)
+                                    new Pose(42.000, 58.000)
                     )
                     ).setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(180))
 
@@ -202,62 +198,22 @@ public class BlueAudience2 extends DarienOpModeFSM {
 
             IntakeBallSet2 = follower.pathBuilder().addPath(
                             new BezierLine(
-                                    new Pose(42.000, 60.000),
+                                    new Pose(42.000, 58.000),
 
-                                    new Pose(22.000, 60.000)
+                                    new Pose(14.500, 58.000)
                             )
                     ).setTangentHeadingInterpolation()
-
-                    .build();
-
-            OpenGate = follower.pathBuilder().addPath(
-                            new BezierLine(
-                                    new Pose(22.000, 60.000),
-
-                                    new Pose(19.000, 70.000)
-                            )
-                    ).setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(90))
 
                     .build();
 
             ShootingPosition3 = follower.pathBuilder().addPath(
                             new BezierCurve(
-                                    new Pose(19.000, 70.000),
+                                    new Pose(14.500, 58.000),
                                     new Pose(56.000, 70.000),
                                     new Pose(56.000, 55.000),
                                     new Pose(57.000, 18.000)
                             )
-                    ).setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(90))
-
-                    .build();
-
-            IntakePos3 = follower.pathBuilder().addPath(
-                            new BezierLine(
-                                    new Pose(57.000, 18.000),
-
-                                    new Pose(42.000, 84.000)
-                            )
-                    ).setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(180))
-
-                    .build();
-
-            IntakeBallSet3 = follower.pathBuilder().addPath(
-                            new BezierLine(
-                                    new Pose(42.000, 84.000),
-
-                                    new Pose(22.000, 84.000)
-                            )
-                    ).setTangentHeadingInterpolation()
-
-                    .build();
-
-            ShootingPosition4 = follower.pathBuilder().addPath(
-                            new BezierLine(
-                                    new Pose(22.000, 84.000),
-
-                                    new Pose(57.000, 18.000)
-                            )
-                    ).setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(90))
+                    ).setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(180))
 
                     .build();
 
@@ -343,9 +299,13 @@ public class BlueAudience2 extends DarienOpModeFSM {
                 break;
 
             case 6:
+                // when shooting is done, move to intake pos 2
                 telemetry.addLine("Case " + pathState + ": updateShooting...");
                 shootingFSM.update(getRuntime(), telemetry);
                 if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
+                    shootingFSM.reset();
+                    gateFSM.close();  // close gate to prevent illegal shooting while moving
+                    // shotgun stays spinning — no toOff() here
                     follower.followPath(paths.IntakePos2);
                     setPathState(pathState + 1);
                 }
@@ -353,7 +313,6 @@ public class BlueAudience2 extends DarienOpModeFSM {
 
             case 7:
                 telemetry.addLine("Case " + pathState + ": Read AprilTag then start Path2");
-                shootingFSM.reset();
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
                     follower.setMaxPower(PATH_POWER_SLOW);
                     intakeFSM.startIntaking();
