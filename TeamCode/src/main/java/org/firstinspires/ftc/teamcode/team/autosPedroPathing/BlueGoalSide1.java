@@ -35,6 +35,9 @@ public class BlueGoalSide1 extends DarienOpModeFSM {
     private Timer pathTimer, opmodeTimer;
     private boolean shotgunRunning = false;     // Keep shotgun PID running continuously
 
+    public static double STARTING_POSE_X = 33;
+    public static double STARTING_POSE_Y = 134;
+    public static double STARTING_POSE_H_DEG = 180;
     public static double PATH_POWER_STANDARD = 0.8;
     public static double PATH_POWER_SLOW = 0.4;
     public static double SHORT_PATH_TIMEOUT = 1.0;
@@ -60,7 +63,7 @@ public class BlueGoalSide1 extends DarienOpModeFSM {
         panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
 
         // Starting pose
-        follower.setStartingPose(new Pose(57, 135, Math.toRadians(180)));
+        follower.setStartingPose(new Pose(STARTING_POSE_X, STARTING_POSE_Y, Math.toRadians(STARTING_POSE_H_DEG)));
 
         // Build all the paths once
         paths = new Paths(follower);
@@ -145,11 +148,11 @@ public class BlueGoalSide1 extends DarienOpModeFSM {
         public Paths(Follower follower) {
             ShootingPosition1 = follower.pathBuilder().addPath(
                             new BezierLine(
-                                    new Pose(57.000, 135.000),
+                                    new Pose(STARTING_POSE_X, STARTING_POSE_Y),
 
                                     new Pose(57.000, 84.000)
                     )
-                    ).setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(180))
+                    ).setLinearHeadingInterpolation(Math.toRadians(STARTING_POSE_H_DEG), Math.toRadians(180))
 
                     .build();
 

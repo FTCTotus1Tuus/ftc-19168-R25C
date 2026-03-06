@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.team.autosPedroPathing;
 
+import com.acmerobotics.dashboard.config.Config;
 import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
@@ -23,6 +24,7 @@ import org.firstinspires.ftc.teamcode.team.fsm.ShootingFSM;
  */
 
 @Autonomous(name = "Red Goal 6", group = "Pedro:Reds", preselectTeleOp = "TeleopFSM")
+@Config
 @Configurable
 public class RedGoalSide1 extends DarienOpModeFSM {
 
@@ -33,6 +35,9 @@ public class RedGoalSide1 extends DarienOpModeFSM {
     private Timer pathTimer, opmodeTimer;
     private boolean shotgunRunning = false;     // Keep shotgun PID running continuously
 
+    public static double STARTING_POSE_X = 111;
+    public static double STARTING_POSE_Y = 134;
+    public static double STARTING_POSE_H_DEG = 0;
     public static double PATH_POWER_STANDARD = 0.8;
     public static double PATH_POWER_SLOW = 0.4;
     public static double SHORT_PATH_TIMEOUT = 1.0;
@@ -58,7 +63,7 @@ public class RedGoalSide1 extends DarienOpModeFSM {
         panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
 
         // Starting pose
-        follower.setStartingPose(new Pose(87.000, 135.000, Math.toRadians(0)));
+        follower.setStartingPose(new Pose(STARTING_POSE_X, STARTING_POSE_Y, Math.toRadians(STARTING_POSE_H_DEG)));
 
         // Build all the paths once
         paths = new Paths(follower);
@@ -84,7 +89,6 @@ public class RedGoalSide1 extends DarienOpModeFSM {
         setPathState(0);
 
         targetGoalId = APRILTAG_ID_GOAL_RED;
-
 
         // --- MAIN AUTONOMOUS LOOP ---
         while (opModeIsActive() && !isStopRequested()) {
@@ -145,11 +149,11 @@ public class RedGoalSide1 extends DarienOpModeFSM {
         public Paths(Follower follower) {
             ShootingPosition1 = follower.pathBuilder().addPath(
                             new BezierLine(
-                                    new Pose(87.000, 135.000),
+                                    new Pose(STARTING_POSE_X, STARTING_POSE_Y),
 
                                     new Pose(87.000, 84.000)
                             )
-                    ).setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+                    ).setLinearHeadingInterpolation(Math.toRadians(STARTING_POSE_H_DEG), Math.toRadians(0))
 
                     .build();
 
