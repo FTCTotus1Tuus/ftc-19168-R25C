@@ -32,17 +32,15 @@ public class RedAudience2 extends DarienOpModeFSM {
     private int pathState;                      // State machine state
     private Paths paths;                        // Paths
     private Timer pathTimer, opmodeTimer;
+    private boolean shotgunRunning = false;     // Keep shotgun PID running continuously
 
     public static double PATH_POWER_STANDARD = 0.8;
     public static double PATH_POWER_SLOW = 0.4;
-
-
-    public static double INTAKE_RUBBER_BANDS_DELAY = 0.2;
-    public static double BALL_INTAKE_DELAY = 0;
-    public static double SHOTGUN_SPINUP_DELAY = 0;
+    public static double SHORT_PATH_TIMEOUT = 1.0;
     public static double STANDARD_PATH_TIMEOUT = 2.0;
+    public static double LONG_PATH_TIMEOUT = 4.0;
     public static double SHOOT_TRIPLE_TIMEOUT = 4.0;
-    public static double TURRET_ROTATE_DELAY = 4;
+    public static double TURRET_ROTATE_DELAY = 4;//FOR AUDIENCE SIDE
     public double targetGoalX = DarienOpModeFSM.GOAL_RED_X;
     public double targetGoalY = DarienOpModeFSM.GOAL_RED_Y;
 
@@ -86,13 +84,17 @@ public class RedAudience2 extends DarienOpModeFSM {
         setPathState(0);
 
         targetGoalId = APRILTAG_ID_GOAL_RED;
-        // Constantly run top roller in intake mode
 
         // --- MAIN AUTONOMOUS LOOP ---
         while (opModeIsActive() && !isStopRequested()) {
 
             // Pedro follower must be updated every loop
             follower.update();
+
+            // Keep shotgun motor at target RPM every loop cycle (PID needs continuous updates)
+            if (shotgunRunning) {
+                shotgunFSM.toPowerUp(DarienOpModeFSM.SHOT_GUN_POWER_UP_RPM_AUTO);
+            }
 
             double robotX = follower.getPose().getX();
             double robotY = follower.getPose().getY();
@@ -123,6 +125,7 @@ public class RedAudience2 extends DarienOpModeFSM {
             panelsTelemetry.addData("Heading", follower.getPose().getHeading());
             panelsTelemetry.addData("Alliance Color", "RED");
             telemetry.addData("Alliance Color Saved", "RED");
+            displayRpmTelemetry();
             panelsTelemetry.update(telemetry);
         }
     }
@@ -132,10 +135,10 @@ public class RedAudience2 extends DarienOpModeFSM {
      * Inner class defining all the Pedro paths.
      */
     public static class Paths {
-        public PathChain ShootingPos1;
+        public PathChain ShootingPosition1;
         public PathChain IntakePos1;
         public PathChain IntakeBallSet1;
-        public PathChain ShootingPos2;
+        public PathChain ShootingPosition2;
         public PathChain IntakePos2;
         public PathChain IntakeBallSet2;
         public PathChain OpenGate;
@@ -146,7 +149,7 @@ public class RedAudience2 extends DarienOpModeFSM {
         public PathChain Parking;
 
         public Paths(Follower follower) {
-            ShootingPos1 = follower.pathBuilder().addPath(
+            ShootingPosition1 = follower.pathBuilder().addPath(
                             new BezierLine(
                                     new Pose(87.000, 8.750),
 
@@ -176,7 +179,7 @@ public class RedAudience2 extends DarienOpModeFSM {
 
                     .build();
 
-            ShootingPos2 = follower.pathBuilder().addPath(
+            ShootingPosition2 = follower.pathBuilder().addPath(
                             new BezierLine(
                                     new Pose(132.000, 36.000),
 
@@ -217,9 +220,10 @@ public class RedAudience2 extends DarienOpModeFSM {
                     .build();
 
             ShootingPosition3 = follower.pathBuilder().addPath(
-                            new BezierLine(
+                            new BezierCurve(
                                     new Pose(125.000, 70.000),
-
+                                    new Pose(70.000, 71.000),
+                                    new Pose(91.000, 45.000),
                                     new Pose(87.000, 15.000)
                             )
                     ).setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(90))
@@ -278,10 +282,11 @@ public class RedAudience2 extends DarienOpModeFSM {
 
         switch (pathState) {
             case 0:
-                // move to shooting position 1
+                // move to shooting position 1, start shotgun spinning immediately
                 follower.setMaxPower(PATH_POWER_STANDARD);
                 intakeFSM.setModeFull();
-                follower.followPath(paths.ShootingPos1);
+                shotgunRunning = true;  // start shotgun — PID runs every loop via main loop
+                follower.followPath(paths.ShootingPosition1);
                     setPathState(pathState + 1);
 
                 break;
@@ -295,20 +300,21 @@ public class RedAudience2 extends DarienOpModeFSM {
                 break;
 
             case 2:
-                // when shooting is done, Intake ballset 1
+                // when shooting is done, move to intakePos1
                 shootingFSM.update(getRuntime(), telemetry);
                 telemetry.addLine("Case " + pathState + ": Start IntakeBallSet1");
                 if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
+                    shootingFSM.reset();
+                    gateFSM.close();  // close gate to prevent illegal shooting while moving
+                    // shotgun stays spinning — no toOff() here
                     follower.followPath(paths.IntakePos1);
                     setPathState(pathState + 1);
                 }
                 break;
 
             case 3:
-                telemetry.addLine("Case " + pathState + ": Read AprilTag then start Path2");
-                shootingFSM.reset();
-                shotgunFSM.toOff();
-                if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
+                //when in intakepos1, intake ball set 1
+                if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
                     follower.setMaxPower(PATH_POWER_SLOW);
                     intakeFSM.startIntaking();
                     follower.followPath(paths.IntakeBallSet1);
@@ -317,19 +323,19 @@ public class RedAudience2 extends DarienOpModeFSM {
                 break;
 
             case 4:
-                telemetry.addLine("Case " + pathState + ": Wait for Path2, then shoot artifact");
+                //after intaking, move to shooting pos 2
                 intakeFSM.updateIntaking(getRuntime(), true, telemetry);
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
-                    telemetry.addLine("Case " + pathState + ": exiting");
                     follower.setMaxPower(PATH_POWER_STANDARD); //speed up again
-                    follower.followPath(paths.ShootingPos2, true);
+                    follower.followPath(paths.ShootingPosition2, true);
                     setPathState(pathState + 1);
                 }
                 break;
 
             case 5:
-                shootingFSM.start(getRuntime(), ShootingFSM.PowerLevel.FAR);
+                //when at shooting 2 then start shooting
                 if (!follower.isBusy() && pathTimer.getElapsedTimeSeconds() > TURRET_ROTATE_DELAY) {
+                    shootingFSM.start(getRuntime(), ShootingFSM.PowerLevel.FAR);
                     setPathState(pathState + 1);
                 }
                 break;
@@ -348,8 +354,7 @@ public class RedAudience2 extends DarienOpModeFSM {
             case 7:
                 telemetry.addLine("Case " + pathState + ": Read AprilTag then start Path2");
                 shootingFSM.reset();
-                shotgunFSM.toOff();
-                if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
+                if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
                     follower.setMaxPower(PATH_POWER_SLOW);
                     intakeFSM.startIntaking();
                     follower.followPath(paths.IntakeBallSet2);
@@ -369,8 +374,8 @@ public class RedAudience2 extends DarienOpModeFSM {
                 break;
 
             case 9:
-                shootingFSM.start(getRuntime(), ShootingFSM.PowerLevel.FAR);
                 if (!follower.isBusy() && pathTimer.getElapsedTimeSeconds() > TURRET_ROTATE_DELAY) {
+                    shootingFSM.start(getRuntime(), ShootingFSM.PowerLevel.FAR);
                     setPathState(pathState + 1);
                 }
                 break;
@@ -382,6 +387,7 @@ public class RedAudience2 extends DarienOpModeFSM {
                 if (!shootingFSM.isBusy() || pathTimer.getElapsedTimeSeconds() > SHOOT_TRIPLE_TIMEOUT) {
                     follower.followPath(paths.Parking, true);
                     shootingFSM.reset();
+                    shotgunRunning = false;  // stop continuous PID loop
                     shotgunFSM.toOff();
                     intakeFSM.off();
                     setPathState(pathState + 1);
