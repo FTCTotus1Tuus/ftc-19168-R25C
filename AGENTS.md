@@ -8,11 +8,12 @@ All team code is under `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/`.
 
 - **`team/fsm/DarienOpModeFSM.java`** — Abstract base class extending `LinearOpMode`. Every OpMode (teleop and autonomous) extends this. It owns hardware initialization (`initControls()`), all FSM instances, tuning constants, and the Pedro Pathing `Follower`.
 - **`team/fsm/TeleOpFSM.java`** — The main driver-controlled OpMode. Extends `DarienOpModeFSM`.
-- **`team/autosPedroPathing/`** — Autonomous OpModes. Named `{Color}{Side}{Number}` (e.g. `BlueGoalSide1`). Each extends `DarienOpModeFSM`, builds Pedro Pathing `PathChain`s, and runs a state machine in a while-loop.
-- **FSM subsystem classes** (`team/fsm/`): `GateFSM`, `IntakeFSM`, `ShotgunFSM`, `TurretFSM`, `ShootingFSM`, `ShootArtifactFSM`, `ShootPatternFSM`, `AprilTagDetectionFSM`. Each manages one robot mechanism with enum states, `update()` methods, and hardware control.
+- **`team/autosPedroPathing/`** — Autonomous OpModes. Named `{Color}{GoalSide|Audience}{Number}` (e.g. `BlueGoalSide1`, `RedAudience2`). Each extends `DarienOpModeFSM`, builds Pedro Pathing `PathChain`s, and runs a state machine in a while-loop.
+- **FSM subsystem classes** (`team/fsm/`): `GateFSM`, `IntakeFSM`, `ShotgunFSM`, `TurretFSM`, `ShootingFSM`, `ShootArtifactFSM`, `ShootPatternFSM`, `AprilTagDetectionFSM`, `TrayFSM`. Each manages one robot mechanism with enum states, `update()` methods, and hardware control. `TrayFSM` manages a 3-slot tray intake with color-sensor-based ball classification (purple/green) using a sliding-window detection algorithm.
 - **`pedroPathing/Constants.java`** — Pedro Pathing configuration: drivetrain motor names (`omniMotor0`–`omniMotor3`), Pinpoint odometry pod offsets, follower mass, and velocity tuning. `Constants.createFollower(hardwareMap)` is the single factory method.
 - **`team/MotorHelper.java`** — Custom PI/PID controller for motor velocity (used by `ShotgunFSM` for flywheel RPM control).
-- **`team/GoBildaPinpointDriver.java`** — I2C driver for the goBILDA Pinpoint odometry computer (vendored, MIT license).
+- **`team/GoBildaPinpointDriver.java`** — I2C driver for the goBILDA Pinpoint odometry computer (vendored, MIT license). Used in `TeleOpFSM` for position resets; `Constants.java` uses the SDK-provided `com.qualcomm.hardware.gobilda.GoBildaPinpointDriver`.
+- **`team/testing/`** — Debug and tuning OpModes: `cameraDebugTest`, `ConceptAprilTagEasyDarien`, `ImageProcessDebug`, `TuneAprilTagExposure`. Not used in competition.
 
 ## Key Patterns
 
@@ -40,10 +41,11 @@ Pedro Pathing coordinates: **(0, 0) = left audience corner (red loading zone)**,
 | Library | Purpose |
 |---|---|
 | `com.pedropathing:ftc:2.0.4` | Autonomous path following (Bezier curves, PID heading control) |
+| `com.pedropathing:telemetry:1.0.0` | Pedro Pathing telemetry integration |
 | `com.acmerobotics.dashboard:dashboard:0.4.16` | Live tuning & telemetry via web dashboard |
 | `org.openftc:easyopencv:1.7.3` | OpenCV vision pipeline (used in `ImageProcess.java`) |
 | `com.bylazar:fullpanels:1.0.12` | Enhanced telemetry panels (`TelemetryManager`, `@Configurable`) |
 
 ## Hardware Map Names
-Motor names: `omniMotor0`–`omniMotor3` (mecanum), `ejectionMotor` (flywheel). Servo names: `gateServo`, turret servo (in `TurretFSM`). Sensors: `"odo"` (Pinpoint), `"Webcam 1"`, distance/color sensors (in `IntakeFSM`). All names are string literals in the Java source — search for `hardwareMap.get(` to find them.
+Motor names: `omniMotor0`–`omniMotor3` (mecanum), `ejectionMotor` (flywheel), `rubberBandsFront` (intake). Servo names: `gateServo`, `turretServo`. CRServos: `rampServoLow`, `rampServoHigh`, `rubberBandsMid`, `intakeRear`. Sensors: `"odo"` (Pinpoint), `"Webcam 1"`, `intakeColorSensor`, `middleColorSensor`, `turretColorSensor` (NormalizedColorSensor). LEDs: `LEDRight1`, `LEDLeft1`, `LEDRight2`, `LEDLeft2` (DigitalChannel). All names are string literals in the Java source — search for `hardwareMap.get(` to find them.
 
