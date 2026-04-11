@@ -1,3 +1,6 @@
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
 rootProject.name = 'ftc-19168-R25C'
 include ':FtcRobotController'
 include ':TeamCode'
