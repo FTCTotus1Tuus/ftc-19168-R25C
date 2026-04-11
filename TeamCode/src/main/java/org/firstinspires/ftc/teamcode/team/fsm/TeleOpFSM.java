@@ -37,8 +37,10 @@ public class TeleOpFSM extends DarienOpModeFSM {
 
     // TUNING CONSTANTS
     public static double SHOT_TIMEOUT = 2.0; // seconds
-    public static double ROTATION_SCALE = 0.4;
-    public static double SPEED_SCALE = 0.5;
+    public static double ROTATION_SCALE = 0.5;
+    public static double SPEED_SCALE = 1.0;
+    public static double SPEED_SCALE_TURN = 0.8;
+    public static double INPUT_EXPONENT = 3.0; // 1.0=linear, 2.0=squared, 3.0=cubed (preserves sign)
 
     // VARIABLES
     private double shotStartTime;
@@ -189,10 +191,25 @@ public class TeleOpFSM extends DarienOpModeFSM {
             }
 
             if (!isAutoParking) {
-                follower.setTeleOpDrive(-gamepad1.left_stick_y * SPEED_SCALE, -gamepad1.left_stick_x * SPEED_SCALE, -gamepad1.right_stick_x * ROTATION_SCALE, true);
+                // Apply input shaping: Math.pow preserves sign, INPUT_EXPONENT controls curve
+                // 1.0=linear, 2.0=squared, 3.0=cubed — higher = more precision at low stick values
+                double rawY = -gamepad1.left_stick_y;
+                double rawX = -gamepad1.left_stick_x;
+                double rawR = -gamepad1.right_stick_x;
+                double shapedY = Math.signum(rawY) * Math.pow(Math.abs(rawY), INPUT_EXPONENT);
+                double shapedX = Math.signum(rawX) * Math.pow(Math.abs(rawX), INPUT_EXPONENT);
+                double shapedR = Math.signum(rawR) * Math.pow(Math.abs(rawR), INPUT_EXPONENT);
+
+                //if there is an input from right stick(rotation), bring power down to 80 percent
+                if (Math.abs(gamepad1.right_stick_x) > 0.05) {
+                    follower.setTeleOpDrive(shapedY * SPEED_SCALE_TURN, shapedX * SPEED_SCALE, shapedR * ROTATION_SCALE, true);
+                } else {
+                    follower.setTeleOpDrive(shapedY * SPEED_SCALE, shapedX * SPEED_SCALE, shapedR * ROTATION_SCALE, true);
+                }
             }
 
             follower.update();
+
             gateFSM.update(getRuntime(), true, telemetry);
             turretFSM.update();
 
