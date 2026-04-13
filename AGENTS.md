@@ -9,10 +9,10 @@ All team code is under `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/`.
 - **`team/fsm/DarienOpModeFSM.java`** — Abstract base class extending `LinearOpMode`. Every OpMode (teleop and autonomous) extends this. It owns hardware initialization (`initControls()`), all FSM instances, tuning constants, and the Pedro Pathing `Follower`.
 - **`team/fsm/TeleOpFSM.java`** — The main driver-controlled OpMode. Extends `DarienOpModeFSM`.
 - **`team/autosPedroPathing/`** — Autonomous OpModes. Named `{Color}{GoalSide|Audience}{Number}` (e.g. `BlueGoalSide1`, `RedAudience2`). Each extends `DarienOpModeFSM`, builds Pedro Pathing `PathChain`s, and runs a state machine in a while-loop.
-- **FSM subsystem classes** (`team/fsm/`): `GateFSM`, `IntakeFSM`, `ShotgunFSM`, `TurretFSM`, `ShootingFSM`, `ShootArtifactFSM`, `ShootPatternFSM`, `AprilTagDetectionFSM`, `TrayFSM`. Each manages one robot mechanism with enum states, `update()` methods, and hardware control. `TrayFSM` manages a 3-slot tray intake with color-sensor-based ball classification (purple/green) using a sliding-window detection algorithm.
-- **`pedroPathing/Constants.java`** — Pedro Pathing configuration: drivetrain motor names (`omniMotor0`–`omniMotor3`), Pinpoint odometry pod offsets, follower mass, and velocity tuning. `Constants.createFollower(hardwareMap)` is the single factory method.
+- **FSM subsystem classes** (`team/fsm/`): `GateFSM`, `IntakeFSM`, `ShotgunFSM`, `TurretFSM`, `ShootingFSM`, `ShootArtifactFSM`, `ShootPatternFSM`, `AprilTagDetectionFSM`. Each manages one robot mechanism with enum states, `update()` methods, and hardware control.
+- **`pedroPathing/Constants.java`** — Pedro Pathing configuration: registers the **goBILDA Pinpoint** I2C odometry computer (hardware map name `"odo"`, `goBILDA_4_BAR_POD` encoder resolution, pod offsets in inches) as the localizer via `PinpointConstants`, along with drivetrain motor names (`omniMotor0`–`omniMotor3`), follower mass, and velocity tuning. `Constants.createFollower(hardwareMap)` is the single factory method — called once inside `DarienOpModeFSM.initControls()`.
+- **`pedroPathing/Tuning.java`** — Unified Pedro Pathing tuning OpMode (`@TeleOp`, group "Pedro Pathing") built on `SelectableOpMode` (from `com.pedropathing:telemetry:1.0.0`). Provides an interactive menu of sub-tuners for localization, velocity, PIDF, and path tests. Use this for all drivetrain tuning instead of individual OpModes.
 - **`team/MotorHelper.java`** — Custom PI/PID controller for motor velocity (used by `ShotgunFSM` for flywheel RPM control).
-- **`team/GoBildaPinpointDriver.java`** — I2C driver for the goBILDA Pinpoint odometry computer (vendored, MIT license). Used in `TeleOpFSM` for position resets; `Constants.java` uses the SDK-provided `com.qualcomm.hardware.gobilda.GoBildaPinpointDriver`.
 - **`team/testing/`** — Debug and tuning OpModes: `cameraDebugTest`, `ConceptAprilTagEasyDarien`, `ImageProcessDebug`, `TuneAprilTagExposure`. Not used in competition.
 
 ## Key Patterns
@@ -29,8 +29,14 @@ Alliance color and final odometry pose are passed from autonomous to teleop via 
 ### Turret Aiming Modes
 `TurretFSM` supports three modes: `MANUAL` (gamepad stick), `CAMERA` (AprilTag bearing via `AprilTagDetectionFSM`), and `ODOMETRY` (calculated from follower pose + goal coordinates). Camera and odometry modes use field constants `GOAL_RED_X/Y` and `GOAL_BLUE_X/Y`.
 
+### Odometry (goBILDA Pinpoint)
+The robot's sole position source is a **goBILDA Pinpoint** I2C odometry computer (hardware map name `"odo"`, class `com.qualcomm.hardware.gobilda.GoBildaPinpointDriver`). Pedro Pathing's `Follower` wraps it internally — **always read live pose via `follower.getPose()`**, not directly from the device. `TeleOpFSM` holds a direct `GoBildaPinpointDriver odo` reference only for pose resets at init: it calls `odo.setPosition(...)` to seed the Pinpoint with either the saved auto final pose (from `SharedPreferences`) or the default human-player-corner position, then syncs the follower with `follower.setPose(...)`. Turret `ODOMETRY` aiming and flywheel power selection both consume `follower.getPose()` at runtime.
+
 ### Field Coordinate System
 Pedro Pathing coordinates: **(0, 0) = left audience corner (red loading zone)**, **(144, 144) = red goal corner**. Blue goal is at (0, 144). All path poses, park positions, and goal constants use this system.
+
+### Flywheel Power Mode Selection
+`DarienOpModeFSM.ShootingPowerModes` has two values: `MANUAL` and `ODOMETRY`. `initControls()` auto-sets `ODOMETRY` for `@Autonomous` OpModes and `MANUAL` for TeleOp (via `isAutonomousMode()`). In `ODOMETRY` mode, `ShootingFSM` selects FAR vs CLOSE RPM automatically based on whether robot Y ≤ `SHOOTING_POWER_ODOMETRY_Y_THRESHOLD` (48.0 in). In `TeleOpFSM`, `gamepad2.dpadUpWasPressed()` switches to `ODOMETRY`; any `gamepad2.right_stick_y` input reverts to `MANUAL`.
 
 ## Build & Deploy
 - Build: `./gradlew :TeamCode:assembleDebug` (or use Android Studio)
@@ -47,5 +53,5 @@ Pedro Pathing coordinates: **(0, 0) = left audience corner (red loading zone)**,
 | `com.bylazar:fullpanels:1.0.12` | Enhanced telemetry panels (`TelemetryManager`, `@Configurable`) |
 
 ## Hardware Map Names
-Motor names: `omniMotor0`–`omniMotor3` (mecanum), `ejectionMotor` (flywheel), `rubberBandsFront` (intake). Servo names: `gateServo`, `turretServo`. CRServos: `rampServoLow`, `rampServoHigh`, `rubberBandsMid`, `intakeRear`. Sensors: `"odo"` (Pinpoint), `"Webcam 1"`, `intakeColorSensor`, `middleColorSensor`, `turretColorSensor` (NormalizedColorSensor). LEDs: `LEDRight1`, `LEDLeft1`, `LEDRight2`, `LEDLeft2` (DigitalChannel). All names are string literals in the Java source — search for `hardwareMap.get(` to find them.
+Motor names: `omniMotor0`–`omniMotor3` (mecanum), `ejectionMotor` (flywheel), `rubberBandsFront` (intake). Servo names: `gateServo`, `turretServo`. CRServos: `rampServoLow`, `rampServoHigh`, `rubberBandsMid`, `intakeRear`. Sensors: `"odo"` (goBILDA Pinpoint odometry computer, `GoBildaPinpointDriver`), `"Webcam 1"`, `intakeColorSensor`, `middleColorSensor`, `turretColorSensor` (NormalizedColorSensor). LEDs: `LEDRight1`, `LEDLeft1`, `LEDRight2`, `LEDLeft2` (DigitalChannel). All names are string literals in the Java source — search for `hardwareMap.get(` to find them.
 
