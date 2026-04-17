@@ -38,6 +38,14 @@ Pedro Pathing coordinates: **(0, 0) = left audience corner (red loading zone)**,
 ### Flywheel Power Mode Selection
 `DarienOpModeFSM.ShootingPowerModes` has two values: `MANUAL` and `ODOMETRY`. `initControls()` auto-sets `ODOMETRY` for `@Autonomous` OpModes and `MANUAL` for TeleOp (via `isAutonomousMode()`). In `ODOMETRY` mode, `ShootingFSM` selects FAR vs CLOSE RPM automatically based on whether robot Y ≤ `SHOOTING_POWER_ODOMETRY_Y_THRESHOLD` (48.0 in). In `TeleOpFSM`, `gamepad2.dpadUpWasPressed()` switches to `ODOMETRY`; any `gamepad2.right_stick_y` input reverts to `MANUAL`.
 
+## Code Analysis Rules
+
+### Verify Before Assuming
+Before describing what any function argument, parameter, or method does, **look up the actual source code or library implementation** using available search tools. Do not infer behavior from argument names, variable names, or general knowledge about similar libraries — FTC/Pedro Pathing APIs are version-specific and often differ from documentation or intuition. For example:
+- A boolean argument named or guessed to be `useHeadingCorrection` may actually control `useBrakeMode`, or vice versa.
+- Always check the Pedro Pathing `Follower` source (or cached Gradle artifacts) before making claims about `setTeleOpDrive()`, `startTeleopDrive()`, `followPath()`, or any other API method arguments.
+- If the source cannot be located, explicitly state the uncertainty rather than presenting a guess as fact.
+
 ## Build & Deploy
 - Build: `./gradlew :TeamCode:assembleDebug` (or use Android Studio)
 - Deploy: Connect to Robot Controller phone/Control Hub via USB or WiFi Direct, then Run from Android Studio
