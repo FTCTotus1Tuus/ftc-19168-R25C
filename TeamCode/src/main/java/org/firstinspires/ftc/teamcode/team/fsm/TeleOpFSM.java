@@ -57,6 +57,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
     private boolean isAutoParking = false;
     private double autoParkStartTime = 0;
     private static final double AUTO_PARK_STICK_DEADZONE = 0.1; // stick threshold to cancel auto-park
+    public static double DEADZONE = 0.1;
 
     // AUTOMATIC TURRET CONTROLS BASED ON CAMERA APRILTAG DETECTION
     AprilTagDetection detection;
@@ -193,18 +194,21 @@ public class TeleOpFSM extends DarienOpModeFSM {
             if (!isAutoParking) {
                 // Apply input shaping: Math.pow preserves sign, INPUT_EXPONENT controls curve
                 // 1.0=linear, 2.0=squared, 3.0=cubed — higher = more precision at low stick values
-                double rawY = -gamepad1.left_stick_y;
-                double rawX = -gamepad1.left_stick_x;
-                double rawR = -gamepad1.right_stick_x;
+                double rawY = (-gamepad1.left_stick_y <= DEADZONE) ? 0 : -gamepad1.left_stick_y;
+                double rawX = (-gamepad1.left_stick_x <= DEADZONE) ? 0 : -gamepad1.left_stick_x;
+                double rawR = (-gamepad1.right_stick_x <= DEADZONE) ? 0 : -gamepad1.right_stick_x;
                 double shapedY = Math.signum(rawY) * Math.pow(Math.abs(rawY), INPUT_EXPONENT);
                 double shapedX = Math.signum(rawX) * Math.pow(Math.abs(rawX), INPUT_EXPONENT);
                 double shapedR = Math.signum(rawR) * Math.pow(Math.abs(rawR), INPUT_EXPONENT);
 
                 //if there is an input from right stick(rotation), bring power down to 80 percent
-                if (Math.abs(gamepad1.right_stick_x) > 0.05) {
+                if (Math.abs(gamepad1.right_stick_x) > DEADZONE) {
                     follower.setTeleOpDrive(shapedY * SPEED_SCALE_TURN, shapedX * SPEED_SCALE, shapedR * ROTATION_SCALE, true);
                 } else {
-                    follower.setTeleOpDrive(shapedY * SPEED_SCALE, shapedX * SPEED_SCALE, shapedR * ROTATION_SCALE, true);
+                    double forward = shapedY * SPEED_SCALE;
+                    double strafe = shapedX * SPEED_SCALE;
+                    double turn = shapedR * ROTATION_SCALE;
+                    follower.setTeleOpDrive(forward, strafe, turn, true);
                 }
             }
 
