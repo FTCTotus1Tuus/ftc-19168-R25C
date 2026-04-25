@@ -8,6 +8,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -58,6 +59,11 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     // HARDWARE DEVICES
     public Follower follower;                       // Pedro Pathing follower — created during initControls()
     public DcMotorEx ejectionMotor;
+
+    public DcMotor omniMotor0; // left front
+    public DcMotor omniMotor1; // right front
+    public DcMotor omniMotor2; // left rear
+    public DcMotor omniMotor3; // right rear
 
     // HARDWARE FIXED CONSTANTS
     public static final double encoderResolution = 537.7; //no change unless we change motors
@@ -176,6 +182,16 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
         ejectionMotor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
         ejectionMotor.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
         ejectionMotor.setDirection(DcMotorEx.Direction.REVERSE); // Reverse because it is geared
+
+        omniMotor0 = initializeMotor("omniMotor0");
+        omniMotor1 = initializeMotor("omniMotor1");
+        omniMotor2 = initializeMotor("omniMotor2");
+        omniMotor3 = initializeMotor("omniMotor3");
+
+        omniMotor0.setDirection(DcMotor.Direction.FORWARD);
+        omniMotor1.setDirection(DcMotor.Direction.FORWARD);
+        omniMotor2.setDirection(DcMotor.Direction.FORWARD);
+        omniMotor3.setDirection(DcMotor.Direction.FORWARD);
 
         initAprilTag();
 

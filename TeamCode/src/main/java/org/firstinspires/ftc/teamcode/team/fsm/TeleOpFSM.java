@@ -19,6 +19,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 
 import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.telemetry.TelemetryManager;
+import com.bylazar.telemetry.PanelsTelemetry;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 
 import android.content.SharedPreferences;
@@ -31,7 +32,7 @@ import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 public class TeleOpFSM extends DarienOpModeFSM {
 
     // INSTANCES
-    private TelemetryManager panelsTelemetry;   // Panels Telemetry instance
+    public TelemetryManager panelsTelemetry;   // Panels Telemetry instance
     // follower is inherited from DarienOpModeFSM
     private GoBildaPinpointDriver odo;          // Pinpoint odometry driver for position reset
 
@@ -171,6 +172,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
             // -----------------
 
             // AUTO-PARK: cancel if any driver stick input is detected
+            /*
             if (isAutoParking) {
                 boolean driverStickInput =
                         Math.abs(gamepad1.left_stick_x) > AUTO_PARK_STICK_DEADZONE ||
@@ -191,12 +193,14 @@ public class TeleOpFSM extends DarienOpModeFSM {
                 }
             }
 
+             */
+
             if (!isAutoParking) {
                 // Apply input shaping: Math.pow preserves sign, INPUT_EXPONENT controls curve
                 // 1.0=linear, 2.0=squared, 3.0=cubed — higher = more precision at low stick values
-                double rawY = (-gamepad1.left_stick_y <= DEADZONE) ? 0 : -gamepad1.left_stick_y;
-                double rawX = (-gamepad1.left_stick_x <= DEADZONE) ? 0 : -gamepad1.left_stick_x;
-                double rawR = (-gamepad1.right_stick_x <= DEADZONE) ? 0 : -gamepad1.right_stick_x;
+                double rawY = (Math.abs(gamepad1.left_stick_y) <= DEADZONE) ? 0 : -gamepad1.left_stick_y;
+                double rawX = (Math.abs(gamepad1.left_stick_x) <= DEADZONE) ? 0 : -gamepad1.left_stick_x;
+                double rawR = (Math.abs(gamepad1.right_stick_x) <= DEADZONE) ? 0 : -gamepad1.right_stick_x;
                 double shapedY = Math.signum(rawY) * Math.pow(Math.abs(rawY), INPUT_EXPONENT);
                 double shapedX = Math.signum(rawX) * Math.pow(Math.abs(rawX), INPUT_EXPONENT);
                 double shapedR = Math.signum(rawR) * Math.pow(Math.abs(rawR), INPUT_EXPONENT);
@@ -211,6 +215,19 @@ public class TeleOpFSM extends DarienOpModeFSM {
                     follower.setTeleOpDrive(forward, strafe, turn, true);
                 }
             }
+            telemetry.addData("L  x", gamepad1.left_stick_x);
+            telemetry.addData("L  y", gamepad1.left_stick_y);
+            telemetry.addData("R  x", gamepad1.right_stick_x);
+            telemetry.addData("R  y", gamepad1.right_stick_y);
+
+            /*
+            panelsTelemetry.addData("L  x", gamepad1.left_stick_x);
+            panelsTelemetry.addData("L  y", gamepad1.left_stick_y);
+            panelsTelemetry.addData("R  x", gamepad1.right_stick_x);
+            panelsTelemetry.addData("R  y", gamepad1.right_stick_y);
+
+             */
+
 
             follower.update();
 
@@ -507,6 +524,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
                 telemetry.addLine("Move any stick to cancel");
             }
 
+            //panelsTelemetry.update(telemetry);
             telemetry.update();
         } //while opModeIsActive
     } //runOpMode
