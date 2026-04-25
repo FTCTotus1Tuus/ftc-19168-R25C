@@ -14,9 +14,9 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 public class Constants {
     public static FollowerConstants followerConstants = new FollowerConstants()
-            .mass(12.16) // in kgs = 26.8 lbs on 3/6/2026
-            .forwardZeroPowerAcceleration(-31.5007174943932)
-            .lateralZeroPowerAcceleration(-62.295948256572714);
+            .mass(12.34) // in kgs = 27.2 lbs on 4/18/2026
+            .forwardZeroPowerAcceleration(-40)
+            .lateralZeroPowerAcceleration(-32);
 
     public static PathConstraints pathConstraints = new PathConstraints(0.99, 100, 1, 1);
 
@@ -47,6 +47,6 @@ public class Constants {
             .leftRearMotorDirection(DcMotorSimple.Direction.FORWARD)
             .rightFrontMotorDirection(DcMotorSimple.Direction.REVERSE)
             .rightRearMotorDirection(DcMotorSimple.Direction.REVERSE)
-            .xVelocity(65.97250390240526)
-            .yVelocity(52.05830731729823);
+            .xVelocity(60)
+            .yVelocity(47);
 }
