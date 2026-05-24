@@ -10,10 +10,12 @@ import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.teamcode.team.subsystems.GateControl;
+import org.firstinspires.ftc.teamcode.team.subsystems.ShooterIntakeControl;
 import org.firstinspires.ftc.teamcode.team.subsystems.SubsystemLifecycle;
 
 @Config
-public class IntakeFSM implements SubsystemLifecycle {
+public class IntakeFSM implements SubsystemLifecycle, ShooterIntakeControl {
     public enum IntakeModes {OFF, FORWARD, REVERSE, FULL, SHOOT}
 
     public enum States {OFF, INTAKING, REVERSING, READYTOSHOOT}
@@ -65,7 +67,7 @@ public class IntakeFSM implements SubsystemLifecycle {
     }
 
     // FSM DEPENDENCIES
-    private final GateFSM gateFSM;
+    private final GateControl gateControl;
 
     // HARDWARE DEVICES
     private final DigitalChannel ledRightGreen, ledLeftGreen, ledRightRed, ledLeftRed;
@@ -97,10 +99,10 @@ public class IntakeFSM implements SubsystemLifecycle {
      * Constructor
      *
      * @param hardwareMap Hardware map from the opmode
-     * @param gateFSM     GateFSM dependency — IntakeFSM closes the gate when intaking
+     * @param gateControl Gate control dependency — IntakeFSM closes the gate when intaking
      */
-    public IntakeFSM(HardwareMap hardwareMap, GateFSM gateFSM) {
-        this.gateFSM = gateFSM;
+    public IntakeFSM(HardwareMap hardwareMap, GateControl gateControl) {
+        this.gateControl = gateControl;
 
         // INITIALIZE MOTORS
         rubberBandsFront = hardwareMap.get(DcMotorEx.class, "rubberBandsFront");
@@ -194,6 +196,10 @@ public class IntakeFSM implements SubsystemLifecycle {
      * @param telemetry   Telemetry object
      */
     public void updateIntaking(double currentTime, boolean debug, Telemetry telemetry) {
+        if (debug) {
+            telemetry.addData("INTAKE: State", state);
+            telemetry.addData("INTAKE: Mode", mode);
+        }
         switch (state) {
             case INTAKING:
                 setLedAmber();
@@ -337,7 +343,7 @@ public class IntakeFSM implements SubsystemLifecycle {
                 rampServoLow.setPower(INTAKE_INTAKE_ROLLER_POWER);
                 rampServoHigh.setPower(INTAKE_INTAKE_ROLLER_POWER);
                 intakeRear.setPower(-INTAKE_INTAKE_ROLLER_POWER);
-                gateFSM.close();
+                gateControl.close();
                 break;
             case REVERSE:
                 rubberBandsFront.setPower(OUTPUT_RUBBER_BANDS_POWER);

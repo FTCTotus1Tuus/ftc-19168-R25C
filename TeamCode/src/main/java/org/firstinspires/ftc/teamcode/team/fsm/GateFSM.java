@@ -5,10 +5,11 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.teamcode.team.subsystems.GateControl;
 import org.firstinspires.ftc.teamcode.team.subsystems.SubsystemLifecycle;
 
 @Config
-public class GateFSM implements SubsystemLifecycle {
+public class GateFSM implements SubsystemLifecycle, GateControl {
 
     public enum GateStates {CLOSED, OPEN}
 
