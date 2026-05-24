@@ -23,6 +23,7 @@ import android.annotation.SuppressLint;
 import org.firstinspires.ftc.teamcode.team.core.IntakeCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.ShootingCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TurretCoordinator;
+import org.firstinspires.ftc.teamcode.team.core.TurretModeCoordinator;
 
 @TeleOp(name = "TeleopFSM", group = "DriverControl")
 @Config
@@ -47,6 +48,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
     private IntakeCoordinator intakeCoordinator;
     private ShootingCoordinator shootingCoordinator;
     private TurretCoordinator turretCoordinator;
+    private TurretModeCoordinator turretModeCoordinator;
 
 
     // Turret fallback tracking
@@ -75,6 +77,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
         intakeCoordinator = new IntakeCoordinator(intakeFSM, intakeFSM);
         shootingCoordinator = new ShootingCoordinator(shootingFSM, intakeFSM, gateFSM);
         turretCoordinator = new TurretCoordinator(turretFSM);
+        turretModeCoordinator = new TurretModeCoordinator(turretFSM);
 
         // Initialize GoBildaPinpointDriver for odometry position reset
         odo = hardwareMap.get(GoBildaPinpointDriver.class, "odo");
@@ -346,12 +349,13 @@ public class TeleOpFSM extends DarienOpModeFSM {
                 telemetry.addLine("ALLIANCE SET TO BLUE!");
             }
 
-            //TURRET STATE CHANGE CONTROLS
-            if (gamepad2.dpadUpWasPressed()) {
-                turretFSM.setState(TurretFSM.TurretStates.ODOMETRY);
-                shootingPowerMode = ShootingPowerModes.ODOMETRY;
-            } else if (gamepad2.dpadDownWasPressed()) {
-                turretFSM.setState(TurretFSM.TurretStates.CAMERA);
+            TurretModeCoordinator.ModeSwitchResult modeSwitchResult = turretModeCoordinator.handleModeSwitches(
+                    gamepad2.dpadUpWasPressed(),
+                    gamepad2.dpadDownWasPressed(),
+                    shootingPowerMode
+            );
+            shootingPowerMode = modeSwitchResult.shootingPowerMode;
+            if (modeSwitchResult.shouldStartGoalReading) {
                 startReadingGoalId();
             }
 
