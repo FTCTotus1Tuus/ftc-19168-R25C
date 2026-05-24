@@ -26,16 +26,14 @@ import org.firstinspires.ftc.teamcode.team.fsm.ShootingFSM;
 @Configurable
 @Config
 public class RedAudience2 extends DarienOpModeFSM {
-    private TelemetryManager panelsTelemetry;   // Panels Telemetry instance
     // follower is inherited from DarienOpModeFSM
     private int pathState;                      // State machine state
     private Paths paths;                        // Paths
-    private Timer pathTimer, opmodeTimer;
+    private Timer pathTimer;
     private boolean shotgunRunning = false;     // Keep shotgun PID running continuously
 
     public static double PATH_POWER_STANDARD = 0.8;
     public static double PATH_POWER_SLOW = 0.4;
-    public static double SHORT_PATH_TIMEOUT = 1.0;
     public static double STANDARD_PATH_TIMEOUT = 2.0;
     public static double LONG_PATH_TIMEOUT = 4.0;
     public static double SHOOT_TRIPLE_TIMEOUT = 4.0;
@@ -51,10 +49,7 @@ public class RedAudience2 extends DarienOpModeFSM {
 
         // --- PEDRO + TIMERS INIT ---
         pathTimer = new Timer();
-        opmodeTimer = new Timer();
-        opmodeTimer.resetTimer();
-
-        panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
+        TelemetryManager panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
 
         // Starting pose
         follower.setStartingPose(new Pose(87, 8.75, Math.toRadians(90)));
@@ -79,7 +74,6 @@ public class RedAudience2 extends DarienOpModeFSM {
         waitForStart();
         if (isStopRequested()) return;
 
-        opmodeTimer.resetTimer();
         setPathState(0);
 
         targetGoalId = APRILTAG_ID_GOAL_RED;
