@@ -126,6 +126,7 @@ public class RedGoalSide2 extends DarienOpModeFSM {
             panelsTelemetry.addData("Heading", follower.getPose().getHeading());
             panelsTelemetry.addData("Alliance Color", "RED");
             telemetry.addData("Alliance Color Saved", "RED");
+            addTraceTelemetry("Auto-RedGoalSide2", Integer.toString(pathState), pathTimer.getElapsedTimeSeconds());
             displayRpmTelemetry();
             panelsTelemetry.update(telemetry);
         }

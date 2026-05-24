@@ -121,6 +121,7 @@ public class BlueAudience1 extends DarienOpModeFSM {
             panelsTelemetry.addData("Heading", follower.getPose().getHeading());
             panelsTelemetry.addData("Alliance Color", "BLUE");
             telemetry.addData("Alliance Color Saved", "BLUE");
+            addTraceTelemetry("Auto-BlueAudience1", Integer.toString(pathState), pathTimer.getElapsedTimeSeconds());
             displayRpmTelemetry();
             panelsTelemetry.update(telemetry);
         }

@@ -393,4 +393,32 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
         telemetry.addData("Shooting Power Mode", shootingPowerMode.toString());
     }
 
+    /**
+     * Adds a shared trace telemetry schema for TeleOp and autonomous loops.
+     */
+    protected void addTraceTelemetry(String phase, String state, double stateTimerSec) {
+        telemetry.addData("TRACE/Phase", phase);
+        telemetry.addData("TRACE/State", state);
+        telemetry.addData("TRACE/RuntimeSec", String.format("%.2f", getRuntime()));
+        telemetry.addData("TRACE/StateTimerSec", String.format("%.2f", stateTimerSec));
+
+        if (follower != null) {
+            telemetry.addData(
+                    "TRACE/Pose",
+                    String.format(
+                            "x=%.1f y=%.1f h=%.1fdeg",
+                            follower.getPose().getX(),
+                            follower.getPose().getY(),
+                            Math.toDegrees(follower.getPose().getHeading())
+                    )
+            );
+        } else {
+            telemetry.addData("TRACE/Pose", "unavailable");
+        }
+
+        telemetry.addData("TRACE/TurretMode", turretFSM != null ? turretFSM.getState() : "unavailable");
+        telemetry.addData("TRACE/ShooterMode", shootingPowerMode);
+        telemetry.addData("TRACE/ShooterStage", shootingFSM != null ? shootingFSM.getStage() : "unavailable");
+    }
+
 }

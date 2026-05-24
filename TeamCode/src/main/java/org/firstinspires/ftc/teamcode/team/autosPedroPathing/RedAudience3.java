@@ -90,6 +90,7 @@ public class RedAudience3 extends DarienOpModeFSM {
             panelsTelemetry.addData("Heading", follower.getPose().getHeading());
             panelsTelemetry.addData("Alliance Color", "RED");
             telemetry.addData("Alliance Color Saved", "RED");
+            addTraceTelemetry("Auto-RedAudience3", Integer.toString(pathState), pathTimer.getElapsedTimeSeconds());
             panelsTelemetry.update(telemetry);
         }
     }

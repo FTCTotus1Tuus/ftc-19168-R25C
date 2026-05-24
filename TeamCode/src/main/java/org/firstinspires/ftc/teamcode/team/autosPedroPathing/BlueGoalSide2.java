@@ -122,6 +122,7 @@ public class BlueGoalSide2 extends DarienOpModeFSM {
             panelsTelemetry.addData("Heading", follower.getPose().getHeading());
             panelsTelemetry.addData("Alliance Color", "BLUE");
             telemetry.addData("Alliance Color Saved", "BLUE");
+            addTraceTelemetry("Auto-BlueGoalSide2", Integer.toString(pathState), pathTimer.getElapsedTimeSeconds());
             displayRpmTelemetry();
             panelsTelemetry.update(telemetry);
         }

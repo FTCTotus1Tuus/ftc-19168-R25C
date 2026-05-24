@@ -472,6 +472,10 @@ public class TeleOpFSM extends DarienOpModeFSM {
                 telemetry.addLine("Move any stick to cancel");
             }
 
+            String traceState = isAutoParking ? "AUTO_PARK" : "DRIVER_CONTROL";
+            double traceStateTimer = isAutoParking ? (getRuntime() - autoParkStartTime) : 0.0;
+            addTraceTelemetry("TeleOp", traceState, traceStateTimer);
+
             telemetry.update();
         } //while opModeIsActive
     } //runOpMode
