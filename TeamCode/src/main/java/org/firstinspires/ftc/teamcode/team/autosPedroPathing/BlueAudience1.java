@@ -12,10 +12,6 @@ import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
-import android.content.SharedPreferences;
-
-import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
-
 import org.firstinspires.ftc.teamcode.team.fsm.DarienOpModeFSM;
 import org.firstinspires.ftc.teamcode.team.fsm.ShootingFSM;
 
@@ -67,8 +63,7 @@ public class BlueAudience1 extends DarienOpModeFSM {
         turretFSM.center();
 
         // Save alliance color to shared preferences for TeleOp
-        SharedPreferences prefs = AppUtil.getInstance().getActivity().getSharedPreferences("ftc_prefs", android.content.Context.MODE_PRIVATE);
-        prefs.edit().putString("auto_alliance", "BLUE").apply();
+        preferencesService.saveAutoAlliance("BLUE");
 
         telemetry.addLine("Alliance Color: BLUE (Saved to Preferences)");
 
@@ -99,12 +94,11 @@ public class BlueAudience1 extends DarienOpModeFSM {
             turretFSM.setPositionFromOdometry(targetGoalX, targetGoalY, robotX, robotY, robotHeadingRadians);
 
             // Save final odometry position to SharedPreferences for TeleOp
-            prefs = AppUtil.getInstance().getActivity().getSharedPreferences("ftc_prefs", android.content.Context.MODE_PRIVATE);
-            prefs.edit()
-                    .putFloat("auto_final_x", (float) follower.getPose().getX())
-                    .putFloat("auto_final_y", (float) follower.getPose().getY())
-                    .putFloat("auto_final_heading", (float) follower.getPose().getHeading())
-                    .apply();
+            preferencesService.saveAutoFinalPose(
+                    (float) follower.getPose().getX(),
+                    (float) follower.getPose().getY(),
+                    (float) follower.getPose().getHeading()
+            );
 
             telemetry.addData("Saved Odometry", String.format("X=%.1f, Y=%.1f, H=%.1f°",
                                                               follower.getPose().getX(),

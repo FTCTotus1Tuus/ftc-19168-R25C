@@ -12,10 +12,6 @@ import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
-
-import android.content.SharedPreferences;
-
-import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 import org.firstinspires.ftc.teamcode.team.fsm.DarienOpModeFSM;
 
 
@@ -60,8 +56,7 @@ public class RedAudience3 extends DarienOpModeFSM {
         panelsTelemetry.update(telemetry);
 
         // Save alliance color to shared preferences for TeleOp
-        SharedPreferences prefs = AppUtil.getInstance().getActivity().getSharedPreferences("ftc_prefs", android.content.Context.MODE_PRIVATE);
-        prefs.edit().putString("auto_alliance", "RED").apply();
+        preferencesService.saveAutoAlliance("RED");
 
         telemetry.addLine("Alliance Color: RED (Saved to Preferences)");
 
