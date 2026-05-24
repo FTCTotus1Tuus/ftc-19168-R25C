@@ -10,9 +10,10 @@ import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.teamcode.team.subsystems.SubsystemLifecycle;
 
 @Config
-public class IntakeFSM {
+public class IntakeFSM implements SubsystemLifecycle {
     public enum IntakeModes {OFF, FORWARD, REVERSE, FULL, SHOOT}
 
     public enum States {OFF, INTAKING, REVERSING, READYTOSHOOT}
@@ -249,6 +250,21 @@ public class IntakeFSM {
                 mode = IntakeModes.OFF;
                 break;
         }
+    }
+
+    @Override
+    public void readSensors(double currentTime, Telemetry telemetry) {
+        // Sensor polling is already integrated in updateIntaking() for INTAKING state.
+    }
+
+    @Override
+    public void update(double currentTime, Telemetry telemetry) {
+        updateIntaking(currentTime, false, telemetry);
+    }
+
+    @Override
+    public void writeOutputs(Telemetry telemetry) {
+        // Motor/servo outputs are applied immediately by state transition methods.
     }
 
     // -------------------------------------------------------------------------

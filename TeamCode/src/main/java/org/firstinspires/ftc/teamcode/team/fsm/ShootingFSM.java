@@ -4,6 +4,7 @@ import com.acmerobotics.dashboard.config.Config;
 import com.bylazar.configurables.annotations.Configurable;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.teamcode.team.subsystems.SubsystemLifecycle;
 
 /**
  * ShootingFSM — owns the complete single-artifact shoot sequence.
@@ -31,7 +32,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  */
 @Config
 @Configurable
-public class ShootingFSM {
+public class ShootingFSM implements SubsystemLifecycle {
 
     // -------------------------------------------------------------------------
     // ENUMS

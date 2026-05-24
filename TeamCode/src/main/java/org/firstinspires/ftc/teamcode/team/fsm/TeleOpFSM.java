@@ -194,12 +194,14 @@ public class TeleOpFSM extends DarienOpModeFSM {
 
             follower.update();
 
-            gateFSM.update(getRuntime(), true, telemetry);
-            turretFSM.update();
+            gateFSM.update(getRuntime(), telemetry);
+            turretFSM.update(getRuntime(), telemetry);
 
             // INTAKE FSM UPDATE — runs sensor polling and auto-stops when full
             if (intakeFSM.getState() == IntakeFSM.States.INTAKING) {
-                intakeFSM.updateIntaking(getRuntime(), true, telemetry);
+                intakeFSM.readSensors(getRuntime(), telemetry);
+                intakeFSM.update(getRuntime(), telemetry);
+                intakeFSM.writeOutputs(telemetry);
             }
 
             // SHOOTING FSM UPDATE — drives spin-up → gate open → gate close → done
