@@ -192,11 +192,10 @@ public class TeleOpFSM extends DarienOpModeFSM {
             }
 
             if (!isAutoParking) {
-                // Apply input shaping: Math.pow preserves sign, INPUT_EXPONENT controls curve
-                // 1.0=linear, 2.0=squared, 3.0=cubed — higher = more precision at low stick values
-                double rawY = (-gamepad1.left_stick_y <= DEADZONE) ? 0 : -gamepad1.left_stick_y;
-                double rawX = (-gamepad1.left_stick_x <= DEADZONE) ? 0 : -gamepad1.left_stick_x;
-                double rawR = (-gamepad1.right_stick_x <= DEADZONE) ? 0 : -gamepad1.right_stick_x;
+                // Apply symmetric deadzone by magnitude, then preserve direction with sign inversion.
+                double rawY = (Math.abs(gamepad1.left_stick_y) <= DEADZONE) ? 0 : -gamepad1.left_stick_y;
+                double rawX = (Math.abs(gamepad1.left_stick_x) <= DEADZONE) ? 0 : -gamepad1.left_stick_x;
+                double rawR = (Math.abs(gamepad1.right_stick_x) <= DEADZONE) ? 0 : -gamepad1.right_stick_x;
                 double shapedY = Math.signum(rawY) * Math.pow(Math.abs(rawY), INPUT_EXPONENT);
                 double shapedX = Math.signum(rawX) * Math.pow(Math.abs(rawX), INPUT_EXPONENT);
                 double shapedR = Math.signum(rawR) * Math.pow(Math.abs(rawR), INPUT_EXPONENT);
