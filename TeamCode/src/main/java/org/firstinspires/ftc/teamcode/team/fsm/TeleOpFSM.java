@@ -20,6 +20,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import com.bylazar.configurables.annotations.Configurable;
 
 import android.annotation.SuppressLint;
+import org.firstinspires.ftc.teamcode.team.core.ShootingCoordinator;
 
 @TeleOp(name = "TeleopFSM", group = "DriverControl")
 @Config
@@ -35,11 +36,13 @@ public class TeleOpFSM extends DarienOpModeFSM {
     public static double SPEED_SCALE = 1.0;
     public static double SPEED_SCALE_TURN = 0.8;
     public static double INPUT_EXPONENT = 3.0; // 1.0=linear, 2.0=squared, 3.0=cubed (preserves sign)
+    public static double SHOOT_POWER_SELECT_STICK_THRESHOLD = 0.05;
 
     // VARIABLES
     private boolean isReadingAprilTag = false;
 
     private ShotgunPowerLevel shotgunPowerLatch = ShotgunPowerLevel.OFF;
+    private ShootingCoordinator shootingCoordinator;
 
 
     // Turret fallback tracking
@@ -65,6 +68,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
         super.initControls();
         gateFSM.close();
         turretFSM.center(); // set to center position
+        shootingCoordinator = new ShootingCoordinator(shootingFSM, intakeFSM, gateFSM);
 
         // Initialize GoBildaPinpointDriver for odometry position reset
         odo = hardwareMap.get(GoBildaPinpointDriver.class, "odo");
@@ -205,13 +209,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
             }
 
             // SHOOTING FSM UPDATE — drives spin-up → gate open → gate close → done
-            if (shootingFSM.getStage() != ShootingFSM.Stage.IDLE) {
-                shootingFSM.update(getRuntime(), telemetry);
-                if (shootingFSM.isDone()) {
-                    shootingFSM.reset();
-                    intakeFSM.startIntaking();
-                }
-            }
+            shootingCoordinator.updateActiveSequence(getRuntime(), telemetry);
 
             // CAMERA-BASED TURRET CONTROL
             if (turretFSM.getState() == TurretFSM.TurretStates.CAMERA) {
@@ -277,17 +275,13 @@ public class TeleOpFSM extends DarienOpModeFSM {
                 autoParkStartTime = getRuntime();
             }
 
-            if (gamepad2.left_bumper) {
-                gateFSM.close();
-            } else if (gamepad2.rightBumperWasPressed()) {
-                // Start shoot sequence — FAR power if right stick pushed up, CLOSE power otherwise
-                ShootingFSM.PowerLevel power = (gamepad2.right_stick_y < -0.05)
-                        ? ShootingFSM.PowerLevel.FAR
-                        : ShootingFSM.PowerLevel.CLOSE;
-                shootingFSM.start(getRuntime(), power);
-            } else if (gamepad2.rightBumperWasReleased()) {
-                shootingFSM.finish();
-            }
+            shootingCoordinator.handleDriverControls(
+                    getRuntime(),
+                    gamepad2.left_bumper,
+                    gamepad2.rightBumperWasPressed(),
+                    gamepad2.rightBumperWasReleased(),
+                    gamepad2.right_stick_y
+            );
 
             // Add debug telemetry
             telemetry.addData("GATE: State", gateFSM.getState().toString());
@@ -419,10 +413,10 @@ public class TeleOpFSM extends DarienOpModeFSM {
             }
 
             //Latch control - manual override switches back to MANUAL mode
-            if (gamepad2.right_stick_y < -.05) {
+            if (gamepad2.right_stick_y < -SHOOT_POWER_SELECT_STICK_THRESHOLD) {
                 shotgunPowerLatch = ShotgunPowerLevel.HIGH;
                 shootingPowerMode = ShootingPowerModes.MANUAL;
-            } else if (gamepad2.right_stick_y > 0.05) {
+            } else if (gamepad2.right_stick_y > SHOOT_POWER_SELECT_STICK_THRESHOLD) {
                 shotgunPowerLatch = ShotgunPowerLevel.LOW;
                 shootingPowerMode = ShootingPowerModes.MANUAL;
             } else if (gamepad2.rightStickButtonWasPressed() || gamepad2.a) {
