@@ -20,6 +20,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import com.bylazar.configurables.annotations.Configurable;
 
 import android.annotation.SuppressLint;
+import org.firstinspires.ftc.teamcode.team.core.IntakeCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.ShootingCoordinator;
 
 @TeleOp(name = "TeleopFSM", group = "DriverControl")
@@ -42,6 +43,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
     private boolean isReadingAprilTag = false;
 
     private ShotgunPowerLevel shotgunPowerLatch = ShotgunPowerLevel.OFF;
+    private IntakeCoordinator intakeCoordinator;
     private ShootingCoordinator shootingCoordinator;
 
 
@@ -68,6 +70,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
         super.initControls();
         gateFSM.close();
         turretFSM.center(); // set to center position
+        intakeCoordinator = new IntakeCoordinator(intakeFSM);
         shootingCoordinator = new ShootingCoordinator(shootingFSM, intakeFSM, gateFSM);
 
         // Initialize GoBildaPinpointDriver for odometry position reset
@@ -202,11 +205,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
             turretFSM.update(getRuntime(), telemetry);
 
             // INTAKE FSM UPDATE — runs sensor polling and auto-stops when full
-            if (intakeFSM.getState() == IntakeFSM.States.INTAKING) {
-                intakeFSM.readSensors(getRuntime(), telemetry);
-                intakeFSM.update(getRuntime(), telemetry);
-                intakeFSM.writeOutputs(telemetry);
-            }
+            intakeCoordinator.updateActiveIntake(getRuntime(), telemetry);
 
             // SHOOTING FSM UPDATE — drives spin-up → gate open → gate close → done
             shootingCoordinator.updateActiveSequence(getRuntime(), telemetry);
@@ -224,16 +223,11 @@ public class TeleOpFSM extends DarienOpModeFSM {
             // GAMEPAD1 CONTROLS
             // -----------------
 
-            if (gamepad1.y || gamepad1.right_bumper) {
-                // Intake on
-                intakeFSM.startIntaking();
-            } else if (gamepad1.a) {
-                // Eject mode
-                intakeFSM.reverse();
-            } else if (gamepad1.x) {
-                // Intake "Off"
-                intakeFSM.off();
-            }
+            intakeCoordinator.handleDriverControls(
+                    gamepad1.y || gamepad1.right_bumper,
+                    gamepad1.a,
+                    gamepad1.x
+            );
 
             // AUTO-PARK — build path to alliance parking zone, shut down subsystems
             if (gamepad1.bWasPressed() && !isAutoParking) {
