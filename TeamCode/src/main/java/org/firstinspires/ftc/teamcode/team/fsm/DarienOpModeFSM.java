@@ -10,16 +10,15 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 
 import com.pedropathing.follower.Follower;
 
-import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.ExposureControl;
-import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.GainControl;
-import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.team.core.RobotContainer;
 import org.firstinspires.ftc.teamcode.team.MotorHelper;
+import org.firstinspires.ftc.teamcode.team.services.AprilTagVisionService;
+import org.firstinspires.ftc.teamcode.team.services.PreferencesService;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 
 import java.util.ArrayList;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Base OpMode for Pedro pathing and state machine logic.
@@ -141,6 +140,9 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     public static double CAMERA_FALLBACK_TIMEOUT_MS = 500; // Auto-switch to odometry after this timeout
 
     public int targetGoalId = 0;
+    protected RobotContainer robotContainer;
+    protected AprilTagVisionService visionService;
+    protected PreferencesService preferencesService;
 
     public enum ShotgunPowerLevel {
         OFF,
@@ -166,34 +168,31 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
         tp = new TelemetryPacket();
         dash = FtcDashboard.getInstance();
 
-        // INITIALIZE MOTORS
-        ejectionMotor = hardwareMap.get(DcMotorEx.class, "ejectionMotor");
-        ejectionMotor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
-        ejectionMotor.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-        ejectionMotor.setDirection(DcMotorEx.Direction.REVERSE); // Reverse because it is geared
+        // Delegate robot hardware/services/subsystems initialization to container.
+        if (robotContainer == null) {
+            robotContainer = new RobotContainer(this);
+        }
+        robotContainer.initialize();
+        visionService = robotContainer.getVisionService();
+        preferencesService = robotContainer.getPreferencesService();
 
-        initAprilTag();
-
-        MotorHelper = new MotorHelper(telemetry, TICKS_PER_ROTATION);
+        ejectionMotor = robotContainer.getHardware().ejectionMotor;
+        aprilTag = robotContainer.getAprilTag();
+        visionPortal = robotContainer.getVisionPortal();
+        MotorHelper = robotContainer.getMotorHelper();
+        tagFSM = robotContainer.getTagFSM();
+        shootArtifactFSM = robotContainer.getShootArtifactFSM();
+        shootPatternFSM = robotContainer.getShootPatternFSM();
+        shotgunFSM = robotContainer.getShotgunFSM();
+        turretFSM = robotContainer.getTurretFSM();
+        gateFSM = robotContainer.getGateFSM();
+        intakeFSM = robotContainer.getIntakeFSM();
+        shootingFSM = robotContainer.getShootingFSM();
+        follower = robotContainer.getFollower();
 
         // Set default shooting power mode: ODOMETRY for Autos, MANUAL for TeleOp
         shootingPowerMode = isAutonomousMode() ? ShootingPowerModes.ODOMETRY : ShootingPowerModes.MANUAL;
 
-        // INSTANTIATE THE STATE MACHINES
-        tagFSM = new AprilTagDetectionFSM(aprilTag, TIMEOUT_APRILTAG_DETECTION);
-        shootArtifactFSM = new ShootArtifactFSM(this);
-        shootPatternFSM = new ShootPatternFSM(this);
-        shotgunFSM = new ShotgunFSM(SHOT_GUN_POWER_UP, SHOT_GUN_POWER_UP_FAR, ejectionMotor, this, MotorHelper);
-        turretFSM = new TurretFSM(this.hardwareMap);
-        turretFSM.init();
-        gateFSM = new GateFSM(this.hardwareMap);
-        gateFSM.init();
-        intakeFSM = new IntakeFSM(this.hardwareMap, this.gateFSM);
-        intakeFSM.init();
-        shootingFSM = new ShootingFSM(this.gateFSM, this.shotgunFSM, this.intakeFSM, this);
-
-        // Create Pedro Pathing follower — available to all subclasses (Teleop + Autos)
-        follower = Constants.createFollower(hardwareMap);
 
         telemetry.addLine("FTC 19168 Robot Initialization Done!");
         telemetry.update();
@@ -224,118 +223,9 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
         return motor;
     }
 
-    /**
-     * Initialize the AprilTag processor.
-     */
-    private void initAprilTag() {
-
-        // Create the AprilTag processor the easy way.
-        aprilTag = AprilTagProcessor.easyCreateWithDefaults();
-
-
-        // Set manual exposure and gain to reduce motion blur and improve detection at distance
-        // This is especially important for detecting AprilTags from far positions
-        //setManualExposure(APRILTAG_EXPOSURE_MS, APRILTAG_GAIN);
-    }
-
-    /**
-     * Manually set the camera gain and exposure for AprilTag detection.
-     * Low exposure (5-6ms) with high gain reduces motion blur.
-     * Can only be called AFTER calling initAprilTag().
-     *
-     * @param exposureMS Camera exposure time in milliseconds
-     * @param gain       Camera gain value (typically 0-255)
-     * @return true if controls are set successfully
-     */
-    private boolean setManualExposure(int exposureMS, int gain) {
-        // Ensure Vision Portal has been setup
-        if (visionPortal == null) {
-            return false;
-        }
-
-        // Wait for the camera to be open
-        if (visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING) {
-            telemetry.addData("Camera", "Waiting for stream...");
-            telemetry.update();
-            while (!isStopRequested() && (visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING)) {
-                sleep(20);
-            }
-            telemetry.addData("Camera", "Ready");
-            telemetry.update();
-        }
-
-        // Set camera controls unless we are stopping
-        if (!isStopRequested()) {
-            try {
-                // Set exposure - must be in Manual Mode for these values to take effect
-                ExposureControl exposureControl = visionPortal.getCameraControl(ExposureControl.class);
-                if (exposureControl.getMode() != ExposureControl.Mode.Manual) {
-                    exposureControl.setMode(ExposureControl.Mode.Manual);
-                    sleep(50);
-                }
-                exposureControl.setExposure(exposureMS, TimeUnit.MILLISECONDS);
-                sleep(20);
-
-                // Set Gain
-                GainControl gainControl = visionPortal.getCameraControl(GainControl.class);
-                gainControl.setGain(gain);
-                sleep(20);
-
-                telemetry.addData("Camera Exposure", exposureMS + "ms");
-                telemetry.addData("Camera Gain", gain);
-                telemetry.update();
-                return true;
-            } catch (Exception e) {
-                telemetry.addData("Camera Control Error", e.getMessage());
-                telemetry.update();
-                return false;
-            }
-        } else {
-            return false;
-        }
-    }
-
-    /**
-     * Read this camera's minimum and maximum Exposure and Gain settings.
-     * Useful for tuning and debugging.
-     * Can only be called AFTER calling initAprilTag().
-     *
-     * @return int array: [minExposure, maxExposure, minGain, maxGain]
-     */
+    /** Read this camera's minimum and maximum Exposure and Gain settings. */
     public int[] getCameraSettings() {
-        // Ensure Vision Portal has been setup
-        if (visionPortal == null) {
-            return new int[]{0, 0, 0, 0};
-        }
-
-        // Wait for the camera to be open
-        if (visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING) {
-            telemetry.addData("Camera", "Waiting for stream...");
-            telemetry.update();
-            while (!isStopRequested() && (visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING)) {
-                sleep(20);
-            }
-        }
-
-        // Get camera control values unless we are stopping
-        if (!isStopRequested()) {
-            try {
-                ExposureControl exposureControl = visionPortal.getCameraControl(ExposureControl.class);
-                int minExposure = (int) exposureControl.getMinExposure(TimeUnit.MILLISECONDS) + 1;
-                int maxExposure = (int) exposureControl.getMaxExposure(TimeUnit.MILLISECONDS);
-
-                GainControl gainControl = visionPortal.getCameraControl(GainControl.class);
-                int minGain = gainControl.getMinGain();
-                int maxGain = gainControl.getMaxGain();
-
-                return new int[]{minExposure, maxExposure, minGain, maxGain};
-            } catch (Exception e) {
-                telemetry.addData("Camera Settings Error", e.getMessage());
-                telemetry.update();
-                return new int[]{0, 0, 0, 0};
-            }
-        }
-        return new int[]{0, 0, 0, 0};
+        return (visionService != null) ? visionService.getCameraSettings() : new int[]{0, 0, 0, 0};
     }
 
     /**

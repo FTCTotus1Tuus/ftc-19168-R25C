@@ -20,9 +20,6 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import com.bylazar.configurables.annotations.Configurable;
 
 import android.annotation.SuppressLint;
-import android.content.SharedPreferences;
-
-import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 
 @TeleOp(name = "TeleopFSM", group = "DriverControl")
 @Config
@@ -81,8 +78,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
         tp = new TelemetryPacket();
         dash = FtcDashboard.getInstance();
 
-        SharedPreferences prefs = AppUtil.getInstance().getActivity().getSharedPreferences("ftc_prefs", android.content.Context.MODE_PRIVATE);
-        autoAlliance = prefs.getString("auto_alliance", "UNKNOWN");
+        autoAlliance = preferencesService.getAutoAlliance("UNKNOWN");
 
         // Set align color based on saved color from auto
         if ("BLUE".equals(autoAlliance)) {
@@ -94,11 +90,11 @@ public class TeleOpFSM extends DarienOpModeFSM {
         }
 
         // Load saved odometry position from auto (if available)
-        boolean hasAutoPosition = prefs.contains("auto_final_x");
+        boolean hasAutoPosition = preferencesService.hasAutoFinalPose();
         if (hasAutoPosition) {
-            double autoX = prefs.getFloat("auto_final_x", 0f);
-            double autoY = prefs.getFloat("auto_final_y", 0f);
-            double autoHeadingRad = prefs.getFloat("auto_final_heading", 0f);
+            double autoX = preferencesService.getAutoFinalX(0f);
+            double autoY = preferencesService.getAutoFinalY(0f);
+            double autoHeadingRad = preferencesService.getAutoFinalHeading(0f);
 
             // Set odometry position from auto
             odo.setPosition(new Pose2D(
