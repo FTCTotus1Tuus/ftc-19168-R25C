@@ -70,7 +70,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
         super.initControls();
         gateFSM.close();
         turretFSM.center(); // set to center position
-        intakeCoordinator = new IntakeCoordinator(intakeFSM);
+        intakeCoordinator = new IntakeCoordinator(intakeFSM, intakeFSM);
         shootingCoordinator = new ShootingCoordinator(shootingFSM, intakeFSM, gateFSM);
 
         // Initialize GoBildaPinpointDriver for odometry position reset

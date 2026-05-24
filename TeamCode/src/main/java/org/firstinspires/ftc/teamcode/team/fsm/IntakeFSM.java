@@ -11,11 +11,12 @@ import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.team.subsystems.GateControl;
+import org.firstinspires.ftc.teamcode.team.subsystems.IntakeControl;
 import org.firstinspires.ftc.teamcode.team.subsystems.ShooterIntakeControl;
 import org.firstinspires.ftc.teamcode.team.subsystems.SubsystemLifecycle;
 
 @Config
-public class IntakeFSM implements SubsystemLifecycle, ShooterIntakeControl {
+public class IntakeFSM implements SubsystemLifecycle, ShooterIntakeControl, IntakeControl {
     public enum IntakeModes {OFF, FORWARD, REVERSE, FULL, SHOOT}
 
     public enum States {OFF, INTAKING, REVERSING, READYTOSHOOT}
@@ -184,6 +185,11 @@ public class IntakeFSM implements SubsystemLifecycle, ShooterIntakeControl {
         setState(States.INTAKING);
         setMode(IntakeModes.FORWARD);
         resetSensors();
+    }
+
+    @Override
+    public boolean isIntaking() {
+        return state == States.INTAKING;
     }
 
     /**

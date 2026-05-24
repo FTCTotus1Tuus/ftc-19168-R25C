@@ -1,10 +1,10 @@
 package org.firstinspires.ftc.teamcode.team.core;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.team.fsm.IntakeFSM;
 import org.firstinspires.ftc.teamcode.team.fsm.ShootingFSM;
 import org.firstinspires.ftc.teamcode.team.fsm.TeleOpFSM;
 import org.firstinspires.ftc.teamcode.team.subsystems.GateControl;
+import org.firstinspires.ftc.teamcode.team.subsystems.IntakeControl;
 
 /**
  * Coordinates shooting-related interactions across subsystems.
@@ -12,12 +12,12 @@ import org.firstinspires.ftc.teamcode.team.subsystems.GateControl;
 public class ShootingCoordinator {
 
     private final ShootingFSM shootingFSM;
-    private final IntakeFSM intakeFSM;
+    private final IntakeControl intakeControl;
     private final GateControl gateControl;
 
-    public ShootingCoordinator(ShootingFSM shootingFSM, IntakeFSM intakeFSM, GateControl gateControl) {
+    public ShootingCoordinator(ShootingFSM shootingFSM, IntakeControl intakeControl, GateControl gateControl) {
         this.shootingFSM = shootingFSM;
-        this.intakeFSM = intakeFSM;
+        this.intakeControl = intakeControl;
         this.gateControl = gateControl;
     }
 
@@ -26,7 +26,7 @@ public class ShootingCoordinator {
             shootingFSM.update(currentTime, telemetry);
             if (shootingFSM.isDone()) {
                 shootingFSM.reset();
-                intakeFSM.startIntaking();
+                intakeControl.startIntaking();
             }
         }
     }
