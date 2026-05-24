@@ -5,7 +5,6 @@ import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
 import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
@@ -30,11 +29,10 @@ import org.firstinspires.ftc.teamcode.team.fsm.ShootingFSM;
 @Configurable
 public class BlueGoalSide3 extends DarienOpModeFSM {
 
-    private TelemetryManager panelsTelemetry;   // Panels Telemetry instance
     // follower is inherited from DarienOpModeFSM
     private int pathState;                      // State machine state
     private Paths paths;                        // Paths
-    private Timer pathTimer, opmodeTimer;
+    private Timer pathTimer;
 
     public static double PATH_POWER_STANDARD = 0.8;
     public static double PATH_POWER_SLOW = 0.4;
@@ -51,10 +49,7 @@ public class BlueGoalSide3 extends DarienOpModeFSM {
 
         // --- PEDRO + TIMERS INIT ---
         pathTimer = new Timer();
-        opmodeTimer = new Timer();
-        opmodeTimer.resetTimer();
-
-        panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
+        TelemetryManager panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
 
         // Starting pose
         follower.setStartingPose(new Pose(57, 135, Math.toRadians(180)));
@@ -78,7 +73,6 @@ public class BlueGoalSide3 extends DarienOpModeFSM {
         waitForStart();
         if (isStopRequested()) return;
 
-        opmodeTimer.resetTimer();
         setPathState(0);
 
         targetGoalId = APRILTAG_ID_GOAL_BLUE;

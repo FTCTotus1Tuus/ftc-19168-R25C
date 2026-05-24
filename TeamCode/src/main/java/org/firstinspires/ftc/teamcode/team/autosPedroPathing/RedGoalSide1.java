@@ -5,7 +5,6 @@ import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
 import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
@@ -28,11 +27,10 @@ import org.firstinspires.ftc.teamcode.team.fsm.ShootingFSM;
 @Configurable
 public class RedGoalSide1 extends DarienOpModeFSM {
 
-    private TelemetryManager panelsTelemetry;   // Panels Telemetry instance
     // follower is inherited from DarienOpModeFSM
     private int pathState;                      // State machine state
     private Paths paths;                        // Paths
-    private Timer pathTimer, opmodeTimer;
+    private Timer pathTimer;
     private boolean shotgunRunning = false;     // Keep shotgun PID running continuously
 
     public static double STARTING_POSE_X = 111;
@@ -40,10 +38,8 @@ public class RedGoalSide1 extends DarienOpModeFSM {
     public static double STARTING_POSE_H_DEG = 0;
     public static double PATH_POWER_STANDARD = 0.8;
     public static double PATH_POWER_SLOW = 0.4;
-    public static double SHORT_PATH_TIMEOUT = 1.0;
     public static double STANDARD_PATH_TIMEOUT = 2.0;
     public static double LONG_PATH_TIMEOUT = 4.0;
-    public static double SHOOT_TRIPLE_TIMEOUT = 4.0;
     public static double SHOOT_TRIPLE_TIME_MIN = 5.0;
     public static double SHOOT_TRIPLE_TIME_MAX = 7.0;
     public double targetGoalX = DarienOpModeFSM.GOAL_RED_X;
@@ -57,10 +53,8 @@ public class RedGoalSide1 extends DarienOpModeFSM {
 
         // --- PEDRO + TIMERS INIT ---
         pathTimer = new Timer();
-        opmodeTimer = new Timer();
-        opmodeTimer.resetTimer();
 
-        panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
+        TelemetryManager panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
 
         // Starting pose
         follower.setStartingPose(new Pose(STARTING_POSE_X, STARTING_POSE_Y, Math.toRadians(STARTING_POSE_H_DEG)));
@@ -85,7 +79,6 @@ public class RedGoalSide1 extends DarienOpModeFSM {
         waitForStart();
         if (isStopRequested()) return;
 
-        opmodeTimer.resetTimer();
         setPathState(0);
 
         targetGoalId = APRILTAG_ID_GOAL_RED;

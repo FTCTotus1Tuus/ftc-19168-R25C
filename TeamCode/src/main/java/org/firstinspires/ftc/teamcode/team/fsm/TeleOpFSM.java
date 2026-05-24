@@ -18,9 +18,8 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 
 import com.bylazar.configurables.annotations.Configurable;
-import com.bylazar.telemetry.TelemetryManager;
-import com.qualcomm.robotcore.hardware.DistanceSensor;
 
+import android.annotation.SuppressLint;
 import android.content.SharedPreferences;
 
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
@@ -31,28 +30,22 @@ import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 public class TeleOpFSM extends DarienOpModeFSM {
 
     // INSTANCES
-    private TelemetryManager panelsTelemetry;   // Panels Telemetry instance
     // follower is inherited from DarienOpModeFSM
     private GoBildaPinpointDriver odo;          // Pinpoint odometry driver for position reset
 
     // TUNING CONSTANTS
-    public static double SHOT_TIMEOUT = 2.0; // seconds
     public static double ROTATION_SCALE = 0.5;
     public static double SPEED_SCALE = 1.0;
     public static double SPEED_SCALE_TURN = 0.8;
     public static double INPUT_EXPONENT = 3.0; // 1.0=linear, 2.0=squared, 3.0=cubed (preserves sign)
 
     // VARIABLES
-    private double shotStartTime;
-    //private boolean shotStarted = false;
     private boolean isReadingAprilTag = false;
 
     private ShotgunPowerLevel shotgunPowerLatch = ShotgunPowerLevel.OFF;
 
 
     // Turret fallback tracking
-    private double lastCameraDetectionTime = 0;  // Timestamp of last successful camera detection
-
     // AUTO-PARK STATE
     private boolean isAutoParking = false;
     private double autoParkStartTime = 0;
@@ -61,18 +54,10 @@ public class TeleOpFSM extends DarienOpModeFSM {
 
     // AUTOMATIC TURRET CONTROLS BASED ON CAMERA APRILTAG DETECTION
     AprilTagDetection detection;
-    double yaw, range; // Stores detection.ftcPose.yaw
-    double currentHeadingDeg;
-    double relativeHeadingDeg; // Camera-relative bearing to AprilTag (degrees)
-    double targetServoPos = Double.NaN; // Convert heading → servo position
     double rawBearingDeg; // Stores detection.ftcPose.bearing;
 
     double robotX, robotY, robotHeadingRadians;
 
-    // cameraOffsetX < 0 if camera is mounted on the LEFT
-// public static double cameraOffsetX = 0.105; // in centimeter, positive is right, negative is left
-    double correctedBearingRad;
-    double correctedBearingDeg;
     boolean isCalculatingTurretTargetPosition = false;
 
     int targetGoalTagId;
@@ -89,9 +74,9 @@ public class TeleOpFSM extends DarienOpModeFSM {
     }
 
 
+    @SuppressLint("DefaultLocale")
     @Override
     public void runOpMode() throws InterruptedException {
-        float gain = 2;
         initControls();
         tp = new TelemetryPacket();
         dash = FtcDashboard.getInstance();
@@ -381,25 +366,6 @@ public class TeleOpFSM extends DarienOpModeFSM {
                 startReadingGoalId();
             }
 
-            /* NOT BEING USED
-            // -----------------
-            // SHOOTING MACRO (dpad_down) — start a timed single-shot sequence
-            // -----------------
-            if (gamepad2.dpad_down && !shotStarted) {
-                ShootingFSM.PowerLevel power = (gamepad2.right_stick_y < -0.05)
-                        ? ShootingFSM.PowerLevel.FAR
-                        : ShootingFSM.PowerLevel.CLOSE;
-                shootingFSM.start(getRuntime(), power);
-                shotStartTime = getRuntime();
-                shotStarted = true;
-            }
-            if (shotStarted) {
-                if (shootingFSM.isDone() || getRuntime() - shotStartTime >= SHOT_TIMEOUT) {
-                    shootingFSM.reset();
-                    shotStarted = false;
-                }
-            }
-             */
 
 
             // Get current robot pose from follower

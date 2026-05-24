@@ -18,11 +18,9 @@ public class ShootArtifactFSM {
 
     private ShootingStage shootingStage = ShootingStage.IDLE;
     private double shootingStartTime = 0;
-    private double shootingPower = 0;
 
     // Timings (seconds)
     public static double GATE_OPEN_DELAY = .35;
-    public static double GATE_CLOSE_DELAY = .25;
     public static double SPINUP_DELAY = 0.0;    // shotgun running before shooting artifact
 
     public ShootArtifactFSM(DarienOpModeFSM opMode) {
@@ -31,7 +29,6 @@ public class ShootArtifactFSM {
 
     // Call this to begin shooting
     public void startShooting(double shootingPower) {
-        this.shootingPower = shootingPower;
         if (!ejectionMotorsControlledByPattern) {
             shotGun(shootingPower);
         }
@@ -66,18 +63,6 @@ public class ShootArtifactFSM {
                     shootingStartTime = currentTime; // Reset timer for next stage
                 }
                 break;
-/*
-            case FINISHED:
-                //opMode.Elevator.setPosition(DarienOpModeFSM.GATE_CLOSED);
-                if (currentTime - shootingStartTime >= ELEVATOR_DOWN_DELAY) {
-                    if (!ejectionMotorsControlledByPattern) {
-                        shotGunStop();
-                    }
-                    shootingStage = ShootingStage.FINISHED;
-                }
-                break;
-
- */
             case IDLE:
             default:
                 break;
@@ -96,19 +81,10 @@ public class ShootArtifactFSM {
 
     public void shotGun(double power) {
         //opMode.ejectionMotor.setPower(opMode.getVoltageAdjustedMotorPower(power));
-        if (power == opMode.SHOT_GUN_POWER_UP) {
-            shotGunRPM(opMode.SHOT_GUN_POWER_UP_RPM_AUTO);
-        } else if (power == opMode.SHOT_GUN_POWER_UP_FAR) {
-            shotGunRPM(opMode.SHOT_GUN_POWER_UP_FAR_RPM_AUTO);
-        }
-    }
-
-    public void shotGunTeleop(double power) {
-        //opMode.ejectionMotor.setPower(opMode.getVoltageAdjustedMotorPower(power));
-        if (power == opMode.SHOT_GUN_POWER_UP) {
-            shotGunRPM(opMode.SHOT_GUN_POWER_UP_RPM);
-        } else if (power == opMode.SHOT_GUN_POWER_UP_FAR) {
-            shotGunRPM(opMode.SHOT_GUN_POWER_UP_FAR_RPM_TELEOP);
+        if (power == DarienOpModeFSM.SHOT_GUN_POWER_UP) {
+            shotGunRPM(DarienOpModeFSM.SHOT_GUN_POWER_UP_RPM_AUTO);
+        } else if (power == DarienOpModeFSM.SHOT_GUN_POWER_UP_FAR) {
+            shotGunRPM(DarienOpModeFSM.SHOT_GUN_POWER_UP_FAR_RPM_AUTO);
         }
     }
 
@@ -116,16 +92,9 @@ public class ShootArtifactFSM {
         opMode.ejectionMotor.setVelocity(opMode.getTicksPerSecond(RPM));
     }
 
-    public void shotGunStop() {
-        opMode.ejectionMotor.setPower(0);
-    }
-
     public void setEjectionMotorsControlledByPattern(boolean controlled) {
         this.ejectionMotorsControlledByPattern = controlled;
     }
 
-    public ShootingStage getShootingStage() {
-        return shootingStage;
-    }
 
 }
