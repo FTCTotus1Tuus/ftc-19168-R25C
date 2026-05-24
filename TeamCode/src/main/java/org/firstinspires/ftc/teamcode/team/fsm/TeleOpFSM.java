@@ -22,6 +22,7 @@ import com.bylazar.configurables.annotations.Configurable;
 import android.annotation.SuppressLint;
 import org.firstinspires.ftc.teamcode.team.core.IntakeCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.ShootingCoordinator;
+import org.firstinspires.ftc.teamcode.team.core.TurretCoordinator;
 
 @TeleOp(name = "TeleopFSM", group = "DriverControl")
 @Config
@@ -45,6 +46,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
     private ShotgunPowerLevel shotgunPowerLatch = ShotgunPowerLevel.OFF;
     private IntakeCoordinator intakeCoordinator;
     private ShootingCoordinator shootingCoordinator;
+    private TurretCoordinator turretCoordinator;
 
 
     // Turret fallback tracking
@@ -72,6 +74,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
         turretFSM.center(); // set to center position
         intakeCoordinator = new IntakeCoordinator(intakeFSM, intakeFSM);
         shootingCoordinator = new ShootingCoordinator(shootingFSM, intakeFSM, gateFSM);
+        turretCoordinator = new TurretCoordinator(turretFSM);
 
         // Initialize GoBildaPinpointDriver for odometry position reset
         odo = hardwareMap.get(GoBildaPinpointDriver.class, "odo");
@@ -359,41 +362,15 @@ public class TeleOpFSM extends DarienOpModeFSM {
             robotY = follower.getPose().getY();
             robotHeadingRadians = follower.getPose().getHeading();
 
-            // TURRET CONTROLS
-            // Stick direction is checked first; trigger modulates speed within that direction.
-            if (gamepad2.left_stick_x <= -0.05) {
-                if (gamepad2.left_trigger > 0.25) {
-                    turretFSM.rotateLeftFast();
-                } else {
-                    turretFSM.rotateLeft();
-                }
-                turretFSM.setState(TurretFSM.TurretStates.MANUAL);
-            } else if (gamepad2.left_stick_x >= 0.05) {
-                if (gamepad2.left_trigger > 0.25) {
-                    turretFSM.rotateRightFast();
-                } else {
-                    turretFSM.rotateRight();
-                }
-                turretFSM.setState(TurretFSM.TurretStates.MANUAL);
-            } else if (gamepad2.left_stick_button) {
-                turretFSM.center();
-                turretFSM.setState(TurretFSM.TurretStates.MANUAL);
-            }
-            // Odometry-based turret aiming (when not in manual control)
-            else if (turretFSM.getState() == TurretFSM.TurretStates.ODOMETRY) {
-
-                // Determine target goal based on alliance color
-                double targetGoalX, targetGoalY;
-                if ("RED".equals(autoAlliance)) {
-                    targetGoalX = DarienOpModeFSM.GOAL_RED_X;
-                    targetGoalY = DarienOpModeFSM.GOAL_RED_Y;
-                } else {
-                    targetGoalX = DarienOpModeFSM.GOAL_BLUE_X;
-                    targetGoalY = DarienOpModeFSM.GOAL_BLUE_Y;
-                }
-
-                turretFSM.setPositionFromOdometry(targetGoalX, targetGoalY, robotX, robotY, robotHeadingRadians);
-            }
+            turretCoordinator.applyManualOrOdometryControl(
+                    autoAlliance,
+                    gamepad2.left_stick_x,
+                    gamepad2.left_trigger,
+                    gamepad2.left_stick_button,
+                    robotX,
+                    robotY,
+                    robotHeadingRadians
+            );
 
             //CONTROL: EJECTION MOTORS
             //ODOMETRY BASED SHOOT POWER
