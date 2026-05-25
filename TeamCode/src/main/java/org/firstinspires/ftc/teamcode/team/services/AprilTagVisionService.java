@@ -51,18 +51,18 @@ public class AprilTagVisionService {
     public void initialize() {
         try {
             aprilTagProcessor = new AprilTagProcessor.Builder().build();
+            health = CameraHealth.PORTAL_BUILT;
+            healthDetail = "AprilTag processor built";
+
             visionPortal = new VisionPortal.Builder()
                     .setCamera(opMode.hardwareMap.get(WebcamName.class, "Webcam 1"))
                     .addProcessor(aprilTagProcessor)
                     .build();
-            health = CameraHealth.PORTAL_BUILT;
             healthDetail = "VisionPortal built";
         } catch (Exception e) {
-            health = CameraHealth.BUILD_FAILED;
-            healthDetail = "Build failed: " + e.getMessage();
-            aprilTagProcessor = null;
+            health = (aprilTagProcessor != null) ? CameraHealth.PORTAL_BUILT : CameraHealth.BUILD_FAILED;
+            healthDetail = "Camera unavailable; running odometry fallback only";
             visionPortal = null;
-            return;
         }
 
         aprilTagService = null;
@@ -80,7 +80,8 @@ public class AprilTagVisionService {
 
     public AprilTagService getAprilTagService(double timeoutSeconds) {
         if (aprilTagProcessor == null) {
-            throw new IllegalStateException("AprilTagVisionService.initialize() must be called before getAprilTagService()");
+            aprilTagService = new AprilTagService(null, timeoutSeconds);
+            return aprilTagService;
         }
         if (aprilTagService == null) {
             aprilTagService = new AprilTagService(aprilTagProcessor, timeoutSeconds);
@@ -128,15 +129,18 @@ public class AprilTagVisionService {
     // -------------------------------------------------------------------------
 
     private void applyTunedExposure(int exposureMs, int gain) {
+        if (visionPortal == null) {
+            healthDetail = "Camera unavailable; running odometry fallback only";
+            return;
+        }
+
         boolean ok = setManualExposure(exposureMs, gain);
         if (ok) {
             health = CameraHealth.EXPOSURE_SET;
             healthDetail = String.format("Exposure=%dms Gain=%d", exposureMs, gain);
         } else {
-            health = (health == CameraHealth.PORTAL_BUILT)
-                    ? CameraHealth.EXPOSURE_FAILED
-                    : health;
-            healthDetail = "Exposure apply failed (camera ok? stop requested?)";
+            health = (health == CameraHealth.PORTAL_BUILT) ? CameraHealth.EXPOSURE_FAILED : health;
+            healthDetail = "Camera unavailable or exposure failed; running odometry fallback only";
         }
     }
 
