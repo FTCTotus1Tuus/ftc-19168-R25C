@@ -5,9 +5,11 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.teamcode.team.subsystems.GateControl;
+import org.firstinspires.ftc.teamcode.team.subsystems.SubsystemLifecycle;
 
 @Config
-public class GateFSM {
+public class GateFSM implements SubsystemLifecycle, GateControl {
 
     public enum GateStates {CLOSED, OPEN}
 
@@ -45,6 +47,14 @@ public class GateFSM {
      * @param telemetry   Telemetry object
      */
     public void update(double currentTime, boolean debug, Telemetry telemetry) {
+        if (debug) {
+            telemetry.addData("GATE: LegacyUpdate", gateState);
+        }
+        update(currentTime, telemetry);
+    }
+
+    @Override
+    public void update(double currentTime, Telemetry telemetry) {
         switch (gateState) {
             case CLOSED:
                 close();

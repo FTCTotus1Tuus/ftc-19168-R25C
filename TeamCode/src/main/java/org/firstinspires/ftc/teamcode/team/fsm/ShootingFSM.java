@@ -4,6 +4,10 @@ import com.acmerobotics.dashboard.config.Config;
 import com.bylazar.configurables.annotations.Configurable;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.teamcode.team.subsystems.GateControl;
+import org.firstinspires.ftc.teamcode.team.subsystems.ShooterIntakeControl;
+import org.firstinspires.ftc.teamcode.team.subsystems.ShootingControl;
+import org.firstinspires.ftc.teamcode.team.subsystems.SubsystemLifecycle;
 
 /**
  * ShootingFSM — owns the complete single-artifact shoot sequence.
@@ -31,7 +35,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  */
 @Config
 @Configurable
-public class ShootingFSM {
+public class ShootingFSM implements SubsystemLifecycle, ShootingControl {
 
     // -------------------------------------------------------------------------
     // ENUMS
@@ -64,9 +68,9 @@ public class ShootingFSM {
     // DEPENDENCIES
     // -------------------------------------------------------------------------
 
-    private final GateFSM gateFSM;
+    private final GateControl gateControl;
     private final ShotgunFSM shotgunFSM;
-    private final IntakeFSM intakeFSM;
+    private final ShooterIntakeControl intakeControl;
     private final DarienOpModeFSM parent;
 
     // -------------------------------------------------------------------------
@@ -89,15 +93,15 @@ public class ShootingFSM {
     // -------------------------------------------------------------------------
 
     /**
-     * @param gateFSM    Gate dependency — ShootingFSM calls open() and close()
+     * @param gateControl Gate dependency — ShootingFSM calls open() and close()
      * @param shotgunFSM Ejection motor dependency — ShootingFSM calls toPowerUp/toPowerUpFar/toOff
-     * @param intakeFSM  Intake dependency — ShootingFSM calls shootForward() and stopAfterShot()
+     * @param intakeControl Intake dependency — ShootingFSM calls shootForward() and stopAfterShot()
      * @param parent     Parent OpMode reference for accessing shooting power mode and odometry
      */
-    public ShootingFSM(GateFSM gateFSM, ShotgunFSM shotgunFSM, IntakeFSM intakeFSM, DarienOpModeFSM parent) {
-        this.gateFSM = gateFSM;
+    public ShootingFSM(GateControl gateControl, ShotgunFSM shotgunFSM, ShooterIntakeControl intakeControl, DarienOpModeFSM parent) {
+        this.gateControl = gateControl;
         this.shotgunFSM = shotgunFSM;
-        this.intakeFSM = intakeFSM;
+        this.intakeControl = intakeControl;
         this.parent = parent;
     }
 
@@ -122,6 +126,11 @@ public class ShootingFSM {
         stage = Stage.START_CLOSING_GATE;
     }
 
+    @Override
+    public boolean isIdle() {
+        return stage == Stage.IDLE;
+    }
+
     /**
      * Call every loop after start().
      * Drives: SPINNING_UP → GATE_OPEN → GATE_CLOSE → DONE
@@ -136,10 +145,10 @@ public class ShootingFSM {
 
         switch (stage) {
             case SPINNING_UP:
-                intakeFSM.setLedAmber();
+                intakeControl.setLedAmber();
                 telemetry.addData("SHOOTING", "Spinning up — %.2fs / %.2fs", elapsed, SPINUP_DELAY);
                 if (elapsed >= SPINUP_DELAY) {
-                    gateFSM.open();
+                    gateControl.open();
                     stage = Stage.OPENING_GATE;
                     stageStartTime = currentTime;
                 }
@@ -148,7 +157,7 @@ public class ShootingFSM {
             case OPENING_GATE:
                 telemetry.addData("SHOOTING", "Gate open — %.2fs / %.2fs", elapsed, GATE_OPEN_DELAY);
                 if (elapsed >= GATE_OPEN_DELAY) {
-                    intakeFSM.shootForward(); // run rollers at SHOOT power as gate opens
+                    intakeControl.shootForward(); // run rollers at SHOOT power as gate opens
                     stage = Stage.SHOOTING;
                     stageStartTime = currentTime;
                 }
@@ -159,7 +168,7 @@ public class ShootingFSM {
                 break;
 
             case START_CLOSING_GATE:
-                gateFSM.close();
+                gateControl.close();
                 stage = Stage.CLOSING_GATE;
                 stageStartTime = currentTime;
                 break;
@@ -167,7 +176,7 @@ public class ShootingFSM {
             case CLOSING_GATE:
                 telemetry.addData("SHOOTING", "Gate closing — %.2fs / %.2fs", elapsed, GATE_CLOSE_DELAY);
                 if (elapsed >= GATE_CLOSE_DELAY) {
-                    intakeFSM.stopAfterShot(); // stop rollers, LED red, intake back to IDLE
+                    intakeControl.stopAfterShot(); // stop rollers, LED red, intake back to IDLE
                     stage = Stage.DONE;
                 }
                 break;
@@ -178,7 +187,7 @@ public class ShootingFSM {
 
             case IDLE:
             default:
-                gateFSM.close();
+                gateControl.close();
                 break;
         }
     }
@@ -218,7 +227,7 @@ public class ShootingFSM {
      * Useful when aborting due to timeout.
      */
     public void abort() {
-        gateFSM.close();
+        gateControl.close();
         shotgunFSM.toOff();
         reset();
     }

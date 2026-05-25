@@ -4,8 +4,11 @@ import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.teamcode.team.subsystems.SubsystemLifecycle;
+
 @Config
-public class TurretFSM {
+public class TurretFSM implements SubsystemLifecycle {
 
     public enum TurretStates {MANUAL, CAMERA, ODOMETRY}
 
@@ -342,6 +345,11 @@ public class TurretFSM {
 
     public void update() {
         updateTurretServoLimits();
+    }
+
+    @Override
+    public void update(double currentTime, Telemetry telemetry) {
+        update();
     }
 
 }
