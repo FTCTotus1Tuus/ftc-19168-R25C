@@ -19,6 +19,7 @@ import org.firstinspires.ftc.teamcode.team.auto.StopShotgunStep;
 import org.firstinspires.ftc.teamcode.team.auto.RedGoalSidePaths;
 import org.firstinspires.ftc.teamcode.team.fsm.DarienOpModeFSM;
 import org.firstinspires.ftc.teamcode.team.fsm.ShootingFSM;
+import org.firstinspires.ftc.teamcode.team.fsm.ShotgunFSM;
 
 /**
  * Red Goal Side 1 - Autonomous with AutoPlan framework.
@@ -96,7 +97,11 @@ public class RedGoalSide1 extends DarienOpModeFSM {
             follower.update();
 
             // Keep shotgun PID running during the plan
-            // (ShotgunSpinStep initiates it; update loop maintains it)
+            double targetShotgunRPM = shotgunFSM.getState() == ShotgunFSM.State.POWER_UP_FAR
+                ? DarienOpModeFSM.SHOT_GUN_POWER_UP_FAR_RPM_AUTO
+                : DarienOpModeFSM.SHOT_GUN_POWER_UP_RPM_AUTO;
+            shotgunFSM.toPowerUp(targetShotgunRPM);
+
             double robotX = follower.getPose().getX();
             double robotY = follower.getPose().getY();
             double robotHeadingRadians = follower.getPose().getHeading();

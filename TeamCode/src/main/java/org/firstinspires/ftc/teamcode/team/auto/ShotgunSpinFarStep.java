@@ -11,7 +11,7 @@ public class ShotgunSpinFarStep implements AutoStep {
 
     @Override
     public void init(DarienOpModeFSM opMode) {
-        opMode.shotgunFSM.toPowerUp(DarienOpModeFSM.SHOT_GUN_POWER_UP_FAR_RPM_AUTO);
+        opMode.shotgunFSM.toPowerUpFar(DarienOpModeFSM.SHOT_GUN_POWER_UP_FAR_RPM_AUTO);
     }
 
     @Override

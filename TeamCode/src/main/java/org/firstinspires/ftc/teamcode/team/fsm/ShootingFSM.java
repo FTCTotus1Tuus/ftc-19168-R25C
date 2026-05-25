@@ -240,8 +240,9 @@ public class ShootingFSM implements SubsystemLifecycle, ShootingControl {
         // Determine effective power level (may be overridden by odometry)
         PowerLevel effectivePowerLevel = powerLevel;
 
-        // If in ODOMETRY mode, override power level based on robot Y position
-        if (parent.shootingPowerMode == DarienOpModeFSM.ShootingPowerModes.ODOMETRY) {
+        // In TeleOp ODOMETRY mode, override driver-selected power based on robot Y.
+        // Autonomous steps pass explicit FAR/CLOSE intents and should keep that request.
+        if (!parent.isAutonomousMode() && parent.shootingPowerMode == DarienOpModeFSM.ShootingPowerModes.ODOMETRY) {
             double robotY = parent.getRobotY();
             if (!Double.isNaN(robotY)) {
                 // FAR power if Y <= threshold (closer to audience side), CLOSE otherwise
