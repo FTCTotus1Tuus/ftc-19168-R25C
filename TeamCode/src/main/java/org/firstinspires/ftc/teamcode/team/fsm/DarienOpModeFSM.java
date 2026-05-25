@@ -12,11 +12,13 @@ import com.pedropathing.follower.Follower;
 
 import org.firstinspires.ftc.teamcode.team.core.RobotContainer;
 import org.firstinspires.ftc.teamcode.team.MotorHelper;
+import org.firstinspires.ftc.teamcode.team.services.AprilTagService;
 import org.firstinspires.ftc.teamcode.team.services.AprilTagVisionService;
+import org.firstinspires.ftc.teamcode.team.services.LocalizationService;
 import org.firstinspires.ftc.teamcode.team.services.PreferencesService;
-import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
+import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.ArrayList;
 
@@ -30,7 +32,6 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
 
     // Pedro pathing/state machine FSMs (declare as needed)
     // public PathFollowerFSM pathFollowerFSM;
-    public AprilTagDetectionFSM tagFSM;
     public ShootPatternFSM shootPatternFSM;
     public ShootArtifactFSM shootArtifactFSM;
     public ShotgunFSM shotgunFSM;
@@ -141,7 +142,9 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
 
     public int targetGoalId = 0;
     protected RobotContainer robotContainer;
+    protected AprilTagService aprilTagService;
     protected AprilTagVisionService visionService;
+    protected LocalizationService localizationService;
     protected PreferencesService preferencesService;
 
     public enum ShotgunPowerLevel {
@@ -174,13 +177,14 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
         }
         robotContainer.initialize();
         visionService = robotContainer.getVisionService();
+        aprilTagService = robotContainer.getAprilTagService();
+        localizationService = robotContainer.getLocalizationService();
         preferencesService = robotContainer.getPreferencesService();
 
         ejectionMotor = robotContainer.getHardware().ejectionMotor;
         aprilTag = robotContainer.getAprilTag();
         visionPortal = robotContainer.getVisionPortal();
         MotorHelper = robotContainer.getMotorHelper();
-        tagFSM = robotContainer.getTagFSM();
         shootArtifactFSM = robotContainer.getShootArtifactFSM();
         shootPatternFSM = robotContainer.getShootPatternFSM();
         shotgunFSM = robotContainer.getShotgunFSM();
@@ -195,7 +199,25 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
 
 
         telemetry.addLine("FTC 19168 Robot Initialization Done!");
+
+        // Camera validation telemetry — shows whether portal built and exposure applied
+        if (visionService != null) {
+            telemetry.addData("Camera Health", visionService.getHealth().toString());
+            telemetry.addData("Camera Detail", visionService.getHealthDetail());
+        }
+
         telemetry.update();
+    }
+
+    /**
+     * Cleanly tears down the camera portal and any other resources.
+     * Call at the end of runOpMode() (after the main loop) so the camera is
+     * properly closed before the next OpMode starts.
+     */
+    public void stopRobot() {
+        if (robotContainer != null) {
+            robotContainer.close();
+        }
     }
 
     /**

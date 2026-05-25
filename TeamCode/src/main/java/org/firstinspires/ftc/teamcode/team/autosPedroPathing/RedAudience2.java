@@ -116,6 +116,8 @@ public class RedAudience2 extends DarienOpModeFSM {
             displayRpmTelemetry();
             panelsTelemetry.update(telemetry);
         }
+
+        stopRobot();
     }
 
 

@@ -13,6 +13,7 @@ public class RobotServices {
     private final DarienOpModeFSM opMode;
     private final AprilTagVisionService visionService;
     private PreferencesService preferencesService;
+    private LocalizationService localizationService;
 
     private Follower follower;
 
@@ -22,9 +23,10 @@ public class RobotServices {
     }
 
     public void initialize() {
-        visionService.initializeAprilTagProcessor();
+        visionService.initialize();
         preferencesService = new PreferencesService(opMode.hardwareMap.appContext);
         follower = Constants.createFollower(opMode.hardwareMap);
+        localizationService = new LocalizationService(opMode.hardwareMap, follower);
     }
 
     public Follower getFollower() {
@@ -37,6 +39,15 @@ public class RobotServices {
 
     public PreferencesService getPreferencesService() {
         return preferencesService;
+    }
+
+    public LocalizationService getLocalizationService() {
+        return localizationService;
+    }
+
+    /** Tears down camera portal. Call from OpMode stop. */
+    public void close() {
+        visionService.close();
     }
 }
 

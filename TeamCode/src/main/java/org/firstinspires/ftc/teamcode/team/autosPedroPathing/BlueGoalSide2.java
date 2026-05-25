@@ -120,6 +120,8 @@ public class BlueGoalSide2 extends DarienOpModeFSM {
             displayRpmTelemetry();
             panelsTelemetry.update(telemetry);
         }
+
+        stopRobot();
     }
 
 

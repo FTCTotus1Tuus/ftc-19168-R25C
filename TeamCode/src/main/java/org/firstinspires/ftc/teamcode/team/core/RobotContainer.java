@@ -3,7 +3,6 @@ package org.firstinspires.ftc.teamcode.team.core;
 import com.pedropathing.follower.Follower;
 
 import org.firstinspires.ftc.teamcode.team.MotorHelper;
-import org.firstinspires.ftc.teamcode.team.fsm.AprilTagDetectionFSM;
 import org.firstinspires.ftc.teamcode.team.fsm.DarienOpModeFSM;
 import org.firstinspires.ftc.teamcode.team.fsm.GateFSM;
 import org.firstinspires.ftc.teamcode.team.fsm.IntakeFSM;
@@ -14,6 +13,8 @@ import org.firstinspires.ftc.teamcode.team.fsm.ShotgunFSM;
 import org.firstinspires.ftc.teamcode.team.fsm.TurretFSM;
 import org.firstinspires.ftc.teamcode.team.hardware.RobotHardware;
 import org.firstinspires.ftc.teamcode.team.services.AprilTagVisionService;
+import org.firstinspires.ftc.teamcode.team.services.AprilTagService;
+import org.firstinspires.ftc.teamcode.team.services.LocalizationService;
 import org.firstinspires.ftc.teamcode.team.services.PreferencesService;
 import org.firstinspires.ftc.teamcode.team.services.RobotServices;
 import org.firstinspires.ftc.vision.VisionPortal;
@@ -29,8 +30,7 @@ public class RobotContainer {
     private final RobotServices services;
 
     private MotorHelper motorHelper;
-
-    private AprilTagDetectionFSM tagFSM;
+    private AprilTagService aprilTagService;
     private ShootPatternFSM shootPatternFSM;
     private ShootArtifactFSM shootArtifactFSM;
     private ShotgunFSM shotgunFSM;
@@ -48,10 +48,9 @@ public class RobotContainer {
     public void initialize() {
         hardware.initialize(opMode.hardwareMap);
         services.initialize();
+        aprilTagService = services.getVisionService().getAprilTagService(DarienOpModeFSM.TIMEOUT_APRILTAG_DETECTION);
 
         motorHelper = new MotorHelper(opMode.telemetry, DarienOpModeFSM.TICKS_PER_ROTATION);
-
-        tagFSM = new AprilTagDetectionFSM(services.getVisionService().getAprilTagProcessor(), DarienOpModeFSM.TIMEOUT_APRILTAG_DETECTION);
         shootArtifactFSM = new ShootArtifactFSM(opMode);
         shootPatternFSM = new ShootPatternFSM(opMode);
         shotgunFSM = new ShotgunFSM(
@@ -94,6 +93,10 @@ public class RobotContainer {
         return services.getVisionService().getVisionPortal();
     }
 
+    public AprilTagService getAprilTagService() {
+        return aprilTagService;
+    }
+
     public AprilTagVisionService getVisionService() {
         return services.getVisionService();
     }
@@ -102,9 +105,10 @@ public class RobotContainer {
         return services.getPreferencesService();
     }
 
-    public AprilTagDetectionFSM getTagFSM() {
-        return tagFSM;
+    public LocalizationService getLocalizationService() {
+        return services.getLocalizationService();
     }
+
 
     public ShootPatternFSM getShootPatternFSM() {
         return shootPatternFSM;
@@ -132,6 +136,11 @@ public class RobotContainer {
 
     public ShootingFSM getShootingFSM() {
         return shootingFSM;
+    }
+
+    /** Tears down camera portal. Call in OpMode stop or when camera is no longer needed. */
+    public void close() {
+        services.close();
     }
 }
 

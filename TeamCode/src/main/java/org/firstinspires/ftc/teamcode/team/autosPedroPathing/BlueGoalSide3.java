@@ -109,6 +109,8 @@ public class BlueGoalSide3 extends DarienOpModeFSM {
             addTraceTelemetry("Auto-BlueGoalSide3", Integer.toString(pathState), pathTimer.getElapsedTimeSeconds());
             panelsTelemetry.update(telemetry);
         }
+
+        stopRobot();
     }
 
     /**

@@ -13,7 +13,9 @@ import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import org.firstinspires.ftc.teamcode.team.fsm.DarienOpModeFSM;
+import org.firstinspires.ftc.teamcode.team.services.AprilTagService;
 
+import java.util.ArrayList;
 
 @Autonomous(name = "Red Audience 12", group = "Pedro:Reds", preselectTeleOp = "TeleopFSM")
 @Disabled
@@ -24,6 +26,7 @@ public class RedAudience3 extends DarienOpModeFSM {
     private int pathState;                      // State machine state
     private Paths paths;                        // Paths
     private Timer pathTimer;
+    private boolean aprilTagReading = false;
 
     public static double PATH_POWER_STANDARD = 1;
     public static double PATH_POWER_SLOW = 0.25;
@@ -88,6 +91,8 @@ public class RedAudience3 extends DarienOpModeFSM {
             addTraceTelemetry("Auto-RedAudience3", Integer.toString(pathState), pathTimer.getElapsedTimeSeconds());
             panelsTelemetry.update(telemetry);
         }
+
+        stopRobot();
     }
 
 
@@ -245,7 +250,10 @@ public class RedAudience3 extends DarienOpModeFSM {
                 //start reading april tags
                 telemetry.addLine("Case " + pathState + ": Wait for Camera");
 
-                tagFSM.start(getRuntime());
+                if (!aprilTagReading) {
+                    aprilTagService.start(getRuntime());
+                    aprilTagReading = true;
+                }
                 follower.setMaxPower(PATH_POWER_STANDARD * .75); //normal speed
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
 
@@ -259,12 +267,14 @@ public class RedAudience3 extends DarienOpModeFSM {
                 //once april tags done reading, move to shooting position 1
                 telemetry.addLine("Case " + pathState + ":");
 
-                tagFSM.update(getRuntime(), true, telemetry);
+                AprilTagService.Snapshot snapshot = aprilTagService.poll(getRuntime());
+                telemetry.addData("AprilTag", "status=%s count=%d", snapshot.getStatus(), snapshot.getDetections().size());
                 follower.setMaxPower(PATH_POWER_STANDARD); //normal speed
 
-                if ((tagFSM.isDone()) || pathTimer.getElapsedTimeSeconds() > TIMEOUT_APRILTAG_DETECTION) {
-                    aprilTagDetections = tagFSM.getDetections();
-                    aprilTagDetections.removeIf(tag -> tag.id == 20 || tag.id == 24);
+                if (snapshot.isDone() || pathTimer.getElapsedTimeSeconds() > TIMEOUT_APRILTAG_DETECTION) {
+                    aprilTagReading = false;
+                    aprilTagDetections = new ArrayList<>(snapshot.getDetections());
+                    aprilTagDetections.removeIf(tag -> tag.id == APRILTAG_ID_GOAL_BLUE || tag.id == APRILTAG_ID_GOAL_RED);
                     follower.followPath(paths.ShootingPosition);
 
                     setPathState(pathState + 1);
