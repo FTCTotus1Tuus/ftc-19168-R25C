@@ -1,40 +1,40 @@
 package org.firstinspires.ftc.teamcode.team.fsm;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.teamcode.team.services.AprilTagService;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.ArrayList;
 
 public class AprilTagDetectionFSM {
-    private final AprilTagProcessor aprilTag;
-    private final double timeoutSeconds;
-    private boolean reading = false;
-    private double startTime = 0;
+    private final AprilTagService aprilTagService;
     private ArrayList<AprilTagDetection> detections = null;
 
     public AprilTagDetectionFSM(AprilTagProcessor aprilTag, double timeoutSeconds) {
-        this.aprilTag = aprilTag;
-        this.timeoutSeconds = timeoutSeconds;
+        this(new AprilTagService(aprilTag, timeoutSeconds));
+    }
+
+    public AprilTagDetectionFSM(AprilTagService aprilTagService) {
+        this.aprilTagService = aprilTagService;
     }
 
     public void start(double currentTime) {
-        reading = true;
-        startTime = currentTime;
+        aprilTagService.start(currentTime);
         detections = null;
     }
 
     public boolean update(double currentTime, boolean debug, Telemetry telemetry) {
-        if (!reading) return false;
-        ArrayList<AprilTagDetection> currentDetections = aprilTag.getDetections();
-        double elapsed = currentTime - startTime;
-        if (!currentDetections.isEmpty() || elapsed >= timeoutSeconds) {
-            // Create a defensive copy to prevent ConcurrentModificationException
-            detections = new ArrayList<>(currentDetections);
-            if (debug) {
+        if (!aprilTagService.isReading()) {
+            return false;
+        }
+
+        AprilTagService.Snapshot snapshot = aprilTagService.poll(currentTime);
+        if (snapshot.isDone()) {
+            detections = new ArrayList<>(snapshot.getDetections());
+            if (debug && telemetry != null) {
                 telemetryAprilTag(telemetry);
             }
-            reading = false;
             return true;
         }
         return false;
@@ -45,7 +45,7 @@ public class AprilTagDetectionFSM {
     }
 
     public boolean isDone() {
-        return !reading;
+        return !aprilTagService.isReading();
     }
 
     protected void telemetryAprilTag(Telemetry telemetry) {

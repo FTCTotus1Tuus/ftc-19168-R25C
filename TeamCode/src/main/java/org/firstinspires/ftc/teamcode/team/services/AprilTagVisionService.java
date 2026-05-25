@@ -15,6 +15,7 @@ public class AprilTagVisionService {
 
     private final DarienOpModeFSM opMode;
     private AprilTagProcessor aprilTagProcessor;
+    private AprilTagService aprilTagService;
     private VisionPortal visionPortal;
 
     public AprilTagVisionService(DarienOpModeFSM opMode) {
@@ -23,7 +24,17 @@ public class AprilTagVisionService {
 
     public void initializeAprilTagProcessor() {
         aprilTagProcessor = AprilTagProcessor.easyCreateWithDefaults();
+        aprilTagService = null;
         visionPortal = null;
+    }
+
+    public AprilTagService getAprilTagService(double timeoutSeconds) {
+        if (aprilTagService == null) {
+            aprilTagService = new AprilTagService(aprilTagProcessor, timeoutSeconds);
+        } else {
+            aprilTagService.setTimeoutSeconds(timeoutSeconds);
+        }
+        return aprilTagService;
     }
 
     public AprilTagProcessor getAprilTagProcessor() {

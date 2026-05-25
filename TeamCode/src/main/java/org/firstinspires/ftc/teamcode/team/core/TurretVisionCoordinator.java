@@ -1,11 +1,12 @@
 package org.firstinspires.ftc.teamcode.team.core;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.team.fsm.AprilTagDetectionFSM;
+import org.firstinspires.ftc.teamcode.team.fsm.DarienOpModeFSM;
 import org.firstinspires.ftc.teamcode.team.fsm.TurretFSM;
+import org.firstinspires.ftc.teamcode.team.services.AprilTagService;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 
-import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Coordinates alliance target selection and camera-driven turret alignment.
@@ -22,24 +23,29 @@ public class TurretVisionCoordinator {
         }
     }
 
-    private final AprilTagDetectionFSM tagFSM;
+    private final AprilTagService aprilTagService;
     private final TurretFSM turretFSM;
     private final int aprilTagIdGoalBlue;
     private final int aprilTagIdGoalRed;
+    private final double cameraFallbackTimeoutMs;
 
     private boolean isReadingAprilTag = false;
+    private boolean fallbackToOdometryActive = false;
+    private double lastCameraLockTimeSec = Double.NaN;
     private int targetGoalTagId;
 
     public TurretVisionCoordinator(
-            AprilTagDetectionFSM tagFSM,
+            AprilTagService aprilTagService,
             TurretFSM turretFSM,
             int aprilTagIdGoalBlue,
-            int aprilTagIdGoalRed
+            int aprilTagIdGoalRed,
+            double cameraFallbackTimeoutMs
     ) {
-        this.tagFSM = tagFSM;
+        this.aprilTagService = aprilTagService;
         this.turretFSM = turretFSM;
         this.aprilTagIdGoalBlue = aprilTagIdGoalBlue;
         this.aprilTagIdGoalRed = aprilTagIdGoalRed;
+        this.cameraFallbackTimeoutMs = cameraFallbackTimeoutMs;
         this.targetGoalTagId = aprilTagIdGoalRed;
     }
 
@@ -79,51 +85,87 @@ public class TurretVisionCoordinator {
     }
 
     public void startReadingGoalId(double currentTime) {
-        tagFSM.start(currentTime);
+        aprilTagService.start(currentTime);
         isReadingAprilTag = true;
     }
 
-    public void updateCameraControl(double currentTime, Telemetry telemetry) {
+    public void updateCameraControl(
+            double currentTime,
+            String autoAlliance,
+            double robotX,
+            double robotY,
+            double robotHeadingRadians,
+            Telemetry telemetry
+    ) {
         if (turretFSM.getState() != TurretFSM.TurretStates.CAMERA) {
+            if (aprilTagService.isReading()) {
+                aprilTagService.stop(currentTime);
+            }
+            isReadingAprilTag = false;
+            fallbackToOdometryActive = false;
             return;
         }
 
         if (!isReadingAprilTag) {
             startReadingGoalId(currentTime);
-            return;
         }
 
-        tagFSM.update(currentTime, true, telemetry);
-        telemetry.addLine("Goal Detection: Reading...");
+        AprilTagService.Snapshot snapshot = aprilTagService.poll(currentTime);
+        telemetry.addData("Goal Detection", "status=%s size=%d", snapshot.getStatus(), snapshot.getDetections().size());
 
-        if (tagFSM.isDone()) {
-            telemetry.addLine("Goal Detection: DONE reading!");
+        if (snapshot.isDone()) {
             isReadingAprilTag = false;
 
-            ArrayList<AprilTagDetection> detections = tagFSM.getDetections();
-            if (detections == null) {
-                return;
-            }
-
-            if (targetGoalTagId == aprilTagIdGoalRed) {
-                detections.removeIf(tag -> tag.id == aprilTagIdGoalBlue || tag.id == 21 || tag.id == 22 || tag.id == 23);
-                turretFSM.setOffsetRed();
-            } else if (targetGoalTagId == aprilTagIdGoalBlue) {
-                detections.removeIf(tag -> tag.id == aprilTagIdGoalRed || tag.id == 21 || tag.id == 22 || tag.id == 23);
-                turretFSM.setOffsetBlue();
-            }
-
-            if (!detections.isEmpty()) {
-                telemetry.addLine("Goal Detection: FOUND APRILTAG!");
-                AprilTagDetection detection = detections.get(0);
-                if (detection.id == targetGoalTagId && detection.ftcPose != null) {
-                    telemetry.addLine("Goal Detection: ALIGNING TURRET TO GOAL " + targetGoalTagId);
-                    turretFSM.alignToBearing(detection.ftcPose.bearing);
-                } else if (detection.ftcPose == null) {
-                    telemetry.addLine("Goal Detection: WARNING - Pose estimation failed!");
-                }
+            AprilTagDetection targetDetection = findTargetDetection(snapshot.getDetections());
+            if (targetDetection != null && targetDetection.ftcPose != null) {
+                turretFSM.alignToBearing(targetDetection.ftcPose.bearing);
+                lastCameraLockTimeSec = currentTime;
+                fallbackToOdometryActive = false;
+                telemetry.addData("Goal Detection", "camera lock on tag %d", targetDetection.id);
+            } else {
+                telemetry.addLine("Goal Detection: no valid target tag pose");
             }
         }
+
+        double cameraAgeMs = Double.isNaN(lastCameraLockTimeSec)
+                ? Double.POSITIVE_INFINITY
+                : (currentTime - lastCameraLockTimeSec) * 1000.0;
+
+        if (cameraAgeMs > cameraFallbackTimeoutMs) {
+            fallbackToOdometryActive = true;
+            applyOdometryFallback(autoAlliance, robotX, robotY, robotHeadingRadians);
+            telemetry.addData("Turret Camera Fallback", "ODOMETRY (stale %.0fms)", cameraAgeMs);
+        } else {
+            telemetry.addData("Turret Camera Fallback", "CAMERA (fresh %.0fms)", cameraAgeMs);
+        }
+    }
+
+    private AprilTagDetection findTargetDetection(List<AprilTagDetection> detections) {
+        if (detections == null || detections.isEmpty()) {
+            return null;
+        }
+
+        for (AprilTagDetection detection : detections) {
+            if (detection.id == targetGoalTagId) {
+                return detection;
+            }
+        }
+
+        return null;
+    }
+
+    private void applyOdometryFallback(String autoAlliance, double robotX, double robotY, double robotHeadingRadians) {
+        if ("RED".equals(autoAlliance)) {
+            turretFSM.setOffsetRed();
+            turretFSM.setPositionFromOdometry(DarienOpModeFSM.GOAL_RED_X, DarienOpModeFSM.GOAL_RED_Y, robotX, robotY, robotHeadingRadians);
+        } else {
+            turretFSM.setOffsetBlue();
+            turretFSM.setPositionFromOdometry(DarienOpModeFSM.GOAL_BLUE_X, DarienOpModeFSM.GOAL_BLUE_Y, robotX, robotY, robotHeadingRadians);
+        }
+    }
+
+    public boolean isFallbackToOdometryActive() {
+        return fallbackToOdometryActive;
     }
 
     public int getTargetGoalTagId() {

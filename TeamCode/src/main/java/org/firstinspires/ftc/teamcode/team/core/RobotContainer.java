@@ -14,6 +14,8 @@ import org.firstinspires.ftc.teamcode.team.fsm.ShotgunFSM;
 import org.firstinspires.ftc.teamcode.team.fsm.TurretFSM;
 import org.firstinspires.ftc.teamcode.team.hardware.RobotHardware;
 import org.firstinspires.ftc.teamcode.team.services.AprilTagVisionService;
+import org.firstinspires.ftc.teamcode.team.services.AprilTagService;
+import org.firstinspires.ftc.teamcode.team.services.LocalizationService;
 import org.firstinspires.ftc.teamcode.team.services.PreferencesService;
 import org.firstinspires.ftc.teamcode.team.services.RobotServices;
 import org.firstinspires.ftc.vision.VisionPortal;
@@ -29,6 +31,7 @@ public class RobotContainer {
     private final RobotServices services;
 
     private MotorHelper motorHelper;
+    private AprilTagService aprilTagService;
 
     private AprilTagDetectionFSM tagFSM;
     private ShootPatternFSM shootPatternFSM;
@@ -48,10 +51,11 @@ public class RobotContainer {
     public void initialize() {
         hardware.initialize(opMode.hardwareMap);
         services.initialize();
+        aprilTagService = services.getVisionService().getAprilTagService(DarienOpModeFSM.TIMEOUT_APRILTAG_DETECTION);
 
         motorHelper = new MotorHelper(opMode.telemetry, DarienOpModeFSM.TICKS_PER_ROTATION);
 
-        tagFSM = new AprilTagDetectionFSM(services.getVisionService().getAprilTagProcessor(), DarienOpModeFSM.TIMEOUT_APRILTAG_DETECTION);
+        tagFSM = new AprilTagDetectionFSM(aprilTagService);
         shootArtifactFSM = new ShootArtifactFSM(opMode);
         shootPatternFSM = new ShootPatternFSM(opMode);
         shotgunFSM = new ShotgunFSM(
@@ -94,12 +98,20 @@ public class RobotContainer {
         return services.getVisionService().getVisionPortal();
     }
 
+    public AprilTagService getAprilTagService() {
+        return aprilTagService;
+    }
+
     public AprilTagVisionService getVisionService() {
         return services.getVisionService();
     }
 
     public PreferencesService getPreferencesService() {
         return services.getPreferencesService();
+    }
+
+    public LocalizationService getLocalizationService() {
+        return services.getLocalizationService();
     }
 
     public AprilTagDetectionFSM getTagFSM() {

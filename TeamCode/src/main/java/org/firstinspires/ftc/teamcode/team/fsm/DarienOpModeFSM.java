@@ -12,7 +12,9 @@ import com.pedropathing.follower.Follower;
 
 import org.firstinspires.ftc.teamcode.team.core.RobotContainer;
 import org.firstinspires.ftc.teamcode.team.MotorHelper;
+import org.firstinspires.ftc.teamcode.team.services.AprilTagService;
 import org.firstinspires.ftc.teamcode.team.services.AprilTagVisionService;
+import org.firstinspires.ftc.teamcode.team.services.LocalizationService;
 import org.firstinspires.ftc.teamcode.team.services.PreferencesService;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 import org.firstinspires.ftc.vision.VisionPortal;
@@ -141,7 +143,9 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
 
     public int targetGoalId = 0;
     protected RobotContainer robotContainer;
+    protected AprilTagService aprilTagService;
     protected AprilTagVisionService visionService;
+    protected LocalizationService localizationService;
     protected PreferencesService preferencesService;
 
     public enum ShotgunPowerLevel {
@@ -174,6 +178,8 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
         }
         robotContainer.initialize();
         visionService = robotContainer.getVisionService();
+        aprilTagService = robotContainer.getAprilTagService();
+        localizationService = robotContainer.getLocalizationService();
         preferencesService = robotContainer.getPreferencesService();
 
         ejectionMotor = robotContainer.getHardware().ejectionMotor;

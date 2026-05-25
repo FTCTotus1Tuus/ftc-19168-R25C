@@ -3,14 +3,6 @@ package org.firstinspires.ftc.teamcode.team.fsm;
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
-import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
-
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
-
-import com.pedropathing.geometry.Pose;
-
-import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import com.bylazar.configurables.annotations.Configurable;
@@ -26,6 +18,7 @@ import org.firstinspires.ftc.teamcode.team.core.TeleOpTelemetryCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TurretCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TurretModeCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TurretVisionCoordinator;
+import org.firstinspires.ftc.teamcode.team.services.LocalizationService;
 
 @TeleOp(name = "TeleopFSM", group = "DriverControl")
 @Config
@@ -34,8 +27,6 @@ public class TeleOpFSM extends DarienOpModeFSM {
 
     // INSTANCES
     // follower is inherited from DarienOpModeFSM
-    private GoBildaPinpointDriver odo;          // Pinpoint odometry driver for position reset
-
     // TUNING CONSTANTS
     public static double ROTATION_SCALE = 0.5;
     public static double SPEED_SCALE = 1.0;
@@ -79,10 +70,13 @@ public class TeleOpFSM extends DarienOpModeFSM {
         telemetryCoordinator = new TeleOpTelemetryCoordinator();
         turretCoordinator = new TurretCoordinator(turretFSM);
         turretModeCoordinator = new TurretModeCoordinator(turretFSM);
-        turretVisionCoordinator = new TurretVisionCoordinator(tagFSM, turretFSM, APRILTAG_ID_GOAL_BLUE, APRILTAG_ID_GOAL_RED);
-
-        // Initialize GoBildaPinpointDriver for odometry position reset
-        odo = hardwareMap.get(GoBildaPinpointDriver.class, "odo");
+        turretVisionCoordinator = new TurretVisionCoordinator(
+                aprilTagService,
+                turretFSM,
+                APRILTAG_ID_GOAL_BLUE,
+                APRILTAG_ID_GOAL_RED,
+                CAMERA_FALLBACK_TIMEOUT_MS
+        );
     }
 
 
@@ -98,54 +92,25 @@ public class TeleOpFSM extends DarienOpModeFSM {
         // Set align color based on saved color from auto
         turretVisionCoordinator.setAlliance(autoAlliance);
 
-        // Load saved odometry position from auto (if available)
-        boolean hasAutoPosition = preferencesService.hasAutoFinalPose();
-        if (hasAutoPosition) {
-            double autoX = preferencesService.getAutoFinalX(0f);
-            double autoY = preferencesService.getAutoFinalY(0f);
-            double autoHeadingRad = preferencesService.getAutoFinalHeading(0f);
+        LocalizationService.SeedResult seedResult = localizationService.seedTeleOpPose(
+                autoAlliance,
+                preferencesService,
+                HUMAN_PLAYER_RED_X,
+                HUMAN_PLAYER_RED_Y,
+                HUMAN_PLAYER_BLUE_X,
+                HUMAN_PLAYER_BLUE_Y,
+                ROBOT_CENTER_OFFSET_X,
+                ROBOT_CENTER_OFFSET_Y
+        );
 
-            // Set odometry position from auto
-            odo.setPosition(new Pose2D(
-                    DistanceUnit.INCH,
-                    autoX,
-                    autoY,
-                    AngleUnit.RADIANS,
-                    autoHeadingRad
-            ));
-
-            // Update follower pose to match
-            follower.setPose(new Pose(autoX, autoY, autoHeadingRad));
-
+        if (seedResult.loadedFromAuto) {
             telemetry.addLine("=== ODOMETRY LOADED FROM AUTO ===");
             telemetry.addData("Loaded Position", String.format("X=%.1f, Y=%.1f, H=%.1f°",
-                                                               autoX, autoY, Math.toDegrees(autoHeadingRad)));
+                                                               seedResult.x, seedResult.y, Math.toDegrees(seedResult.headingRad)));
         } else {
-            // No auto position saved - default to human player position based on alliance
-            double resetX = 0, resetY = 0, resetHdeg = 0;
-            if ("RED".equals(autoAlliance)) {
-                resetX = HUMAN_PLAYER_RED_X + ROBOT_CENTER_OFFSET_X;
-                resetY = HUMAN_PLAYER_RED_Y + ROBOT_CENTER_OFFSET_Y;
-                resetHdeg = 180; // Front-first into red corner
-            } else if ("BLUE".equals(autoAlliance)) {
-                resetX = HUMAN_PLAYER_BLUE_X - ROBOT_CENTER_OFFSET_X;
-                resetY = HUMAN_PLAYER_BLUE_Y + ROBOT_CENTER_OFFSET_Y;
-                resetHdeg = 0; // Front-first into blue corner
-            }
-
-            odo.setPosition(new Pose2D(
-                    DistanceUnit.INCH,
-                    resetX,
-                    resetY,
-                    AngleUnit.DEGREES,
-                    resetHdeg
-            ));
-
-            follower.setPose(new Pose(resetX, resetY, Math.toRadians(resetHdeg)));
-
             telemetry.addLine("=== NO AUTO DATA - DEFAULT POSITION ===");
             telemetry.addData("Default Position", String.format("X=%.1f, Y=%.1f, H=%.1f°",
-                                                                resetX, resetY, resetHdeg));
+                                                                seedResult.x, seedResult.y, Math.toDegrees(seedResult.headingRad)));
         }
 
         waitForStart();
@@ -202,8 +167,20 @@ public class TeleOpFSM extends DarienOpModeFSM {
             // SHOOTING FSM UPDATE — drives spin-up → gate open → gate close → done
             shootingCoordinator.updateActiveSequence(getRuntime(), telemetry);
 
-            // CAMERA-BASED TURRET CONTROL
-            turretVisionCoordinator.updateCameraControl(getRuntime(), telemetry);
+            // Snapshot pose once per loop so all coordinators/telemetry use the same frame.
+            double robotX = follower.getPose().getX();
+            double robotY = follower.getPose().getY();
+            double robotHeadingRadians = follower.getPose().getHeading();
+
+            // Camera control runs before manual/odometry controls so driver manual intent can still override.
+            turretVisionCoordinator.updateCameraControl(
+                    getRuntime(),
+                    autoAlliance,
+                    robotX,
+                    robotY,
+                    robotHeadingRadians,
+                    telemetry
+            );
 
             // -----------------
             // GAMEPAD1 CONTROLS
@@ -259,8 +236,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
                     HUMAN_PLAYER_BLUE_Y,
                     ROBOT_CENTER_OFFSET_X,
                     ROBOT_CENTER_OFFSET_Y,
-                    odo,
-                    follower,
+                    localizationService,
                     telemetry
             );
 
@@ -287,12 +263,6 @@ public class TeleOpFSM extends DarienOpModeFSM {
                 turretVisionCoordinator.startReadingGoalId(getRuntime());
             }
 
-
-
-            // Snapshot pose once per loop so all coordinators/telemetry use the same frame.
-            double robotX = follower.getPose().getX();
-            double robotY = follower.getPose().getY();
-            double robotHeadingRadians = follower.getPose().getHeading();
 
             // Turret coordinator resolves manual stick intent first, then odometry aiming fallback.
             turretCoordinator.applyManualOrOdometryControl(

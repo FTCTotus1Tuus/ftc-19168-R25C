@@ -13,6 +13,7 @@ public class RobotServices {
     private final DarienOpModeFSM opMode;
     private final AprilTagVisionService visionService;
     private PreferencesService preferencesService;
+    private LocalizationService localizationService;
 
     private Follower follower;
 
@@ -25,6 +26,7 @@ public class RobotServices {
         visionService.initializeAprilTagProcessor();
         preferencesService = new PreferencesService(opMode.hardwareMap.appContext);
         follower = Constants.createFollower(opMode.hardwareMap);
+        localizationService = new LocalizationService(opMode.hardwareMap, follower);
     }
 
     public Follower getFollower() {
@@ -37,6 +39,10 @@ public class RobotServices {
 
     public PreferencesService getPreferencesService() {
         return preferencesService;
+    }
+
+    public LocalizationService getLocalizationService() {
+        return localizationService;
     }
 }
 
