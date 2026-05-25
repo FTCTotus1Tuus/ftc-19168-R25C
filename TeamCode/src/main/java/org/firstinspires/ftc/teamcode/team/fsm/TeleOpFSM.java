@@ -19,6 +19,7 @@ import com.bylazar.configurables.annotations.Configurable;
 
 import android.annotation.SuppressLint;
 import org.firstinspires.ftc.teamcode.team.core.IntakeCoordinator;
+import org.firstinspires.ftc.teamcode.team.core.ShooterPowerCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.ShootingCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TurretCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TurretModeCoordinator;
@@ -41,10 +42,9 @@ public class TeleOpFSM extends DarienOpModeFSM {
     public static double SHOOT_POWER_SELECT_STICK_THRESHOLD = 0.05;
 
     // VARIABLES
-    private boolean isReadingAprilTag = false;
-
     private ShotgunPowerLevel shotgunPowerLatch = ShotgunPowerLevel.OFF;
     private IntakeCoordinator intakeCoordinator;
+    private ShooterPowerCoordinator shooterPowerCoordinator;
     private ShootingCoordinator shootingCoordinator;
     private TurretCoordinator turretCoordinator;
     private TurretModeCoordinator turretModeCoordinator;
@@ -67,6 +67,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
         gateFSM.close();
         turretFSM.center(); // set to center position
         intakeCoordinator = new IntakeCoordinator(intakeFSM, intakeFSM);
+        shooterPowerCoordinator = new ShooterPowerCoordinator();
         shootingCoordinator = new ShootingCoordinator(shootingFSM, intakeFSM, gateFSM);
         turretCoordinator = new TurretCoordinator(turretFSM);
         turretModeCoordinator = new TurretModeCoordinator(turretFSM);
@@ -351,43 +352,26 @@ public class TeleOpFSM extends DarienOpModeFSM {
                     robotHeadingRadians
             );
 
-            //CONTROL: EJECTION MOTORS
-            //ODOMETRY BASED SHOOT POWER
-            if (shootingPowerMode == ShootingPowerModes.ODOMETRY) {
-                // Automatic power selection based on robot Y position
-                if (robotY <= SHOOTING_POWER_ODOMETRY_Y_THRESHOLD) {
-                    shotgunPowerLatch = ShotgunPowerLevel.HIGH;
-                } else {
-                    shotgunPowerLatch = ShotgunPowerLevel.LOW;
-                }
-            }
+            ShooterPowerCoordinator.PowerState powerState = shooterPowerCoordinator.computePowerState(
+                    shootingPowerMode,
+                    shotgunPowerLatch,
+                    robotY,
+                    SHOOTING_POWER_ODOMETRY_Y_THRESHOLD,
+                    gamepad2.right_stick_y,
+                    SHOOT_POWER_SELECT_STICK_THRESHOLD,
+                    gamepad2.rightStickButtonWasPressed(),
+                    gamepad2.a
+            );
+            shootingPowerMode = powerState.mode;
+            shotgunPowerLatch = powerState.latch;
 
-            //Latch control - manual override switches back to MANUAL mode
-            if (gamepad2.right_stick_y < -SHOOT_POWER_SELECT_STICK_THRESHOLD) {
-                shotgunPowerLatch = ShotgunPowerLevel.HIGH;
-                shootingPowerMode = ShootingPowerModes.MANUAL;
-            } else if (gamepad2.right_stick_y > SHOOT_POWER_SELECT_STICK_THRESHOLD) {
-                shotgunPowerLatch = ShotgunPowerLevel.LOW;
-                shootingPowerMode = ShootingPowerModes.MANUAL;
-            } else if (gamepad2.rightStickButtonWasPressed() || gamepad2.a) {
-                shotgunPowerLatch = ShotgunPowerLevel.OFF;
-                shootingPowerMode = ShootingPowerModes.MANUAL;
-            }
-            switch (shotgunPowerLatch) {
-                case OFF:
-                    shotgunFSM.toOff();
-                    telemetry.addData("Requested ShotGun RPM", 0);
-                    break;
-                case HIGH:
-                    shotgunFSM.toPowerUpFar(SHOT_GUN_POWER_UP_FAR_RPM_TELEOP);
-                    telemetry.addData("Requested ShotGun RPM", SHOT_GUN_POWER_UP_FAR_RPM_TELEOP);
-                    break;
-                case LOW:
-                default:
-                    shotgunFSM.toPowerUp(SHOT_GUN_POWER_UP_RPM);
-                    telemetry.addData("Requested ShotGun RPM", SHOT_GUN_POWER_UP_RPM);
-                    break;
-            }
+            shooterPowerCoordinator.applyRequestedPower(
+                    shotgunFSM,
+                    shotgunPowerLatch,
+                    SHOT_GUN_POWER_UP_RPM,
+                    SHOT_GUN_POWER_UP_FAR_RPM_TELEOP,
+                    telemetry
+            );
             telemetry.addData("Actual ShotGun RPM", ejectionMotor.getVelocity() * 60 / TICKS_PER_ROTATION); // convert from ticks per second to RPM
             telemetry.addData("ejectionMotor power", ejectionMotor.getPower());
             telemetry.addData("Actual ShotGun TPS", ejectionMotor.getVelocity()); // convert from ticks per second to RPM
