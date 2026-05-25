@@ -145,5 +145,10 @@ public class RobotContainer {
     public ShootingFSM getShootingFSM() {
         return shootingFSM;
     }
+
+    /** Tears down camera portal. Call in OpMode stop or when camera is no longer needed. */
+    public void close() {
+        services.close();
+    }
 }
 

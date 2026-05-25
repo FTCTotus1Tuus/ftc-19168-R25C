@@ -328,6 +328,8 @@ public class TeleOpFSM extends DarienOpModeFSM {
 
             telemetry.update();
         } //while opModeIsActive
+
+        stopRobot();
     } //runOpMode
 
 

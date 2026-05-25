@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.team.services;
 
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.ExposureControl;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.GainControl;
 import org.firstinspires.ftc.teamcode.team.fsm.DarienOpModeFSM;
@@ -9,26 +10,78 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Owns AprilTag processor and camera control helpers for an OpMode lifecycle.
+ * Owns the full camera lifecycle: AprilTag processor creation, VisionPortal build,
+ * manual exposure/gain profile application, and portal teardown.
+ *
+ * <p>Call order:
+ * <ol>
+ *   <li>{@link #initialize()} — builds processor + portal + applies tuned exposure profile</li>
+ *   <li>{@link #getAprilTagService(double)} — get the lifecycle service for start/poll/stop</li>
+ *   <li>{@link #close()} — teardown portal at OpMode stop</li>
+ * </ol>
  */
 public class AprilTagVisionService {
+
+    public enum CameraHealth {
+        NOT_STARTED,
+        PORTAL_BUILT,
+        STREAMING,
+        EXPOSURE_SET,
+        EXPOSURE_FAILED,
+        BUILD_FAILED
+    }
 
     private final DarienOpModeFSM opMode;
     private AprilTagProcessor aprilTagProcessor;
     private AprilTagService aprilTagService;
     private VisionPortal visionPortal;
+    private CameraHealth health = CameraHealth.NOT_STARTED;
+    private String healthDetail = "";
 
     public AprilTagVisionService(DarienOpModeFSM opMode) {
         this.opMode = opMode;
     }
 
-    public void initializeAprilTagProcessor() {
-        aprilTagProcessor = AprilTagProcessor.easyCreateWithDefaults();
+    /**
+     * Builds the AprilTag processor and VisionPortal, then applies the tuned manual
+     * exposure profile from DarienOpModeFSM constants.
+     *
+     * <p>Safe to call during initControls() — blocks briefly until streaming or stop.
+     */
+    public void initialize() {
+        try {
+            aprilTagProcessor = new AprilTagProcessor.Builder().build();
+            visionPortal = new VisionPortal.Builder()
+                    .setCamera(opMode.hardwareMap.get(WebcamName.class, "Webcam 1"))
+                    .addProcessor(aprilTagProcessor)
+                    .build();
+            health = CameraHealth.PORTAL_BUILT;
+            healthDetail = "VisionPortal built";
+        } catch (Exception e) {
+            health = CameraHealth.BUILD_FAILED;
+            healthDetail = "Build failed: " + e.getMessage();
+            aprilTagProcessor = null;
+            visionPortal = null;
+            return;
+        }
+
         aprilTagService = null;
-        visionPortal = null;
+        applyTunedExposure(DarienOpModeFSM.APRILTAG_EXPOSURE_MS, DarienOpModeFSM.APRILTAG_GAIN);
+    }
+
+    /**
+     * @deprecated Use {@link #initialize()} instead — this no longer builds the VisionPortal.
+     *             Kept only for call-sites that have not been migrated yet.
+     */
+    @Deprecated
+    public void initializeAprilTagProcessor() {
+        initialize();
     }
 
     public AprilTagService getAprilTagService(double timeoutSeconds) {
+        if (aprilTagProcessor == null) {
+            throw new IllegalStateException("AprilTagVisionService.initialize() must be called before getAprilTagService()");
+        }
         if (aprilTagService == null) {
             aprilTagService = new AprilTagService(aprilTagProcessor, timeoutSeconds);
         } else {
@@ -43,6 +96,48 @@ public class AprilTagVisionService {
 
     public VisionPortal getVisionPortal() {
         return visionPortal;
+    }
+
+    public CameraHealth getHealth() {
+        return health;
+    }
+
+    public String getHealthDetail() {
+        return healthDetail;
+    }
+
+    public boolean isStreaming() {
+        return visionPortal != null
+                && visionPortal.getCameraState() == VisionPortal.CameraState.STREAMING;
+    }
+
+    /**
+     * Cleanly stops the camera stream. Call at OpMode stop or when camera is no longer needed.
+     */
+    public void close() {
+        if (visionPortal != null) {
+            visionPortal.close();
+            visionPortal = null;
+        }
+        health = CameraHealth.NOT_STARTED;
+        healthDetail = "Portal closed";
+    }
+
+    // -------------------------------------------------------------------------
+    // PRIVATE — camera control helpers
+    // -------------------------------------------------------------------------
+
+    private void applyTunedExposure(int exposureMs, int gain) {
+        boolean ok = setManualExposure(exposureMs, gain);
+        if (ok) {
+            health = CameraHealth.EXPOSURE_SET;
+            healthDetail = String.format("Exposure=%dms Gain=%d", exposureMs, gain);
+        } else {
+            health = (health == CameraHealth.PORTAL_BUILT)
+                    ? CameraHealth.EXPOSURE_FAILED
+                    : health;
+            healthDetail = "Exposure apply failed (camera ok? stop requested?)";
+        }
     }
 
     public boolean setManualExposure(int exposureMS, int gain) {

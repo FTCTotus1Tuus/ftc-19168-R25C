@@ -117,6 +117,8 @@ public class BlueAudience2 extends DarienOpModeFSM {
             displayRpmTelemetry();
             panelsTelemetry.update(telemetry);
         }
+
+        stopRobot();
     }
 
 

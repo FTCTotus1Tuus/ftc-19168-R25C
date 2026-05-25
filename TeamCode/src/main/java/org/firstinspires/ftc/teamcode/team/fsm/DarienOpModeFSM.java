@@ -201,7 +201,25 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
 
 
         telemetry.addLine("FTC 19168 Robot Initialization Done!");
+
+        // Camera validation telemetry — shows whether portal built and exposure applied
+        if (visionService != null) {
+            telemetry.addData("Camera Health", visionService.getHealth().toString());
+            telemetry.addData("Camera Detail", visionService.getHealthDetail());
+        }
+
         telemetry.update();
+    }
+
+    /**
+     * Cleanly tears down the camera portal and any other resources.
+     * Call at the end of runOpMode() (after the main loop) so the camera is
+     * properly closed before the next OpMode starts.
+     */
+    public void stopRobot() {
+        if (robotContainer != null) {
+            robotContainer.close();
+        }
     }
 
     /**

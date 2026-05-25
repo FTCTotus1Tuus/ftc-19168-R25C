@@ -23,7 +23,7 @@ public class RobotServices {
     }
 
     public void initialize() {
-        visionService.initializeAprilTagProcessor();
+        visionService.initialize();
         preferencesService = new PreferencesService(opMode.hardwareMap.appContext);
         follower = Constants.createFollower(opMode.hardwareMap);
         localizationService = new LocalizationService(opMode.hardwareMap, follower);
@@ -43,6 +43,11 @@ public class RobotServices {
 
     public LocalizationService getLocalizationService() {
         return localizationService;
+    }
+
+    /** Tears down camera portal. Call from OpMode stop. */
+    public void close() {
+        visionService.close();
     }
 }
 
