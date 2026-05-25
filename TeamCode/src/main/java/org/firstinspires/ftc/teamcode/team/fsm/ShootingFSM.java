@@ -6,6 +6,7 @@ import com.bylazar.configurables.annotations.Configurable;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.team.subsystems.GateControl;
 import org.firstinspires.ftc.teamcode.team.subsystems.ShooterIntakeControl;
+import org.firstinspires.ftc.teamcode.team.subsystems.ShootingControl;
 import org.firstinspires.ftc.teamcode.team.subsystems.SubsystemLifecycle;
 
 /**
@@ -34,7 +35,7 @@ import org.firstinspires.ftc.teamcode.team.subsystems.SubsystemLifecycle;
  */
 @Config
 @Configurable
-public class ShootingFSM implements SubsystemLifecycle {
+public class ShootingFSM implements SubsystemLifecycle, ShootingControl {
 
     // -------------------------------------------------------------------------
     // ENUMS
@@ -123,6 +124,11 @@ public class ShootingFSM implements SubsystemLifecycle {
 
     public void finish() {
         stage = Stage.START_CLOSING_GATE;
+    }
+
+    @Override
+    public boolean isIdle() {
+        return stage == Stage.IDLE;
     }
 
     /**

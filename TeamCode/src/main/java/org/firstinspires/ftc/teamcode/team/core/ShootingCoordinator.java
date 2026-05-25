@@ -2,30 +2,30 @@ package org.firstinspires.ftc.teamcode.team.core;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.team.fsm.ShootingFSM;
-import org.firstinspires.ftc.teamcode.team.fsm.TeleOpFSM;
 import org.firstinspires.ftc.teamcode.team.subsystems.GateControl;
 import org.firstinspires.ftc.teamcode.team.subsystems.IntakeControl;
+import org.firstinspires.ftc.teamcode.team.subsystems.ShootingControl;
 
 /**
  * Coordinates shooting-related interactions across subsystems.
  */
 public class ShootingCoordinator {
 
-    private final ShootingFSM shootingFSM;
+    private final ShootingControl shootingControl;
     private final IntakeControl intakeControl;
     private final GateControl gateControl;
 
-    public ShootingCoordinator(ShootingFSM shootingFSM, IntakeControl intakeControl, GateControl gateControl) {
-        this.shootingFSM = shootingFSM;
+    public ShootingCoordinator(ShootingControl shootingControl, IntakeControl intakeControl, GateControl gateControl) {
+        this.shootingControl = shootingControl;
         this.intakeControl = intakeControl;
         this.gateControl = gateControl;
     }
 
     public void updateActiveSequence(double currentTime, Telemetry telemetry) {
-        if (shootingFSM.getStage() != ShootingFSM.Stage.IDLE) {
-            shootingFSM.update(currentTime, telemetry);
-            if (shootingFSM.isDone()) {
-                shootingFSM.reset();
+        if (!shootingControl.isIdle()) {
+            shootingControl.update(currentTime, telemetry);
+            if (shootingControl.isDone()) {
+                shootingControl.reset();
                 intakeControl.startIntaking();
             }
         }
@@ -36,17 +36,18 @@ public class ShootingCoordinator {
             boolean closeGateRequested,
             boolean shootPressed,
             boolean shootReleased,
-            double rightStickY
+            double rightStickY,
+            double shootPowerSelectStickThreshold
     ) {
         if (closeGateRequested) {
             gateControl.close();
         } else if (shootPressed) {
-            ShootingFSM.PowerLevel power = (rightStickY < -TeleOpFSM.SHOOT_POWER_SELECT_STICK_THRESHOLD)
+            ShootingFSM.PowerLevel power = (rightStickY < -shootPowerSelectStickThreshold)
                     ? ShootingFSM.PowerLevel.FAR
                     : ShootingFSM.PowerLevel.CLOSE;
-            shootingFSM.start(currentTime, power);
+            shootingControl.start(currentTime, power);
         } else if (shootReleased) {
-            shootingFSM.finish();
+            shootingControl.finish();
         }
     }
 }

@@ -74,7 +74,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
         turretFSM.center(); // set to center position
         autoParkCoordinator = new AutoParkCoordinator();
         driveControlCoordinator = new DriveControlCoordinator();
-        intakeCoordinator = new IntakeCoordinator(intakeFSM, intakeFSM);
+        intakeCoordinator = new IntakeCoordinator(intakeFSM);
         odometryResetCoordinator = new OdometryResetCoordinator();
         shooterPowerCoordinator = new ShooterPowerCoordinator();
         shootingCoordinator = new ShootingCoordinator(shootingFSM, intakeFSM, gateFSM);
@@ -248,7 +248,8 @@ public class TeleOpFSM extends DarienOpModeFSM {
                     gamepad2.left_bumper,
                     gamepad2.rightBumperWasPressed(),
                     gamepad2.rightBumperWasReleased(),
-                    gamepad2.right_stick_y
+                    gamepad2.right_stick_y,
+                    SHOOT_POWER_SELECT_STICK_THRESHOLD
             );
 
             odometryResetCoordinator.tryResetToHumanPlayerPosition(

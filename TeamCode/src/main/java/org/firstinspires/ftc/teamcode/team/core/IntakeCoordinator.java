@@ -1,27 +1,25 @@
 package org.firstinspires.ftc.teamcode.team.core;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.team.fsm.IntakeFSM;
-import org.firstinspires.ftc.teamcode.team.subsystems.IntakeControl;
+import org.firstinspires.ftc.teamcode.team.subsystems.IntakeLifecycleControl;
 
 /**
  * Coordinates intake-related control mapping and lifecycle updates.
  */
 public class IntakeCoordinator {
 
-    private final IntakeControl intakeControl;
-    private final IntakeFSM intakeFSM;
+    private final IntakeLifecycleControl intakeControl;
 
-    public IntakeCoordinator(IntakeControl intakeControl, IntakeFSM intakeFSM) {
+    public IntakeCoordinator(IntakeLifecycleControl intakeControl) {
         this.intakeControl = intakeControl;
-        this.intakeFSM = intakeFSM;
     }
 
     public void updateActiveIntake(double currentTime, Telemetry telemetry) {
         if (intakeControl.isIntaking()) {
-            intakeFSM.readSensors(currentTime, telemetry);
-            intakeFSM.update(currentTime, telemetry);
-            intakeFSM.writeOutputs(telemetry);
+            // Single interface owns intake lifecycle order for deterministic updates.
+            intakeControl.readSensors(currentTime, telemetry);
+            intakeControl.update(currentTime, telemetry);
+            intakeControl.writeOutputs(telemetry);
         }
     }
 
