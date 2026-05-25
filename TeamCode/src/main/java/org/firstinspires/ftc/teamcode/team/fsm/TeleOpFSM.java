@@ -21,6 +21,7 @@ import android.annotation.SuppressLint;
 import org.firstinspires.ftc.teamcode.team.core.IntakeCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.ShooterPowerCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.ShootingCoordinator;
+import org.firstinspires.ftc.teamcode.team.core.TeleOpTelemetryCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TurretCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TurretModeCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TurretVisionCoordinator;
@@ -46,6 +47,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
     private IntakeCoordinator intakeCoordinator;
     private ShooterPowerCoordinator shooterPowerCoordinator;
     private ShootingCoordinator shootingCoordinator;
+    private TeleOpTelemetryCoordinator telemetryCoordinator;
     private TurretCoordinator turretCoordinator;
     private TurretModeCoordinator turretModeCoordinator;
     private TurretVisionCoordinator turretVisionCoordinator;
@@ -69,6 +71,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
         intakeCoordinator = new IntakeCoordinator(intakeFSM, intakeFSM);
         shooterPowerCoordinator = new ShooterPowerCoordinator();
         shootingCoordinator = new ShootingCoordinator(shootingFSM, intakeFSM, gateFSM);
+        telemetryCoordinator = new TeleOpTelemetryCoordinator();
         turretCoordinator = new TurretCoordinator(turretFSM);
         turretModeCoordinator = new TurretModeCoordinator(turretFSM);
         turretVisionCoordinator = new TurretVisionCoordinator(tagFSM, turretFSM, APRILTAG_ID_GOAL_BLUE, APRILTAG_ID_GOAL_RED);
@@ -265,14 +268,6 @@ public class TeleOpFSM extends DarienOpModeFSM {
                     gamepad2.right_stick_y
             );
 
-            // Add debug telemetry
-            telemetry.addData("GATE: State", gateFSM.getState().toString());
-            telemetry.addData("INTAKE: State", intakeFSM.getState().toString());
-            telemetry.addData("SHOOTING: Stage", shootingFSM.getStage().toString());
-            //telemetry.addData("rubberBandsFront Power", rubberBandsFront.getPower());
-            //telemetry.addData("rubberBandsMid Power", rubberBandsMid.getPower());
-
-
             // ODOMETRY RESET BUTTON - Reset to human player starting position
             if (gamepad1.dpadUpWasPressed()) {
                 // Determine which human player position based on alliance color
@@ -372,31 +367,31 @@ public class TeleOpFSM extends DarienOpModeFSM {
                     SHOT_GUN_POWER_UP_FAR_RPM_TELEOP,
                     telemetry
             );
-            telemetry.addData("Actual ShotGun RPM", ejectionMotor.getVelocity() * 60 / TICKS_PER_ROTATION); // convert from ticks per second to RPM
-            telemetry.addData("ejectionMotor power", ejectionMotor.getPower());
-            telemetry.addData("Actual ShotGun TPS", ejectionMotor.getVelocity()); // convert from ticks per second to RPM
-            telemetry.addData("Shooting Power Mode", shootingPowerMode.toString());
-            telemetry.addData("Shotgun Power Latch", shotgunPowerLatch.toString());
-
-            // Display alliance color from SharedPreferences
-            telemetry.addData("Alliance Color from Auto", autoAlliance);
-            telemetry.addData("Target AprilTag ID", turretVisionCoordinator.getTargetGoalTagId());
-            // telemetry.addData("Time Since Last Camera Detection (ms)",
-            //       (getRuntime() - lastCameraDetectionTime) * 1000);
-            telemetry.addData("Odometry Pos (X,Y)", String.format("%.1f, %.1f", robotX, robotY));
-            telemetry.addData("Odometry Bearing (deg)", String.format("%.1f", Math.toDegrees(robotHeadingRadians)));
-            telemetry.addData("TURRET: State", turretFSM.getState().toString());
-            telemetry.addData("TURRET: Current Turret Pos", turretFSM.getPosition());
-
-            // AUTO-PARK STATUS
-            if (isAutoParking) {
-                double parkX = "RED".equals(autoAlliance) ? PARK_RED_X : PARK_BLUE_X;
-                double parkY = "RED".equals(autoAlliance) ? PARK_RED_Y : PARK_BLUE_Y;
-                telemetry.addLine(">>> AUTO-PARKING <<<");
-                telemetry.addData("Park Target", String.format("(%.1f, %.1f)", parkX, parkY));
-                telemetry.addData("Park Time Remaining", String.format("%.1fs", AUTO_PARK_TIMEOUT - (getRuntime() - autoParkStartTime)));
-                telemetry.addLine("Move any stick to cancel");
-            }
+            telemetryCoordinator.addLoopTelemetry(
+                    telemetry,
+                    gateFSM,
+                    intakeFSM,
+                    shootingFSM,
+                    turretFSM,
+                    shootingPowerMode.toString(),
+                    shotgunPowerLatch.toString(),
+                    ejectionMotor.getVelocity() * 60 / TICKS_PER_ROTATION,
+                    ejectionMotor.getPower(),
+                    ejectionMotor.getVelocity(),
+                    autoAlliance,
+                    turretVisionCoordinator.getTargetGoalTagId(),
+                    robotX,
+                    robotY,
+                    robotHeadingRadians,
+                    isAutoParking,
+                    PARK_RED_X,
+                    PARK_RED_Y,
+                    PARK_BLUE_X,
+                    PARK_BLUE_Y,
+                    AUTO_PARK_TIMEOUT,
+                    autoParkStartTime,
+                    getRuntime()
+            );
 
             String traceState = isAutoParking ? "AUTO_PARK" : "DRIVER_CONTROL";
             double traceStateTimer = isAutoParking ? (getRuntime() - autoParkStartTime) : 0.0;
