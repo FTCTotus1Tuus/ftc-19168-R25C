@@ -15,8 +15,6 @@ import com.pedropathing.paths.PathChain;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
-
 import com.bylazar.configurables.annotations.Configurable;
 
 import android.annotation.SuppressLint;
@@ -24,6 +22,7 @@ import org.firstinspires.ftc.teamcode.team.core.IntakeCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.ShootingCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TurretCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TurretModeCoordinator;
+import org.firstinspires.ftc.teamcode.team.core.TurretVisionCoordinator;
 
 @TeleOp(name = "TeleopFSM", group = "DriverControl")
 @Config
@@ -49,6 +48,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
     private ShootingCoordinator shootingCoordinator;
     private TurretCoordinator turretCoordinator;
     private TurretModeCoordinator turretModeCoordinator;
+    private TurretVisionCoordinator turretVisionCoordinator;
 
 
     // Turret fallback tracking
@@ -58,15 +58,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
     private static final double AUTO_PARK_STICK_DEADZONE = 0.1; // stick threshold to cancel auto-park
     public static double DEADZONE = 0.1;
 
-    // AUTOMATIC TURRET CONTROLS BASED ON CAMERA APRILTAG DETECTION
-    AprilTagDetection detection;
-    double rawBearingDeg; // Stores detection.ftcPose.bearing;
-
     double robotX, robotY, robotHeadingRadians;
-
-    boolean isCalculatingTurretTargetPosition = false;
-
-    int targetGoalTagId;
     private String autoAlliance = "UNKNOWN";
 
     @Override
@@ -78,6 +70,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
         shootingCoordinator = new ShootingCoordinator(shootingFSM, intakeFSM, gateFSM);
         turretCoordinator = new TurretCoordinator(turretFSM);
         turretModeCoordinator = new TurretModeCoordinator(turretFSM);
+        turretVisionCoordinator = new TurretVisionCoordinator(tagFSM, turretFSM, APRILTAG_ID_GOAL_BLUE, APRILTAG_ID_GOAL_RED);
 
         // Initialize GoBildaPinpointDriver for odometry position reset
         odo = hardwareMap.get(GoBildaPinpointDriver.class, "odo");
@@ -94,13 +87,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
         autoAlliance = preferencesService.getAutoAlliance("UNKNOWN");
 
         // Set align color based on saved color from auto
-        if ("BLUE".equals(autoAlliance)) {
-            targetGoalTagId = APRILTAG_ID_GOAL_BLUE;
-            turretFSM.setOffsetBlue();
-        } else if ("RED".equals(autoAlliance)) {
-            targetGoalTagId = APRILTAG_ID_GOAL_RED;
-            turretFSM.setOffsetRed();
-        }
+        turretVisionCoordinator.setAlliance(autoAlliance);
 
         // Load saved odometry position from auto (if available)
         boolean hasAutoPosition = preferencesService.hasAutoFinalPose();
@@ -217,13 +204,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
             shootingCoordinator.updateActiveSequence(getRuntime(), telemetry);
 
             // CAMERA-BASED TURRET CONTROL
-            if (turretFSM.getState() == TurretFSM.TurretStates.CAMERA) {
-                if (!isReadingAprilTag) {
-                    startReadingGoalId();
-                } else {
-                    updateReadingGoalId();
-                }
-            }
+            turretVisionCoordinator.updateCameraControl(getRuntime(), telemetry);
 
             // -----------------
             // GAMEPAD1 CONTROLS
@@ -335,19 +316,13 @@ public class TeleOpFSM extends DarienOpModeFSM {
             // -----------------
 
             //SET ALLIANCE COLOR CONTROL
-            if (gamepad2.b && !isReadingAprilTag) {
-                // ALIGN TO RED GOAL
-                autoAlliance = "RED";
-                targetGoalTagId = APRILTAG_ID_GOAL_RED;
-                turretFSM.setOffsetRed();
-                telemetry.addLine("ALLIANCE SET TO RED!");
-            } else if (gamepad2.x && !isReadingAprilTag) {
-                // ALIGN TO BLUE GOAL
-                autoAlliance = "BLUE";
-                targetGoalTagId = APRILTAG_ID_GOAL_BLUE;
-                turretFSM.setOffsetBlue();
-                telemetry.addLine("ALLIANCE SET TO BLUE!");
-            }
+            TurretVisionCoordinator.AllianceSwitchResult allianceSwitchResult = turretVisionCoordinator.handleAllianceButtons(
+                    gamepad2.b,
+                    gamepad2.x,
+                    autoAlliance,
+                    telemetry
+            );
+            autoAlliance = allianceSwitchResult.alliance;
 
             TurretModeCoordinator.ModeSwitchResult modeSwitchResult = turretModeCoordinator.handleModeSwitches(
                     gamepad2.dpadUpWasPressed(),
@@ -356,7 +331,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
             );
             shootingPowerMode = modeSwitchResult.shootingPowerMode;
             if (modeSwitchResult.shouldStartGoalReading) {
-                startReadingGoalId();
+                turretVisionCoordinator.startReadingGoalId(getRuntime());
             }
 
 
@@ -421,7 +396,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
 
             // Display alliance color from SharedPreferences
             telemetry.addData("Alliance Color from Auto", autoAlliance);
-            telemetry.addData("Target AprilTag ID", targetGoalTagId);
+            telemetry.addData("Target AprilTag ID", turretVisionCoordinator.getTargetGoalTagId());
             // telemetry.addData("Time Since Last Camera Detection (ms)",
             //       (getRuntime() - lastCameraDetectionTime) * 1000);
             telemetry.addData("Odometry Pos (X,Y)", String.format("%.1f, %.1f", robotX, robotY));
@@ -447,53 +422,5 @@ public class TeleOpFSM extends DarienOpModeFSM {
         } //while opModeIsActive
     } //runOpMode
 
-    private void startReadingGoalId() {
-        tagFSM.start(getRuntime());
-        isReadingAprilTag = true;
-    }
-
-    private void updateReadingGoalId() {
-        tagFSM.update(getRuntime(), true, telemetry);
-        telemetry.addLine("Goal Detection: Reading...");
-
-        if (tagFSM.isDone()) {
-            telemetry.addLine("Goal Detection: DONE reading!");
-            isReadingAprilTag = false;
-            aprilTagDetections = tagFSM.getDetections();
-            //aprilTagDetections.removeIf(tag -> tag.id != 24);
-            if (targetGoalTagId == APRILTAG_ID_GOAL_RED) {
-                aprilTagDetections.removeIf(tag -> tag.id == 20 || tag.id == 21 || tag.id == 22 || tag.id == 23);
-                turretFSM.setOffsetRed();
-            } else if (targetGoalTagId == APRILTAG_ID_GOAL_BLUE) {
-                aprilTagDetections.removeIf(tag -> tag.id == 24 || tag.id == 21 || tag.id == 22 || tag.id == 23);
-                turretFSM.setOffsetBlue();
-            }
-            if (!aprilTagDetections.isEmpty()) {
-                telemetry.addLine("Goal Detection: FOUND APRILTAG!");
-                // Rotate the turret only if an apriltag is detected and it's the target goal apriltag id
-                detection = aprilTagDetections.get(0);
-                if (detection.id == targetGoalTagId && detection.ftcPose != null) {
-                    telemetry.addLine("Goal Detection: ALIGNING TURRET TO GOAL " + targetGoalTagId);
-                    //yaw = detection.ftcPose.yaw; //  REMOVE LATER SINCE IT'S ONLY FOR TELEMETRY
-                    //range = detection.ftcPose.range; //  REMOVE LATER SINCE IT'S ONLY FOR TELEMETRY
-
-                    // Current turret heading (degrees)
-                    //currentHeadingDeg = turretFSM.getTurretHeading(); //  REMOVE LATER SINCE IT'S ONLY FOR TELEMETRY
-
-                    // Camera-relative bearing to AprilTag (degrees)
-                    rawBearingDeg = detection.ftcPose.bearing;
-
-                    if (!isCalculatingTurretTargetPosition) {
-                        isCalculatingTurretTargetPosition = true;
-                        turretFSM.alignToBearing(rawBearingDeg);
-                        // lastCameraDetectionTime = getRuntime();  // Update last detection time
-                    }
-                } else if (detection.ftcPose == null) {
-                    telemetry.addLine("Goal Detection: WARNING - Pose estimation failed!");
-                } // end detection.id == 20 or 24
-            } // end detection is empty
-        } // end tagFSM is done
-        isCalculatingTurretTargetPosition = false;
-    }
 
 } //TeleOpFSM class
