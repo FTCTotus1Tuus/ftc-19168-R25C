@@ -8,9 +8,7 @@ import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
-import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
-import com.pedropathing.paths.PathChain;
 
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -19,6 +17,7 @@ import com.bylazar.configurables.annotations.Configurable;
 
 import android.annotation.SuppressLint;
 import org.firstinspires.ftc.teamcode.team.core.AutoParkCoordinator;
+import org.firstinspires.ftc.teamcode.team.core.DriveControlCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.IntakeCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.OdometryResetCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.ShooterPowerCoordinator;
@@ -47,6 +46,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
     // VARIABLES
     private ShotgunPowerLevel shotgunPowerLatch = ShotgunPowerLevel.OFF;
     private AutoParkCoordinator autoParkCoordinator;
+    private DriveControlCoordinator driveControlCoordinator;
     private IntakeCoordinator intakeCoordinator;
     private OdometryResetCoordinator odometryResetCoordinator;
     private ShooterPowerCoordinator shooterPowerCoordinator;
@@ -73,6 +73,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
         gateFSM.close();
         turretFSM.center(); // set to center position
         autoParkCoordinator = new AutoParkCoordinator();
+        driveControlCoordinator = new DriveControlCoordinator();
         intakeCoordinator = new IntakeCoordinator(intakeFSM, intakeFSM);
         odometryResetCoordinator = new OdometryResetCoordinator();
         shooterPowerCoordinator = new ShooterPowerCoordinator();
@@ -178,25 +179,19 @@ public class TeleOpFSM extends DarienOpModeFSM {
             autoParkStartTime = progressResult.autoParkStartTime;
             shotgunPowerLatch = progressResult.shotgunPowerLatch;
 
-            if (!isAutoParking) {
-                // Apply symmetric deadzone by magnitude, then preserve direction with sign inversion.
-                double rawY = (Math.abs(gamepad1.left_stick_y) <= DEADZONE) ? 0 : -gamepad1.left_stick_y;
-                double rawX = (Math.abs(gamepad1.left_stick_x) <= DEADZONE) ? 0 : -gamepad1.left_stick_x;
-                double rawR = (Math.abs(gamepad1.right_stick_x) <= DEADZONE) ? 0 : -gamepad1.right_stick_x;
-                double shapedY = Math.signum(rawY) * Math.pow(Math.abs(rawY), INPUT_EXPONENT);
-                double shapedX = Math.signum(rawX) * Math.pow(Math.abs(rawX), INPUT_EXPONENT);
-                double shapedR = Math.signum(rawR) * Math.pow(Math.abs(rawR), INPUT_EXPONENT);
-
-                //if there is an input from right stick(rotation), bring power down to 80 percent
-                if (Math.abs(gamepad1.right_stick_x) > DEADZONE) {
-                    follower.setTeleOpDrive(shapedY * SPEED_SCALE_TURN, shapedX * SPEED_SCALE, shapedR * ROTATION_SCALE, true);
-                } else {
-                    double forward = shapedY * SPEED_SCALE;
-                    double strafe = shapedX * SPEED_SCALE;
-                    double turn = shapedR * ROTATION_SCALE;
-                    follower.setTeleOpDrive(forward, strafe, turn, true);
-                }
-            }
+            // Driver stick shaping + drive command emission are centralized in this coordinator.
+            driveControlCoordinator.applyTeleOpDrive(
+                    isAutoParking,
+                    gamepad1.left_stick_y,
+                    gamepad1.left_stick_x,
+                    gamepad1.right_stick_x,
+                    DEADZONE,
+                    INPUT_EXPONENT,
+                    SPEED_SCALE,
+                    SPEED_SCALE_TURN,
+                    ROTATION_SCALE,
+                    follower
+            );
 
             follower.update();
 
@@ -222,6 +217,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
                     gamepad1.x
             );
 
+            // Auto-park start logic returns the next loop state in one place.
             AutoParkCoordinator.AutoParkResult startResult = autoParkCoordinator.tryStartAutoPark(
                     gamepad1.bWasPressed(),
                     isAutoParking,
@@ -299,6 +295,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
             robotY = follower.getPose().getY();
             robotHeadingRadians = follower.getPose().getHeading();
 
+            // Turret coordinator resolves manual stick intent first, then odometry aiming fallback.
             turretCoordinator.applyManualOrOdometryControl(
                     autoAlliance,
                     gamepad2.left_stick_x,
@@ -309,6 +306,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
                     robotHeadingRadians
             );
 
+            // Compute latch/mode first, then apply shooter power command.
             ShooterPowerCoordinator.PowerState powerState = shooterPowerCoordinator.computePowerState(
                     shootingPowerMode,
                     shotgunPowerLatch,
