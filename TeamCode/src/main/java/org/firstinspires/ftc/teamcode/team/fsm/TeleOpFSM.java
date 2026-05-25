@@ -18,7 +18,9 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.bylazar.configurables.annotations.Configurable;
 
 import android.annotation.SuppressLint;
+import org.firstinspires.ftc.teamcode.team.core.AutoParkCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.IntakeCoordinator;
+import org.firstinspires.ftc.teamcode.team.core.OdometryResetCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.ShooterPowerCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.ShootingCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpTelemetryCoordinator;
@@ -44,7 +46,9 @@ public class TeleOpFSM extends DarienOpModeFSM {
 
     // VARIABLES
     private ShotgunPowerLevel shotgunPowerLatch = ShotgunPowerLevel.OFF;
+    private AutoParkCoordinator autoParkCoordinator;
     private IntakeCoordinator intakeCoordinator;
+    private OdometryResetCoordinator odometryResetCoordinator;
     private ShooterPowerCoordinator shooterPowerCoordinator;
     private ShootingCoordinator shootingCoordinator;
     private TeleOpTelemetryCoordinator telemetryCoordinator;
@@ -68,7 +72,9 @@ public class TeleOpFSM extends DarienOpModeFSM {
         super.initControls();
         gateFSM.close();
         turretFSM.center(); // set to center position
+        autoParkCoordinator = new AutoParkCoordinator();
         intakeCoordinator = new IntakeCoordinator(intakeFSM, intakeFSM);
+        odometryResetCoordinator = new OdometryResetCoordinator();
         shooterPowerCoordinator = new ShooterPowerCoordinator();
         shootingCoordinator = new ShootingCoordinator(shootingFSM, intakeFSM, gateFSM);
         telemetryCoordinator = new TeleOpTelemetryCoordinator();
@@ -155,26 +161,22 @@ public class TeleOpFSM extends DarienOpModeFSM {
             // ALWAYS RUN
             // -----------------
 
-            // AUTO-PARK: cancel if any driver stick input is detected
-            if (isAutoParking) {
-                boolean driverStickInput =
-                        Math.abs(gamepad1.left_stick_x) > AUTO_PARK_STICK_DEADZONE ||
-                        Math.abs(gamepad1.left_stick_y) > AUTO_PARK_STICK_DEADZONE ||
-                        Math.abs(gamepad1.right_stick_x) > AUTO_PARK_STICK_DEADZONE;
-                boolean timedOut = (getRuntime() - autoParkStartTime) > AUTO_PARK_TIMEOUT;
-
-                if (driverStickInput) {
-                    // Driver wants manual control — abort auto-park
-                    isAutoParking = false;
-                    follower.startTeleopDrive(true);
-                    telemetry.addLine("AUTO-PARK: Cancelled by driver!");
-                } else if (!follower.isBusy() || timedOut) {
-                    // Path complete or timed out — end auto-park
-                    isAutoParking = false;
-                    follower.startTeleopDrive(true);
-                    telemetry.addLine("AUTO-PARK: Complete!");
-                }
-            }
+            AutoParkCoordinator.AutoParkResult progressResult = autoParkCoordinator.updateAutoParkProgress(
+                    isAutoParking,
+                    autoParkStartTime,
+                    getRuntime(),
+                    gamepad1.left_stick_x,
+                    gamepad1.left_stick_y,
+                    gamepad1.right_stick_x,
+                    AUTO_PARK_STICK_DEADZONE,
+                    AUTO_PARK_TIMEOUT,
+                    follower,
+                    telemetry,
+                    shotgunPowerLatch
+            );
+            isAutoParking = progressResult.isAutoParking;
+            autoParkStartTime = progressResult.autoParkStartTime;
+            shotgunPowerLatch = progressResult.shotgunPowerLatch;
 
             if (!isAutoParking) {
                 // Apply symmetric deadzone by magnitude, then preserve direction with sign inversion.
@@ -220,45 +222,30 @@ public class TeleOpFSM extends DarienOpModeFSM {
                     gamepad1.x
             );
 
-            // AUTO-PARK — build path to alliance parking zone, shut down subsystems
-            if (gamepad1.bWasPressed() && !isAutoParking) {
-                // Determine park target based on alliance
-                double parkX, parkY, parkHDeg;
-                if ("RED".equals(autoAlliance)) {
-                    parkX = PARK_RED_X;
-                    parkY = PARK_RED_Y;
-                    parkHDeg = PARK_RED_H_DEG;
-                } else {
-                    parkX = PARK_BLUE_X;
-                    parkY = PARK_BLUE_Y;
-                    parkHDeg = PARK_BLUE_H_DEG;
-                }
-
-                // Build path from current pose to park pose
-                Pose currentPose = follower.getPose();
-                PathChain parkPath = follower.pathBuilder()
-                        .addPath(new BezierLine(
-                                new Pose(currentPose.getX(), currentPose.getY()),
-                                new Pose(parkX, parkY)
-                        ))
-                        .setLinearHeadingInterpolation(currentPose.getHeading(), Math.toRadians(parkHDeg))
-                        .build();
-
-                // Shut down subsystems
-                intakeFSM.off();
-                shotgunPowerLatch = ShotgunPowerLevel.OFF;
-                shotgunFSM.toOff();
-                shootingFSM.reset();
-                turretFSM.center();
-                turretFSM.setState(TurretFSM.TurretStates.MANUAL);
-                gateFSM.close();
-
-                // Start path following
-                follower.setMaxPower(AUTO_PARK_POWER);
-                follower.followPath(parkPath, true);
-                isAutoParking = true;
-                autoParkStartTime = getRuntime();
-            }
+            AutoParkCoordinator.AutoParkResult startResult = autoParkCoordinator.tryStartAutoPark(
+                    gamepad1.bWasPressed(),
+                    isAutoParking,
+                    getRuntime(),
+                    autoParkStartTime,
+                    autoAlliance,
+                    PARK_RED_X,
+                    PARK_RED_Y,
+                    PARK_RED_H_DEG,
+                    PARK_BLUE_X,
+                    PARK_BLUE_Y,
+                    PARK_BLUE_H_DEG,
+                    AUTO_PARK_POWER,
+                    follower,
+                    intakeFSM,
+                    shotgunFSM,
+                    shootingFSM,
+                    turretFSM,
+                    gateFSM,
+                    shotgunPowerLatch
+            );
+            isAutoParking = startResult.isAutoParking;
+            autoParkStartTime = startResult.autoParkStartTime;
+            shotgunPowerLatch = startResult.shotgunPowerLatch;
 
             shootingCoordinator.handleDriverControls(
                     getRuntime(),
@@ -268,44 +255,19 @@ public class TeleOpFSM extends DarienOpModeFSM {
                     gamepad2.right_stick_y
             );
 
-            // ODOMETRY RESET BUTTON - Reset to human player starting position
-            if (gamepad1.dpadUpWasPressed()) {
-                // Determine which human player position based on alliance color
-                double resetX = 0, resetY = 0, resetHdeg = 0;
-                if ("RED".equals(autoAlliance)) {
-                    resetX = HUMAN_PLAYER_RED_X + ROBOT_CENTER_OFFSET_X;
-                    resetY = HUMAN_PLAYER_RED_Y + ROBOT_CENTER_OFFSET_Y;
-                    resetHdeg = 180; // Front-first into red corner: robot drives straight into red wall (-X direction)
-                    telemetry.addLine("ODOMETRY RESET: Red Human Player Position (0, 0)");
-                } else if ("BLUE".equals(autoAlliance)) {
-                    resetX = HUMAN_PLAYER_BLUE_X - ROBOT_CENTER_OFFSET_X;
-                    resetY = HUMAN_PLAYER_BLUE_Y + ROBOT_CENTER_OFFSET_Y;
-                    resetHdeg = 0; // Front-first into blue corner: robot drives straight into blue wall (+X direction)
-                    telemetry.addLine("ODOMETRY RESET: Blue Human Player Position (144, 0)");
-                }
-            /*
-            else {
-                // Default to (0,0) if alliance unknown
-                resetX = 0;
-                resetY = 0;
-                telemetry.addLine("ODOMETRY RESET: Default Position (0, 0)");
-            }
-            */
-
-                // Reset the pinpoint odometry position
-                odo.setPosition(new Pose2D(
-                        DistanceUnit.INCH,
-                        resetX,
-                        resetY,
-                        AngleUnit.DEGREES,
-                        resetHdeg
-                ));
-
-                // Update the follower's pose to match
-                follower.setPose(new Pose(resetX, resetY, Math.toRadians(resetHdeg)));
-
-                telemetry.addData("New Odometry Position", String.format("(%.1f, %.1f, %.1f)", resetX, resetY, resetHdeg));
-            }
+            odometryResetCoordinator.tryResetToHumanPlayerPosition(
+                    gamepad1.dpadUpWasPressed(),
+                    autoAlliance,
+                    HUMAN_PLAYER_RED_X,
+                    HUMAN_PLAYER_RED_Y,
+                    HUMAN_PLAYER_BLUE_X,
+                    HUMAN_PLAYER_BLUE_Y,
+                    ROBOT_CENTER_OFFSET_X,
+                    ROBOT_CENTER_OFFSET_Y,
+                    odo,
+                    follower,
+                    telemetry
+            );
 
             // -----------------
             // GAMEPAD2 CONTROLS
