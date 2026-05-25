@@ -63,3 +63,84 @@ Before describing what any function argument, parameter, or method does, **look 
 ## Hardware Map Names
 Motor names: `omniMotor0`–`omniMotor3` (mecanum), `ejectionMotor` (flywheel), `rubberBandsFront` (intake). Servo names: `gateServo`, `turretServo`. CRServos: `rampServoLow`, `rampServoHigh`, `rubberBandsMid`, `intakeRear`. Sensors: `"odo"` (goBILDA Pinpoint odometry computer, `GoBildaPinpointDriver`), `"Webcam 1"`, `intakeColorSensor`, `middleColorSensor`, `turretColorSensor` (NormalizedColorSensor). LEDs: `LEDRight1`, `LEDLeft1`, `LEDRight2`, `LEDLeft2` (DigitalChannel). All names are string literals in the Java source — search for `hardwareMap.get(` to find them.
 
+## Commit Message Playbook
+
+Use this checklist when drafting commit statements for this repo.
+
+### Verify Scope Before Writing
+- Run `git status --short` and `git diff --name-only` (and `git diff --cached --name-only` when needed).
+- Draft the message from the actual changed files, not from memory.
+- If staged and unstaged changes differ, explicitly draft the message for the staged set only.
+
+### Subject Line Convention
+- Format: `type(scope): short action`
+- Use lowercase conventional types: `refactor`, `chore`, `fix`, `docs`, `test`.
+- Use scope aligned with refactor phase when applicable: `p0`, `p1`, `p2`, etc.
+- Keep subject concise and behavior-neutral for refactor passes.
+
+### Body Topics (Default Template)
+- `Changes:` bullet list with concrete files/symbols touched.
+- `Behavior impact:` state `intended no runtime behavior change` for refactor-only commits.
+- `Verification:` include build/test command actually run (typically `:TeamCode:assembleDebug`).
+
+### Refactor-Specific Guidance
+- Mention interface/contract extractions explicitly (new coordinator/contract classes).
+- Mention wiring/call-site updates explicitly (where old inline logic moved).
+- Mention removed legacy code paths only if they were actually removed.
+- Keep claims factual; avoid claiming robot tests unless they were reported/run.
+
+### Style Rules
+- Prefer one-line bullets for scanability.
+- Use backticks for paths/classes/constants in the body.
+- Keep tense present and action-oriented ("add", "extract", "wire", "replace").
+- Avoid vague language like "cleanup stuff" or "misc changes".
+
+### Quick Commit Template
+```text
+type(scope): concise summary
+
+Changes:
+- ...
+- ...
+
+Behavior impact:
+- intended no runtime behavior change
+
+Verification:
+- `:TeamCode:assembleDebug` passes
+```
+
+### General Commit Use Cases (Beyond Refactors)
+- `fix`: user-facing bug fix or correctness issue.
+- `feat`: new behavior/capability.
+- `docs`: documentation-only changes.
+- `test`: add/update tests only.
+- `chore`: maintenance task with no product behavior change.
+- `perf`: measurable performance improvement.
+
+### General Commit Checklist
+- Confirm intent: what behavior changes (or does not change).
+- Keep commits atomic: one logical change per commit.
+- Stage intentionally: use `git add -p` when mixed edits exist.
+- Include tests/docs with the change when applicable.
+- Avoid bundling unrelated formatting-only edits with behavior changes.
+
+### Behavior Change Messaging
+- For `fix`/`feat` commits, add a short `Behavior impact:` section describing what users/operators should notice.
+- If there is risk, add `Risk/rollback:` with a one-line fallback plan.
+- If tests were not run, state that explicitly instead of implying validation.
+
+### Optional Template for Non-Refactor Commits
+```text
+type(scope): concise summary
+
+Changes:
+- ...
+
+Behavior impact:
+- ...
+
+Verification:
+- ...
+```
+
