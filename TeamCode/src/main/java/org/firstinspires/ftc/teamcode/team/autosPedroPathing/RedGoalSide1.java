@@ -4,18 +4,25 @@ import com.acmerobotics.dashboard.config.Config;
 import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
-import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
-import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
+import org.firstinspires.ftc.teamcode.team.auto.AutoPlan;
+import org.firstinspires.ftc.teamcode.team.auto.CleanupStep;
+import org.firstinspires.ftc.teamcode.team.auto.FollowPathStep;
+import org.firstinspires.ftc.teamcode.team.auto.GateCloseStep;
+import org.firstinspires.ftc.teamcode.team.auto.IntakeStep;
+import org.firstinspires.ftc.teamcode.team.auto.ShootSequenceStep;
+import org.firstinspires.ftc.teamcode.team.auto.ShotgunSpinStep;
+import org.firstinspires.ftc.teamcode.team.auto.StopShotgunStep;
+import org.firstinspires.ftc.teamcode.team.auto.RedGoalSidePaths;
 import org.firstinspires.ftc.teamcode.team.fsm.DarienOpModeFSM;
 import org.firstinspires.ftc.teamcode.team.fsm.ShootingFSM;
 
 /**
- * Pedro Pathing auto using LinearOpMode via DarienOpModeFSM.
+ * Red Goal Side 1 - Autonomous with AutoPlan framework.
+ * Sequence: Move to shoot → Shoot → Intake once → Park → Shoot again.
  */
 
 @Autonomous(name = "Red Goal 6", group = "Pedro:Reds", preselectTeleOp = "TeleopFSM")
@@ -23,59 +30,63 @@ import org.firstinspires.ftc.teamcode.team.fsm.ShootingFSM;
 @Configurable
 public class RedGoalSide1 extends DarienOpModeFSM {
 
-    // follower is inherited from DarienOpModeFSM
-    private int pathState;                      // State machine state
-    private Paths paths;                        // Paths
-    private Timer pathTimer;
-    private boolean shotgunRunning = false;     // Keep shotgun PID running continuously
-
-    public static double STARTING_POSE_X = 111;
-    public static double STARTING_POSE_Y = 134;
-    public static double STARTING_POSE_H_DEG = 0;
+    // Tuning constants
+    public static double STARTING_POSE_X = RedGoalSidePaths.STARTING_POSE_X;
+    public static double STARTING_POSE_Y = RedGoalSidePaths.STARTING_POSE_Y;
+    public static double STARTING_POSE_H_DEG = RedGoalSidePaths.STARTING_POSE_H_DEG;
     public static double PATH_POWER_STANDARD = 0.8;
     public static double PATH_POWER_SLOW = 0.4;
     public static double STANDARD_PATH_TIMEOUT = 2.0;
     public static double LONG_PATH_TIMEOUT = 4.0;
-    public static double SHOOT_TRIPLE_TIME_MIN = 5.0;
-    public static double SHOOT_TRIPLE_TIME_MAX = 7.0;
+    public static double SHOOT_TRIPLE_TIMEOUT = 7.0;
+
+    private AutoPlan autoPlan;
+    private Timer planTimer;
     public double targetGoalX = DarienOpModeFSM.GOAL_RED_X;
     public double targetGoalY = DarienOpModeFSM.GOAL_RED_Y;
 
     @Override
     public void runOpMode() throws InterruptedException {
 
-        // --- ROBOT + HARDWARE INIT (from DarienOpModeFSM) ---
-        initControls(); // sets up TrayServo, Elevator, Feeder, motors, AprilTag, etc.
+        // --- ROBOT + HARDWARE INIT ---
+        initControls();
 
-        // --- PEDRO + TIMERS INIT ---
-        pathTimer = new Timer();
+        // --- PEDRO + TIMER INIT ---
+        planTimer = new Timer();
 
         TelemetryManager panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
 
         // Starting pose
         follower.setStartingPose(new Pose(STARTING_POSE_X, STARTING_POSE_Y, Math.toRadians(STARTING_POSE_H_DEG)));
 
-        // Build all the paths once
-        paths = new Paths(follower);
+        // --- BUILD AUTO PLAN ---
+        autoPlan = new AutoPlan()
+                .add(new ShotgunSpinStep())
+                .add(new FollowPathStep(RedGoalSidePaths.buildShootingPosition1(follower), PATH_POWER_STANDARD, STANDARD_PATH_TIMEOUT))
+                .add(new ShootSequenceStep(ShootingFSM.PowerLevel.CLOSE, SHOOT_TRIPLE_TIMEOUT))
+                .add(new GateCloseStep())
+                .add(new FollowPathStep(RedGoalSidePaths.buildIntakePos1(follower), PATH_POWER_STANDARD, STANDARD_PATH_TIMEOUT))
+                .add(new IntakeStep(RedGoalSidePaths.buildIntakeBallSet1(follower), PATH_POWER_SLOW, STANDARD_PATH_TIMEOUT))
+                .add(new FollowPathStep(RedGoalSidePaths.buildParking1(follower), PATH_POWER_STANDARD, LONG_PATH_TIMEOUT))
+                .add(new ShootSequenceStep(ShootingFSM.PowerLevel.CLOSE, SHOOT_TRIPLE_TIMEOUT))
+                .add(new StopShotgunStep())
+                .add(new CleanupStep());
 
         panelsTelemetry.debug("Status", "Initialized");
-        telemetry.addLine("RedGoalSidePedro: READY");
+        telemetry.addLine("RedGoalSide1: READY");
         panelsTelemetry.update(telemetry);
 
         turretFSM.center();
 
         // Save alliance color to shared preferences for TeleOp
         preferencesService.saveAutoAlliance("RED");
-
         telemetry.addLine("Alliance Color: RED (Saved to Preferences)");
-
 
         // --- WAIT FOR START ---
         waitForStart();
         if (isStopRequested()) return;
 
-        setPathState(0);
-
+        autoPlan.init(this);
         targetGoalId = APRILTAG_ID_GOAL_RED;
 
         // --- MAIN AUTONOMOUS LOOP ---
@@ -84,11 +95,8 @@ public class RedGoalSide1 extends DarienOpModeFSM {
             // Pedro follower must be updated every loop
             follower.update();
 
-            // Keep shotgun motor at target RPM every loop cycle (PID needs continuous updates)
-            if (shotgunRunning) {
-                shotgunFSM.toPowerUp(DarienOpModeFSM.SHOT_GUN_POWER_UP_RPM_AUTO);
-            }
-
+            // Keep shotgun PID running during the plan
+            // (ShotgunSpinStep initiates it; update loop maintains it)
             double robotX = follower.getPose().getX();
             double robotY = follower.getPose().getY();
             double robotHeadingRadians = follower.getPose().getHeading();
@@ -97,196 +105,29 @@ public class RedGoalSide1 extends DarienOpModeFSM {
 
             // Save final odometry position to SharedPreferences for TeleOp
             preferencesService.saveAutoFinalPose(
-                    (float) follower.getPose().getX(),
-                    (float) follower.getPose().getY(),
-                    (float) follower.getPose().getHeading()
+                    (float) robotX,
+                    (float) robotY,
+                    (float) robotHeadingRadians
             );
 
-            telemetry.addData("Saved Odometry", String.format("X=%.1f, Y=%.1f, H=%.1f°",
-                                                              follower.getPose().getX(),
-                                                              follower.getPose().getY(),
-                                                              Math.toDegrees(follower.getPose().getHeading())));
+            // Drive the autonomous plan
+            autoPlan.update(this);
 
-            // Drive the state machine
-            pathState = autonomousPathUpdate();
-
-            // Panels/driver telemetry
-            panelsTelemetry.addData("Path State", pathState);
-            panelsTelemetry.addData("X", follower.getPose().getX());
-            panelsTelemetry.addData("Y", follower.getPose().getY());
-            panelsTelemetry.addData("Heading", follower.getPose().getHeading());
+            // Telemetry
+            panelsTelemetry.addData("Plan Status", autoPlan.getStatus());
+            panelsTelemetry.addData("X", robotX);
+            panelsTelemetry.addData("Y", robotY);
+            panelsTelemetry.addData("Heading", robotHeadingRadians);
             panelsTelemetry.addData("Alliance Color", "RED");
-            telemetry.addData("Alliance Color Saved", "RED");
-            addTraceTelemetry("Auto-RedGoalSide1", Integer.toString(pathState), pathTimer.getElapsedTimeSeconds());
+            addTraceTelemetry("Auto-RedGoalSide1", autoPlan.getStatus(), planTimer.getElapsedTimeSeconds());
             displayRpmTelemetry();
             panelsTelemetry.update(telemetry);
+
+            if (autoPlan.isComplete()) {
+                break;
+            }
         }
 
         stopRobot();
-    }
-
-
-    /**
-     * Inner class defining all the Pedro paths.
-     */
-    public static class Paths {
-        public PathChain ShootingPosition1;
-        public PathChain IntakePos1;
-        public PathChain IntakeBallSet1;
-        public PathChain ShootingPosition2;
-        public PathChain Parking;
-
-        public Paths(Follower follower) {
-            ShootingPosition1 = follower.pathBuilder().addPath(
-                            new BezierLine(
-                                    new Pose(STARTING_POSE_X, STARTING_POSE_Y),
-
-                                    new Pose(87.000, 84.000)
-                            )
-                    ).setLinearHeadingInterpolation(Math.toRadians(STARTING_POSE_H_DEG), Math.toRadians(0))
-
-                    .build();
-
-            IntakePos1 = follower.pathBuilder().addPath(
-                            new BezierLine(
-                                    new Pose(87.000, 84.000),
-
-                                    new Pose(100.000, 84.000)
-                            )
-                    ).setTangentHeadingInterpolation()
-
-                    .build();
-
-            IntakeBallSet1 = follower.pathBuilder().addPath(
-                            new BezierLine(
-                                    new Pose(100.000, 84.000),
-
-                                    new Pose(125.000, 84.000)
-                            )
-                    ).setTangentHeadingInterpolation()
-
-                    .build();
-
-            ShootingPosition2 = follower.pathBuilder().addPath(
-                            new BezierLine(
-                                    new Pose(125.000, 84.000),
-
-                                    new Pose(87.000, 84.000)
-                            )
-                    ).setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
-
-                    .build();
-
-            Parking = follower.pathBuilder().addPath(
-                            new BezierLine(
-                                    new Pose(87.000, 84.000),
-
-                                    new Pose(87.000, 120.000)
-                            )
-                    ).setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
-
-                    .build();
-        }
-    }
-
-
-    /**
-     * State machine for autonomous sequence.
-     * Returns current pathState for logging.
-     */
-    public int autonomousPathUpdate() {
-
-        // Helpful debug info every loop
-        telemetry.addData("PathState", pathState);
-        telemetry.addData("FollowerBusy", follower.isBusy());
-        telemetry.addData("PathTimer", pathTimer.getElapsedTimeSeconds());
-
-        switch (pathState) {
-            case 0:
-                // move to shooting position 1, start shotgun spinning immediately
-                follower.setMaxPower(PATH_POWER_STANDARD);
-                intakeFSM.setModeFull();
-                shotgunRunning = true;  // start shotgun — PID runs every loop via main loop
-                follower.followPath(paths.ShootingPosition1);
-                setPathState(pathState + 1);
-                break;
-
-            case 1:
-                // when at shootingPosition 1, start shooting
-                if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
-                    shootingFSM.start(getRuntime(), ShootingFSM.PowerLevel.CLOSE);
-                    setPathState(pathState + 1);
-                }
-                break;
-
-            case 2:
-                // when shooting is done, move to intakePos1
-                shootingFSM.update(getRuntime(), telemetry);
-                telemetry.addLine("Case " + pathState + ": Start IntakeBallSet1");
-                if (SHOOT_TRIPLE_TIME_MIN < pathTimer.getElapsedTimeSeconds() && pathTimer.getElapsedTimeSeconds() < SHOOT_TRIPLE_TIME_MAX) {
-                    shootingFSM.reset();
-                    gateFSM.close();  // close gate to prevent illegal shooting while moving
-                    // shotgun stays spinning — no toOff() here
-                    follower.followPath(paths.IntakePos1);
-                    setPathState(pathState + 1);
-                }
-                break;
-
-            case 3:
-                //when in intakepos1, intake ball set 1
-                if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
-                    follower.setMaxPower(PATH_POWER_SLOW);
-                    intakeFSM.startIntaking();
-                    follower.followPath(paths.IntakeBallSet1);
-                    setPathState(pathState + 1);
-                }
-                break;
-
-            case 4:
-                //after intaking, move to park
-                intakeFSM.updateIntaking(getRuntime(), true, telemetry);
-                if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > STANDARD_PATH_TIMEOUT) {
-                    follower.setMaxPower(PATH_POWER_STANDARD);
-                    follower.followPath(paths.Parking, true);
-                    setPathState(pathState + 1);
-                }
-                break;
-
-            case 5:
-                //after parking, start shooting
-                if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > LONG_PATH_TIMEOUT) {
-                    shootingFSM.start(getRuntime(), ShootingFSM.PowerLevel.CLOSE);
-                    setPathState(pathState + 1);
-                }
-                break;
-
-            case 6:
-                //after done shooting, send odometry values to teleop
-                shootingFSM.update(getRuntime(), telemetry);
-                if (SHOOT_TRIPLE_TIME_MIN < pathTimer.getElapsedTimeSeconds() && pathTimer.getElapsedTimeSeconds() < SHOOT_TRIPLE_TIME_MAX) {
-                    shootingFSM.reset();
-                    shotgunRunning = false;  // stop continuous PID loop
-                    shotgunFSM.toOff();
-                    intakeFSM.off();
-                    telemetry.addLine("Case " + pathState + ": Done, setting state -1");
-                    setPathState(-1); // done
-                }
-                break;
-
-            default:
-                // -1 or any undefined state: do nothing, stay idle
-                telemetry.addLine("Idle state (pathState = " + pathState + ")");
-                break;
-        }
-
-        return pathState;
-    }
-
-    /**
-     * Sets the path state and resets its timer.
-     */
-    public void setPathState(int pState) {
-        pathState = pState;
-        pathTimer.resetTimer();
     }
 }
