@@ -64,8 +64,6 @@ public class TeleOpFSM extends DarienOpModeFSM {
     private static final double AUTO_PARK_STICK_DEADZONE = 0.1; // stick threshold to cancel auto-park
     public static double DEADZONE = 0.1;
 
-    double robotX, robotY, robotHeadingRadians;
-    private String autoAlliance = "UNKNOWN";
 
     @Override
     public void initControls() {
@@ -95,7 +93,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
         tp = new TelemetryPacket();
         dash = FtcDashboard.getInstance();
 
-        autoAlliance = preferencesService.getAutoAlliance("UNKNOWN");
+        String autoAlliance = preferencesService.getAutoAlliance("UNKNOWN");
 
         // Set align color based on saved color from auto
         turretVisionCoordinator.setAlliance(autoAlliance);
@@ -291,10 +289,10 @@ public class TeleOpFSM extends DarienOpModeFSM {
 
 
 
-            // Get current robot pose from follower
-            robotX = follower.getPose().getX();
-            robotY = follower.getPose().getY();
-            robotHeadingRadians = follower.getPose().getHeading();
+            // Snapshot pose once per loop so all coordinators/telemetry use the same frame.
+            double robotX = follower.getPose().getX();
+            double robotY = follower.getPose().getY();
+            double robotHeadingRadians = follower.getPose().getHeading();
 
             // Turret coordinator resolves manual stick intent first, then odometry aiming fallback.
             turretCoordinator.applyManualOrOdometryControl(
