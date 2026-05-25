@@ -322,6 +322,10 @@ public class TeleOpFSM extends DarienOpModeFSM {
                     getRuntime()
             );
 
+            telemetry.addData("Vision Status", turretVisionCoordinator.getVisionStatusLine());
+            telemetry.addData("Vision Fallback", turretVisionCoordinator.getFallbackStatusLine());
+            telemetry.addData("Vision Age (ms)", String.format("%.0f", turretVisionCoordinator.getLastCameraAgeMs()));
+
             String traceState = isAutoParking ? "AUTO_PARK" : "DRIVER_CONTROL";
             double traceStateTimer = isAutoParking ? (getRuntime() - autoParkStartTime) : 0.0;
             addTraceTelemetry("TeleOp", traceState, traceStateTimer);

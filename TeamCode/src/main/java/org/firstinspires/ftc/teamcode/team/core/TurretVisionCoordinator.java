@@ -32,6 +32,10 @@ public class TurretVisionCoordinator {
     private boolean isReadingAprilTag = false;
     private boolean fallbackToOdometryActive = false;
     private double lastCameraLockTimeSec = Double.NaN;
+    private double lastCameraAgeMs = Double.POSITIVE_INFINITY;
+    private int lastDetectionCount = 0;
+    private String lastVisionStatusLine = "CAMERA: idle";
+    private String lastFallbackStatusLine = "ODOMETRY: no lock yet";
     private int targetGoalTagId;
 
     public TurretVisionCoordinator(
@@ -103,6 +107,10 @@ public class TurretVisionCoordinator {
             }
             isReadingAprilTag = false;
             fallbackToOdometryActive = false;
+            lastCameraAgeMs = Double.POSITIVE_INFINITY;
+            lastDetectionCount = 0;
+            lastVisionStatusLine = "MANUAL: camera control disabled";
+            lastFallbackStatusLine = "MANUAL: no fallback active";
             return;
         }
 
@@ -111,7 +119,14 @@ public class TurretVisionCoordinator {
         }
 
         AprilTagService.Snapshot snapshot = aprilTagService.poll(currentTime);
-        telemetry.addData("Goal Detection", "status=%s size=%d", snapshot.getStatus(), snapshot.getDetections().size());
+        lastDetectionCount = snapshot.getDetections().size();
+        lastVisionStatusLine = String.format(
+                "status=%s detections=%d target=%d",
+                snapshot.getStatus(),
+                lastDetectionCount,
+                targetGoalTagId
+        );
+        telemetry.addData("Goal Detection", lastVisionStatusLine);
 
         if (snapshot.isDone()) {
             isReadingAprilTag = false;
@@ -121,22 +136,30 @@ public class TurretVisionCoordinator {
                 turretFSM.alignToBearing(targetDetection.ftcPose.bearing);
                 lastCameraLockTimeSec = currentTime;
                 fallbackToOdometryActive = false;
+                lastFallbackStatusLine = String.format("CAMERA: lock tag %d bearing %.1f", targetDetection.id, targetDetection.ftcPose.bearing);
                 telemetry.addData("Goal Detection", "camera lock on tag %d", targetDetection.id);
             } else {
                 telemetry.addLine("Goal Detection: no valid target tag pose");
+                lastFallbackStatusLine = snapshot.getDetections().isEmpty()
+                        ? "ODOMETRY: no detections"
+                        : "ODOMETRY: no valid target pose";
             }
         }
 
-        double cameraAgeMs = Double.isNaN(lastCameraLockTimeSec)
+        lastCameraAgeMs = Double.isNaN(lastCameraLockTimeSec)
                 ? Double.POSITIVE_INFINITY
                 : (currentTime - lastCameraLockTimeSec) * 1000.0;
 
-        if (cameraAgeMs > cameraFallbackTimeoutMs) {
+        if (lastCameraAgeMs > cameraFallbackTimeoutMs) {
             fallbackToOdometryActive = true;
+            lastFallbackStatusLine = Double.isInfinite(lastCameraAgeMs)
+                    ? "ODOMETRY: no camera lock yet"
+                    : String.format("ODOMETRY: stale lock %.0fms", lastCameraAgeMs);
             applyOdometryFallback(autoAlliance, robotX, robotY, robotHeadingRadians);
-            telemetry.addData("Turret Camera Fallback", "ODOMETRY (stale %.0fms)", cameraAgeMs);
+            telemetry.addData("Turret Camera Fallback", lastFallbackStatusLine);
         } else {
-            telemetry.addData("Turret Camera Fallback", "CAMERA (fresh %.0fms)", cameraAgeMs);
+            lastFallbackStatusLine = String.format("CAMERA: fresh lock %.0fms", lastCameraAgeMs);
+            telemetry.addData("Turret Camera Fallback", lastFallbackStatusLine);
         }
     }
 
@@ -166,6 +189,22 @@ public class TurretVisionCoordinator {
 
     public boolean isFallbackToOdometryActive() {
         return fallbackToOdometryActive;
+    }
+
+    public String getVisionStatusLine() {
+        return lastVisionStatusLine;
+    }
+
+    public String getFallbackStatusLine() {
+        return lastFallbackStatusLine;
+    }
+
+    public double getLastCameraAgeMs() {
+        return lastCameraAgeMs;
+    }
+
+    public int getLastDetectionCount() {
+        return lastDetectionCount;
     }
 
     public int getTargetGoalTagId() {
