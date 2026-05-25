@@ -16,9 +16,9 @@ import org.firstinspires.ftc.teamcode.team.services.AprilTagService;
 import org.firstinspires.ftc.teamcode.team.services.AprilTagVisionService;
 import org.firstinspires.ftc.teamcode.team.services.LocalizationService;
 import org.firstinspires.ftc.teamcode.team.services.PreferencesService;
-import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
+import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.ArrayList;
 
@@ -32,7 +32,6 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
 
     // Pedro pathing/state machine FSMs (declare as needed)
     // public PathFollowerFSM pathFollowerFSM;
-    public AprilTagDetectionFSM tagFSM;
     public ShootPatternFSM shootPatternFSM;
     public ShootArtifactFSM shootArtifactFSM;
     public ShotgunFSM shotgunFSM;
@@ -186,7 +185,6 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
         aprilTag = robotContainer.getAprilTag();
         visionPortal = robotContainer.getVisionPortal();
         MotorHelper = robotContainer.getMotorHelper();
-        tagFSM = robotContainer.getTagFSM();
         shootArtifactFSM = robotContainer.getShootArtifactFSM();
         shootPatternFSM = robotContainer.getShootPatternFSM();
         shotgunFSM = robotContainer.getShotgunFSM();

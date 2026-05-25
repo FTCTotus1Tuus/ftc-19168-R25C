@@ -3,7 +3,6 @@ package org.firstinspires.ftc.teamcode.team.core;
 import com.pedropathing.follower.Follower;
 
 import org.firstinspires.ftc.teamcode.team.MotorHelper;
-import org.firstinspires.ftc.teamcode.team.fsm.AprilTagDetectionFSM;
 import org.firstinspires.ftc.teamcode.team.fsm.DarienOpModeFSM;
 import org.firstinspires.ftc.teamcode.team.fsm.GateFSM;
 import org.firstinspires.ftc.teamcode.team.fsm.IntakeFSM;
@@ -32,8 +31,6 @@ public class RobotContainer {
 
     private MotorHelper motorHelper;
     private AprilTagService aprilTagService;
-
-    private AprilTagDetectionFSM tagFSM;
     private ShootPatternFSM shootPatternFSM;
     private ShootArtifactFSM shootArtifactFSM;
     private ShotgunFSM shotgunFSM;
@@ -54,8 +51,6 @@ public class RobotContainer {
         aprilTagService = services.getVisionService().getAprilTagService(DarienOpModeFSM.TIMEOUT_APRILTAG_DETECTION);
 
         motorHelper = new MotorHelper(opMode.telemetry, DarienOpModeFSM.TICKS_PER_ROTATION);
-
-        tagFSM = new AprilTagDetectionFSM(aprilTagService);
         shootArtifactFSM = new ShootArtifactFSM(opMode);
         shootPatternFSM = new ShootPatternFSM(opMode);
         shotgunFSM = new ShotgunFSM(
@@ -114,9 +109,6 @@ public class RobotContainer {
         return services.getLocalizationService();
     }
 
-    public AprilTagDetectionFSM getTagFSM() {
-        return tagFSM;
-    }
 
     public ShootPatternFSM getShootPatternFSM() {
         return shootPatternFSM;
