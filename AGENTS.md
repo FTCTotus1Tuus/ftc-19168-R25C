@@ -144,3 +144,55 @@ Verification:
 - ...
 ```
 
+## PR Description Playbook
+
+Use this checklist when drafting pull request descriptions for this repo.
+
+### PR Scope and Claims
+- Build the PR text from actual changed files (`git diff --name-only` / staged set when applicable).
+- Separate **code facts** from **assumptions** (especially when hardware tests are not run).
+- Avoid claiming robot validation unless it was actually performed and reported.
+
+### Required PR Sections
+- `Summary` — short intent and why the change exists.
+- `What changed` — concrete bullets with file/symbol-level edits.
+- `Behavior impact` — what changed vs what intentionally stayed the same.
+- `Verification` — exact commands/tests run and their results.
+- `Risk/rollback` — one concise fallback plan for regressions.
+
+### PR Writing Style
+- Prefer short one-line bullets for scanability.
+- Use backticks for paths/classes/constants/commands.
+- Keep tense present and action-oriented ("add", "replace", "wire").
+- Keep tone factual and operator-friendly.
+
+### Standard PR Template (Copy/Paste)
+```markdown
+# <Title>
+
+## Summary
+Short explanation of intent and motivation.
+
+## What changed
+- ...
+- ...
+
+## Behavior impact
+### What changed
+- ...
+
+### What did not change
+- ...
+
+## Verification
+- `<command>`
+- <result>
+
+## Risk/rollback
+1. ...
+2. ...
+
+## Notes
+- ...
+```
+
