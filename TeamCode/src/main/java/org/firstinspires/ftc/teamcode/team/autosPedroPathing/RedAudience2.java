@@ -17,8 +17,10 @@ import org.firstinspires.ftc.teamcode.team.auto.ShootSequenceStep;
 import org.firstinspires.ftc.teamcode.team.auto.ShotgunSpinFarStep;
 import org.firstinspires.ftc.teamcode.team.auto.StopShotgunStep;
 import org.firstinspires.ftc.teamcode.team.auto.RedAudienceSidePaths;
+import org.firstinspires.ftc.teamcode.team.auto.RedAudienceSidePaths;
 import org.firstinspires.ftc.teamcode.team.fsm.DarienOpModeFSM;
 import org.firstinspires.ftc.teamcode.team.fsm.ShootingFSM;
+import org.firstinspires.ftc.teamcode.team.fsm.ShotgunFSM;
 
 /**
  * Red Audience Side 2 - Autonomous with AutoPlan framework.
@@ -99,6 +101,13 @@ public class RedAudience2 extends DarienOpModeFSM {
 
             // Pedro follower must be updated every loop
             follower.update();
+
+            // Keep shotgun PID running during the plan
+            if (shotgunFSM.getState() == ShotgunFSM.State.POWER_UP_FAR) {
+                shotgunFSM.toPowerUpFar(DarienOpModeFSM.SHOT_GUN_POWER_UP_FAR_RPM_AUTO);
+            } else {
+                shotgunFSM.toPowerUp(DarienOpModeFSM.SHOT_GUN_POWER_UP_RPM_AUTO);
+            }
 
             double robotX = follower.getPose().getX();
             double robotY = follower.getPose().getY();

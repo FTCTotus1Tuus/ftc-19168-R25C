@@ -17,8 +17,10 @@ import org.firstinspires.ftc.teamcode.team.auto.ShootSequenceStep;
 import org.firstinspires.ftc.teamcode.team.auto.ShotgunSpinStep;
 import org.firstinspires.ftc.teamcode.team.auto.StopShotgunStep;
 import org.firstinspires.ftc.teamcode.team.auto.BlueGoalSidePaths;
+import org.firstinspires.ftc.teamcode.team.auto.BlueGoalSidePaths;
 import org.firstinspires.ftc.teamcode.team.fsm.DarienOpModeFSM;
 import org.firstinspires.ftc.teamcode.team.fsm.ShootingFSM;
+import org.firstinspires.ftc.teamcode.team.fsm.ShotgunFSM;
 
 /**
  * Blue Goal Side 1 - Autonomous with AutoPlan framework.
@@ -94,6 +96,12 @@ public class BlueGoalSide1 extends DarienOpModeFSM {
 
             // Pedro follower must be updated every loop
             follower.update();
+
+            // Keep shotgun PID running during the plan
+            double targetShotgunRPM = shotgunFSM.getState() == ShotgunFSM.State.POWER_UP_FAR
+                ? DarienOpModeFSM.SHOT_GUN_POWER_UP_FAR_RPM_AUTO
+                : DarienOpModeFSM.SHOT_GUN_POWER_UP_RPM_AUTO;
+            shotgunFSM.toPowerUp(targetShotgunRPM);
 
             double robotX = follower.getPose().getX();
             double robotY = follower.getPose().getY();

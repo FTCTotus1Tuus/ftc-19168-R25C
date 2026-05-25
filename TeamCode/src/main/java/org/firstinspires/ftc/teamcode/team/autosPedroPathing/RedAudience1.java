@@ -19,10 +19,11 @@ import org.firstinspires.ftc.teamcode.team.auto.StopShotgunStep;
 import org.firstinspires.ftc.teamcode.team.auto.RedAudienceSidePaths;
 import org.firstinspires.ftc.teamcode.team.fsm.DarienOpModeFSM;
 import org.firstinspires.ftc.teamcode.team.fsm.ShootingFSM;
+import org.firstinspires.ftc.teamcode.team.fsm.ShotgunFSM;
 
 /**
  * Red Audience Side 1 - Autonomous with AutoPlan framework.
- * Sequence: Move to shoot → Shoot → Intake three times from audience → Park → Shoot again.
+ * Sequence: Move to shoot → Shoot (3) → Intake floor set 1 → Return to shoot → Shoot (3) → Park. Total: 6 balls.
  */
 
 @Autonomous(name = "Red Audience 6", group = "Pedro:Reds", preselectTeleOp = "TeleopFSM")
@@ -59,7 +60,7 @@ public class RedAudience1 extends DarienOpModeFSM {
         // Starting pose
         follower.setStartingPose(new Pose(STARTING_POSE_X, STARTING_POSE_Y, Math.toRadians(STARTING_POSE_H_DEG)));
 
-        // --- BUILD AUTO PLAN (three intake cycles + two shoot cycles, FAR distance) ---
+        // --- BUILD AUTO PLAN (one intake cycle + two shoot cycles = 6 balls, FAR distance) ---
         autoPlan = new AutoPlan()
                 .add(new ShotgunSpinFarStep())
                 .add(new FollowPathStep(RedAudienceSidePaths.buildShootingPosition1(follower), PATH_POWER_STANDARD, STANDARD_PATH_TIMEOUT))
@@ -67,12 +68,7 @@ public class RedAudience1 extends DarienOpModeFSM {
                 .add(new GateCloseStep())
                 .add(new FollowPathStep(RedAudienceSidePaths.buildIntakePos1(follower), PATH_POWER_STANDARD, STANDARD_PATH_TIMEOUT))
                 .add(new IntakeStep(RedAudienceSidePaths.buildIntakeBallSet1(follower), PATH_POWER_SLOW, STANDARD_PATH_TIMEOUT))
-                .add(new FollowPathStep(RedAudienceSidePaths.buildShootingPosition2(follower), PATH_POWER_STANDARD, STANDARD_PATH_TIMEOUT))
-                .add(new ShootSequenceStep(ShootingFSM.PowerLevel.FAR, SHOOT_TRIPLE_TIMEOUT))
-                .add(new GateCloseStep())
-                .add(new FollowPathStep(RedAudienceSidePaths.buildIntakePos2(follower), PATH_POWER_STANDARD, STANDARD_PATH_TIMEOUT))
-                .add(new IntakeStep(RedAudienceSidePaths.buildIntakeBallSet2(follower), PATH_POWER_SLOW, STANDARD_PATH_TIMEOUT))
-                .add(new FollowPathStep(RedAudienceSidePaths.buildShootingPosition3(follower), PATH_POWER_STANDARD, LONG_PATH_TIMEOUT))
+                .add(new FollowPathStep(RedAudienceSidePaths.buildShootingPosition2(follower), PATH_POWER_STANDARD, LONG_PATH_TIMEOUT))
                 .add(new ShootSequenceStep(ShootingFSM.PowerLevel.FAR, SHOOT_TRIPLE_TIMEOUT))
                 .add(new FollowPathStep(RedAudienceSidePaths.buildParking(follower), PATH_POWER_STANDARD, STANDARD_PATH_TIMEOUT))
                 .add(new StopShotgunStep())
@@ -100,6 +96,13 @@ public class RedAudience1 extends DarienOpModeFSM {
 
             // Pedro follower must be updated every loop
             follower.update();
+
+            // Keep shotgun PID running during the plan
+            if (shotgunFSM.getState() == ShotgunFSM.State.POWER_UP_FAR) {
+                shotgunFSM.toPowerUpFar(DarienOpModeFSM.SHOT_GUN_POWER_UP_FAR_RPM_AUTO);
+            } else {
+                shotgunFSM.toPowerUp(DarienOpModeFSM.SHOT_GUN_POWER_UP_RPM_AUTO);
+            }
 
             double robotX = follower.getPose().getX();
             double robotY = follower.getPose().getY();
