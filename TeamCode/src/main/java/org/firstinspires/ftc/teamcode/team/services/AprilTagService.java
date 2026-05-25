@@ -121,6 +121,22 @@ public class AprilTagService {
             return lastSnapshot;
         }
 
+        if (aprilTagProcessor == null) {
+            double elapsedSec = currentTimeSec - startTimeSec;
+            if (elapsedSec >= timeoutSeconds) {
+                lastSnapshot = new Snapshot(
+                        Status.COMPLETE,
+                        startTimeSec,
+                        currentTimeSec,
+                        elapsedSec,
+                        timeoutSeconds,
+                        Collections.<AprilTagDetection>emptyList()
+                );
+                reading = false;
+            }
+            return lastSnapshot;
+        }
+
         List<AprilTagDetection> immutableDetections = copyDetections(aprilTagProcessor.getDetections());
         double elapsedSec = currentTimeSec - startTimeSec;
         boolean done = !immutableDetections.isEmpty() || elapsedSec >= timeoutSeconds;
