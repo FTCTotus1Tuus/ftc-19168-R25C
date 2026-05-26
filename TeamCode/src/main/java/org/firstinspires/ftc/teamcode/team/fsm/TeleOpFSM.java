@@ -112,63 +112,37 @@ public class TeleOpFSM extends DarienOpModeFSM {
         follower.startTeleopDrive(true);
         follower.update();
 
+        TeleOpLoopCoordinator.LoopState loopState = new TeleOpLoopCoordinator.LoopState(
+                isAutoParking,
+                autoParkStartTime,
+                autoAlliance,
+                shootingPowerMode,
+                shotgunPowerLatch
+        );
+
         while (this.opModeIsActive() && !isStopRequested()) {
 
             // Snapshot gamepad inputs once per loop so mapping stays centralized and traceable.
             DriverOneBindings driverOne = inputMapper.mapDriverOne(gamepad1);
             DriverTwoBindings driverTwo = inputMapper.mapDriverTwo(gamepad2);
 
-            // -----------------
-            // ALWAYS RUN
-            // -----------------
-
-            TeleOpLoopCoordinator.AlwaysRunResult alwaysRunResult = loopCoordinator.runAlwaysPhase(
-                    isAutoParking,
-                    autoParkStartTime,
-                    shotgunPowerLatch,
+            double currentTime = getRuntime();
+            TeleOpLoopCoordinator.IterationResult iterationResult = loopCoordinator.runLoopIteration(
+                    loopState,
                     driverOne,
-                    getRuntime(),
-                    autoAlliance,
+                    driverTwo,
+                    currentTime,
                     autoParkCoordinator,
                     driveControlCoordinator,
                     intakeCoordinator,
                     shootingCoordinator,
-                    turretVisionCoordinator,
-                    gateFSM,
-                    turretFSM,
-                    follower,
-                    telemetry,
-                    AutoConfig.AUTO_PARK_STICK_DEADZONE,
-                    AutoConfig.AUTO_PARK_TIMEOUT,
-                    DriveConfig.DRIVE_DEADZONE,
-                    DriveConfig.INPUT_EXPONENT,
-                    DriveConfig.SPEED_SCALE,
-                    DriveConfig.SPEED_SCALE_TURN,
-                    DriveConfig.ROTATION_SCALE
-            );
-            isAutoParking = alwaysRunResult.isAutoParking;
-            autoParkStartTime = alwaysRunResult.autoParkStartTime;
-            shotgunPowerLatch = alwaysRunResult.shotgunPowerLatch;
-            double robotX = alwaysRunResult.pose.x;
-            double robotY = alwaysRunResult.pose.y;
-            double robotHeadingRadians = alwaysRunResult.pose.headingRadians;
-
-            // -----------------
-            // GAMEPAD1 CONTROLS
-            // -----------------
-
-            TeleOpLoopCoordinator.DriverOnePhaseResult driverOnePhaseResult = loopCoordinator.runDriverOnePhase(
-                    isAutoParking,
-                    autoParkStartTime,
-                    shotgunPowerLatch,
-                    autoAlliance,
-                    driverOne,
-                    driverTwo,
-                    getRuntime(),
-                    autoParkCoordinator,
-                    intakeCoordinator,
-                    shootingCoordinator,
                     odometryResetCoordinator,
+                    shooterPowerCoordinator,
+                    turretVisionCoordinator,
+                    turretModeCoordinator,
+                    turretCoordinator,
+                    statusCoordinator,
+                    telemetryCoordinator,
                     localizationService,
                     follower,
                     intakeFSM,
@@ -177,6 +151,13 @@ public class TeleOpFSM extends DarienOpModeFSM {
                     turretFSM,
                     gateFSM,
                     telemetry,
+                    AutoConfig.AUTO_PARK_STICK_DEADZONE,
+                    AutoConfig.AUTO_PARK_TIMEOUT,
+                    DriveConfig.DRIVE_DEADZONE,
+                    DriveConfig.INPUT_EXPONENT,
+                    DriveConfig.SPEED_SCALE,
+                    DriveConfig.SPEED_SCALE_TURN,
+                    DriveConfig.ROTATION_SCALE,
                     AutoConfig.PARK_RED_X,
                     AutoConfig.PARK_RED_Y,
                     AutoConfig.PARK_RED_H_DEG,
@@ -190,64 +171,23 @@ public class TeleOpFSM extends DarienOpModeFSM {
                     AutoConfig.HUMAN_PLAYER_BLUE_Y,
                     DriveConfig.ROBOT_CENTER_OFFSET_X,
                     DriveConfig.ROBOT_CENTER_OFFSET_Y,
-                    ShooterConfig.SHOOT_POWER_SELECT_STICK_THRESHOLD
-            );
-            isAutoParking = driverOnePhaseResult.isAutoParking;
-            autoParkStartTime = driverOnePhaseResult.autoParkStartTime;
-            shotgunPowerLatch = driverOnePhaseResult.shotgunPowerLatch;
-
-            // -----------------
-            // GAMEPAD2 CONTROLS
-            // -----------------
-
-            TeleOpLoopCoordinator.DriverTwoPhaseResult driverTwoPhaseResult = loopCoordinator.runDriverTwoPhase(
-                    autoAlliance,
-                    shootingPowerMode,
-                    shotgunPowerLatch,
-                    driverTwo,
-                    alwaysRunResult.pose,
-                    getRuntime(),
-                    turretVisionCoordinator,
-                    turretModeCoordinator,
-                    turretCoordinator,
-                    shooterPowerCoordinator,
-                    shotgunFSM,
-                    telemetry,
                     ShooterConfig.SHOOTING_POWER_ODOMETRY_Y_THRESHOLD,
                     ShooterConfig.SHOOT_POWER_SELECT_STICK_THRESHOLD,
                     ShooterConfig.SHOT_GUN_POWER_UP_RPM,
-                    ShooterConfig.SHOT_GUN_POWER_UP_FAR_RPM_TELEOP
-            );
-            autoAlliance = driverTwoPhaseResult.autoAlliance;
-            shootingPowerMode = driverTwoPhaseResult.shootingPowerMode;
-            shotgunPowerLatch = driverTwoPhaseResult.shotgunPowerLatch;
-            TeleOpStatusCoordinator.TraceState traceState = statusCoordinator.publishStatus(
-                    telemetry,
-                    telemetryCoordinator,
-                    turretVisionCoordinator,
-                    gateFSM,
-                    intakeFSM,
-                    shootingFSM,
-                    turretFSM,
-                    shootingPowerMode.toString(),
-                    shotgunPowerLatch.toString(),
+                    ShooterConfig.SHOT_GUN_POWER_UP_FAR_RPM_TELEOP,
                     ejectionMotor.getVelocity() * 60 / DriveConfig.TICKS_PER_ROTATION,
                     ejectionMotor.getPower(),
-                    ejectionMotor.getVelocity(),
-                    autoAlliance,
-                    robotX,
-                    robotY,
-                    robotHeadingRadians,
-                    isAutoParking,
-                    turretVisionCoordinator.getTargetGoalTagId(),
-                    AutoConfig.PARK_RED_X,
-                    AutoConfig.PARK_RED_Y,
-                    AutoConfig.PARK_BLUE_X,
-                    AutoConfig.PARK_BLUE_Y,
-                    AutoConfig.AUTO_PARK_TIMEOUT,
-                    autoParkStartTime,
-                    getRuntime()
+                    ejectionMotor.getVelocity()
             );
+
+            loopState = iterationResult.state;
+            isAutoParking = loopState.isAutoParking;
+            autoParkStartTime = loopState.autoParkStartTime;
+            autoAlliance = loopState.autoAlliance;
+            shootingPowerMode = loopState.shootingPowerMode;
+            shotgunPowerLatch = loopState.shotgunPowerLatch;
+
+            TeleOpStatusCoordinator.TraceState traceState = iterationResult.traceState;
             addTraceTelemetry("TeleOp", traceState.state, traceState.stateTimerSec);
 
             telemetry.update();

@@ -79,6 +79,38 @@ public class TeleOpLoopCoordinator {
         }
     }
 
+    public static class LoopState {
+        public final boolean isAutoParking;
+        public final double autoParkStartTime;
+        public final String autoAlliance;
+        public final DarienOpModeFSM.ShootingPowerModes shootingPowerMode;
+        public final DarienOpModeFSM.ShotgunPowerLevel shotgunPowerLatch;
+
+        public LoopState(
+                boolean isAutoParking,
+                double autoParkStartTime,
+                String autoAlliance,
+                DarienOpModeFSM.ShootingPowerModes shootingPowerMode,
+                DarienOpModeFSM.ShotgunPowerLevel shotgunPowerLatch
+        ) {
+            this.isAutoParking = isAutoParking;
+            this.autoParkStartTime = autoParkStartTime;
+            this.autoAlliance = autoAlliance;
+            this.shootingPowerMode = shootingPowerMode;
+            this.shotgunPowerLatch = shotgunPowerLatch;
+        }
+    }
+
+    public static class IterationResult {
+        public final LoopState state;
+        public final TeleOpStatusCoordinator.TraceState traceState;
+
+        public IterationResult(LoopState state, TeleOpStatusCoordinator.TraceState traceState) {
+            this.state = state;
+            this.traceState = traceState;
+        }
+    }
+
     public AlwaysRunResult runAlwaysPhase(
             boolean isAutoParking,
             double autoParkStartTime,
@@ -318,6 +350,176 @@ public class TeleOpLoopCoordinator {
         );
 
         return new DriverTwoPhaseResult(autoAlliance, shootingPowerMode, shotgunPowerLatch);
+    }
+
+    public IterationResult runLoopIteration(
+            LoopState loopState,
+            DriverOneBindings driverOne,
+            DriverTwoBindings driverTwo,
+            double currentTime,
+            AutoParkCoordinator autoParkCoordinator,
+            DriveControlCoordinator driveControlCoordinator,
+            IntakeCoordinator intakeCoordinator,
+            ShootingCoordinator shootingCoordinator,
+            OdometryResetCoordinator odometryResetCoordinator,
+            ShooterPowerCoordinator shooterPowerCoordinator,
+            TurretVisionCoordinator turretVisionCoordinator,
+            TurretModeCoordinator turretModeCoordinator,
+            TurretCoordinator turretCoordinator,
+            TeleOpStatusCoordinator statusCoordinator,
+            TeleOpTelemetryCoordinator telemetryCoordinator,
+            LocalizationService localizationService,
+            Follower follower,
+            IntakeFSM intakeFSM,
+            ShotgunFSM shotgunFSM,
+            ShootingFSM shootingFSM,
+            TurretFSM turretFSM,
+            GateFSM gateFSM,
+            Telemetry telemetry,
+            double autoParkStickDeadzone,
+            double autoParkTimeout,
+            double driveDeadzone,
+            double inputExponent,
+            double speedScale,
+            double speedScaleTurn,
+            double rotationScale,
+            double parkRedX,
+            double parkRedY,
+            double parkRedHeadingDeg,
+            double parkBlueX,
+            double parkBlueY,
+            double parkBlueHeadingDeg,
+            double autoParkPower,
+            double humanPlayerRedX,
+            double humanPlayerRedY,
+            double humanPlayerBlueX,
+            double humanPlayerBlueY,
+            double robotCenterOffsetX,
+            double robotCenterOffsetY,
+            double shootingPowerOdometryYThreshold,
+            double shootPowerSelectStickThreshold,
+            double closeRpm,
+            double farRpm,
+            double ejectionMotorRpm,
+            double ejectionMotorPower,
+            double ejectionMotorVelocity
+    ) {
+        AlwaysRunResult alwaysRunResult = runAlwaysPhase(
+                loopState.isAutoParking,
+                loopState.autoParkStartTime,
+                loopState.shotgunPowerLatch,
+                driverOne,
+                currentTime,
+                loopState.autoAlliance,
+                autoParkCoordinator,
+                driveControlCoordinator,
+                intakeCoordinator,
+                shootingCoordinator,
+                turretVisionCoordinator,
+                gateFSM,
+                turretFSM,
+                follower,
+                telemetry,
+                autoParkStickDeadzone,
+                autoParkTimeout,
+                driveDeadzone,
+                inputExponent,
+                speedScale,
+                speedScaleTurn,
+                rotationScale
+        );
+
+        DriverOnePhaseResult driverOnePhaseResult = runDriverOnePhase(
+                alwaysRunResult.isAutoParking,
+                alwaysRunResult.autoParkStartTime,
+                alwaysRunResult.shotgunPowerLatch,
+                loopState.autoAlliance,
+                driverOne,
+                driverTwo,
+                currentTime,
+                autoParkCoordinator,
+                intakeCoordinator,
+                shootingCoordinator,
+                odometryResetCoordinator,
+                localizationService,
+                follower,
+                intakeFSM,
+                shotgunFSM,
+                shootingFSM,
+                turretFSM,
+                gateFSM,
+                telemetry,
+                parkRedX,
+                parkRedY,
+                parkRedHeadingDeg,
+                parkBlueX,
+                parkBlueY,
+                parkBlueHeadingDeg,
+                autoParkPower,
+                humanPlayerRedX,
+                humanPlayerRedY,
+                humanPlayerBlueX,
+                humanPlayerBlueY,
+                robotCenterOffsetX,
+                robotCenterOffsetY,
+                shootPowerSelectStickThreshold
+        );
+
+        DriverTwoPhaseResult driverTwoPhaseResult = runDriverTwoPhase(
+                loopState.autoAlliance,
+                loopState.shootingPowerMode,
+                driverOnePhaseResult.shotgunPowerLatch,
+                driverTwo,
+                alwaysRunResult.pose,
+                currentTime,
+                turretVisionCoordinator,
+                turretModeCoordinator,
+                turretCoordinator,
+                shooterPowerCoordinator,
+                shotgunFSM,
+                telemetry,
+                shootingPowerOdometryYThreshold,
+                shootPowerSelectStickThreshold,
+                closeRpm,
+                farRpm
+        );
+
+        TeleOpStatusCoordinator.TraceState traceState = statusCoordinator.publishStatus(
+                telemetry,
+                telemetryCoordinator,
+                turretVisionCoordinator,
+                gateFSM,
+                intakeFSM,
+                shootingFSM,
+                turretFSM,
+                driverTwoPhaseResult.shootingPowerMode.toString(),
+                driverTwoPhaseResult.shotgunPowerLatch.toString(),
+                ejectionMotorRpm,
+                ejectionMotorPower,
+                ejectionMotorVelocity,
+                driverTwoPhaseResult.autoAlliance,
+                alwaysRunResult.pose.x,
+                alwaysRunResult.pose.y,
+                alwaysRunResult.pose.headingRadians,
+                driverOnePhaseResult.isAutoParking,
+                turretVisionCoordinator.getTargetGoalTagId(),
+                parkRedX,
+                parkRedY,
+                parkBlueX,
+                parkBlueY,
+                autoParkTimeout,
+                driverOnePhaseResult.autoParkStartTime,
+                currentTime
+        );
+
+        LoopState nextState = new LoopState(
+                driverOnePhaseResult.isAutoParking,
+                driverOnePhaseResult.autoParkStartTime,
+                driverTwoPhaseResult.autoAlliance,
+                driverTwoPhaseResult.shootingPowerMode,
+                driverTwoPhaseResult.shotgunPowerLatch
+        );
+        return new IterationResult(nextState, traceState);
     }
 }
 
