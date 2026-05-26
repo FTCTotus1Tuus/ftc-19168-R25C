@@ -20,6 +20,7 @@ import org.firstinspires.ftc.teamcode.team.core.IntakeCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.OdometryResetCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.ShooterPowerCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.ShootingCoordinator;
+import org.firstinspires.ftc.teamcode.team.core.TeleOpInputMapper;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpTelemetryCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TurretCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TurretModeCoordinator;
@@ -39,6 +40,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
     private OdometryResetCoordinator odometryResetCoordinator;
     private ShooterPowerCoordinator shooterPowerCoordinator;
     private ShootingCoordinator shootingCoordinator;
+    private TeleOpInputMapper inputMapper;
     private TeleOpTelemetryCoordinator telemetryCoordinator;
     private TurretCoordinator turretCoordinator;
     private TurretModeCoordinator turretModeCoordinator;
@@ -60,6 +62,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
         odometryResetCoordinator = new OdometryResetCoordinator();
         shooterPowerCoordinator = new ShooterPowerCoordinator();
         shootingCoordinator = new ShootingCoordinator(shootingFSM, intakeFSM, gateFSM);
+        inputMapper = new TeleOpInputMapper();
         telemetryCoordinator = new TeleOpTelemetryCoordinator();
         turretCoordinator = new TurretCoordinator(turretFSM);
         turretModeCoordinator = new TurretModeCoordinator(turretFSM);
@@ -115,32 +118,8 @@ public class TeleOpFSM extends DarienOpModeFSM {
         while (this.opModeIsActive() && !isStopRequested()) {
 
             // Snapshot gamepad inputs once per loop so mapping stays centralized and traceable.
-            DriverOneBindings driverOne = new DriverOneBindings(
-                    gamepad1.left_stick_y,
-                    gamepad1.left_stick_x,
-                    gamepad1.right_stick_x,
-                    gamepad1.y || gamepad1.right_bumper,
-                    gamepad1.a,
-                    gamepad1.x,
-                    gamepad1.bWasPressed(),
-                    gamepad1.dpadUpWasPressed()
-            );
-
-            DriverTwoBindings driverTwo = new DriverTwoBindings(
-                    gamepad2.left_bumper,
-                    gamepad2.rightBumperWasPressed(),
-                    gamepad2.rightBumperWasReleased(),
-                    gamepad2.right_stick_y,
-                    gamepad2.b,
-                    gamepad2.x,
-                    gamepad2.dpadUpWasPressed(),
-                    gamepad2.dpadDownWasPressed(),
-                    gamepad2.left_stick_x,
-                    gamepad2.left_trigger,
-                    gamepad2.left_stick_button,
-                    gamepad2.rightStickButtonWasPressed(),
-                    gamepad2.a
-            );
+            DriverOneBindings driverOne = inputMapper.mapDriverOne(gamepad1);
+            DriverTwoBindings driverTwo = inputMapper.mapDriverTwo(gamepad2);
 
             // -----------------
             // ALWAYS RUN
