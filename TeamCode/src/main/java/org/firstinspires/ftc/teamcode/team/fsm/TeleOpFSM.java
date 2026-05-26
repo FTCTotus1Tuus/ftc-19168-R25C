@@ -22,6 +22,7 @@ import org.firstinspires.ftc.teamcode.team.core.ShooterPowerCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.ShootingCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpInputMapper;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpLoopCoordinator;
+import org.firstinspires.ftc.teamcode.team.core.TeleOpStatusCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpTelemetryCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TurretCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TurretModeCoordinator;
@@ -43,6 +44,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
     private ShootingCoordinator shootingCoordinator;
     private TeleOpInputMapper inputMapper;
     private TeleOpLoopCoordinator loopCoordinator;
+    private TeleOpStatusCoordinator statusCoordinator;
     private TeleOpTelemetryCoordinator telemetryCoordinator;
     private TurretCoordinator turretCoordinator;
     private TurretModeCoordinator turretModeCoordinator;
@@ -66,6 +68,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
         shootingCoordinator = new ShootingCoordinator(shootingFSM, intakeFSM, gateFSM);
         inputMapper = new TeleOpInputMapper();
         loopCoordinator = new TeleOpLoopCoordinator();
+        statusCoordinator = new TeleOpStatusCoordinator();
         telemetryCoordinator = new TeleOpTelemetryCoordinator();
         turretCoordinator = new TurretCoordinator(turretFSM);
         turretModeCoordinator = new TurretModeCoordinator(turretFSM);
@@ -227,8 +230,10 @@ public class TeleOpFSM extends DarienOpModeFSM {
             autoAlliance = driverTwoPhaseResult.autoAlliance;
             shootingPowerMode = driverTwoPhaseResult.shootingPowerMode;
             shotgunPowerLatch = driverTwoPhaseResult.shotgunPowerLatch;
-            telemetryCoordinator.addLoopTelemetry(
+            TeleOpStatusCoordinator.TraceState traceState = statusCoordinator.publishStatus(
                     telemetry,
+                    telemetryCoordinator,
+                    turretVisionCoordinator,
                     gateFSM,
                     intakeFSM,
                     shootingFSM,
@@ -239,11 +244,11 @@ public class TeleOpFSM extends DarienOpModeFSM {
                     ejectionMotor.getPower(),
                     ejectionMotor.getVelocity(),
                     autoAlliance,
-                    turretVisionCoordinator.getTargetGoalTagId(),
                     robotX,
                     robotY,
                     robotHeadingRadians,
                     isAutoParking,
+                    turretVisionCoordinator.getTargetGoalTagId(),
                     AutoConfig.PARK_RED_X,
                     AutoConfig.PARK_RED_Y,
                     AutoConfig.PARK_BLUE_X,
@@ -252,14 +257,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
                     autoParkStartTime,
                     getRuntime()
             );
-
-            telemetry.addData("Vision Status", turretVisionCoordinator.getVisionStatusLine());
-            telemetry.addData("Vision Fallback", turretVisionCoordinator.getFallbackStatusLine());
-            telemetry.addData("Vision Age (ms)", String.format("%.0f", turretVisionCoordinator.getLastCameraAgeMs()));
-
-            String traceState = isAutoParking ? "AUTO_PARK" : "DRIVER_CONTROL";
-            double traceStateTimer = isAutoParking ? (getRuntime() - autoParkStartTime) : 0.0;
-            addTraceTelemetry("TeleOp", traceState, traceStateTimer);
+            addTraceTelemetry("TeleOp", traceState.state, traceState.stateTimerSec);
 
             telemetry.update();
         } //while opModeIsActive
