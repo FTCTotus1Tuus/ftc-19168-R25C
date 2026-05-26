@@ -21,6 +21,7 @@ import org.firstinspires.ftc.teamcode.team.core.OdometryResetCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.ShooterPowerCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.ShootingCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpInputMapper;
+import org.firstinspires.ftc.teamcode.team.core.TeleOpLoopCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpTelemetryCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TurretCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TurretModeCoordinator;
@@ -41,6 +42,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
     private ShooterPowerCoordinator shooterPowerCoordinator;
     private ShootingCoordinator shootingCoordinator;
     private TeleOpInputMapper inputMapper;
+    private TeleOpLoopCoordinator loopCoordinator;
     private TeleOpTelemetryCoordinator telemetryCoordinator;
     private TurretCoordinator turretCoordinator;
     private TurretModeCoordinator turretModeCoordinator;
@@ -63,6 +65,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
         shooterPowerCoordinator = new ShooterPowerCoordinator();
         shootingCoordinator = new ShootingCoordinator(shootingFSM, intakeFSM, gateFSM);
         inputMapper = new TeleOpInputMapper();
+        loopCoordinator = new TeleOpLoopCoordinator();
         telemetryCoordinator = new TeleOpTelemetryCoordinator();
         turretCoordinator = new TurretCoordinator(turretFSM);
         turretModeCoordinator = new TurretModeCoordinator(turretFSM);
@@ -125,80 +128,61 @@ public class TeleOpFSM extends DarienOpModeFSM {
             // ALWAYS RUN
             // -----------------
 
-            AutoParkCoordinator.AutoParkResult progressResult = autoParkCoordinator.updateAutoParkProgress(
+            TeleOpLoopCoordinator.AlwaysRunResult alwaysRunResult = loopCoordinator.runAlwaysPhase(
                     isAutoParking,
                     autoParkStartTime,
+                    shotgunPowerLatch,
+                    driverOne,
                     getRuntime(),
-                    driverOne.driveStrafeAxis,
-                    driverOne.driveForwardAxis,
-                    driverOne.driveTurnAxis,
-                    AutoConfig.AUTO_PARK_STICK_DEADZONE,
-                    AutoConfig.AUTO_PARK_TIMEOUT,
+                    autoAlliance,
+                    autoParkCoordinator,
+                    driveControlCoordinator,
+                    intakeCoordinator,
+                    shootingCoordinator,
+                    turretVisionCoordinator,
+                    gateFSM,
+                    turretFSM,
                     follower,
                     telemetry,
-                    shotgunPowerLatch
-            );
-            isAutoParking = progressResult.isAutoParking;
-            autoParkStartTime = progressResult.autoParkStartTime;
-            shotgunPowerLatch = progressResult.shotgunPowerLatch;
-
-            // Driver stick shaping + drive command emission are centralized in this coordinator.
-            driveControlCoordinator.applyTeleOpDrive(
-                    isAutoParking,
-                    driverOne.driveForwardAxis,
-                    driverOne.driveStrafeAxis,
-                    driverOne.driveTurnAxis,
+                    AutoConfig.AUTO_PARK_STICK_DEADZONE,
+                    AutoConfig.AUTO_PARK_TIMEOUT,
                     DriveConfig.DRIVE_DEADZONE,
                     DriveConfig.INPUT_EXPONENT,
                     DriveConfig.SPEED_SCALE,
                     DriveConfig.SPEED_SCALE_TURN,
-                    DriveConfig.ROTATION_SCALE,
-                    follower
+                    DriveConfig.ROTATION_SCALE
             );
-
-            follower.update();
-
-            gateFSM.update(getRuntime(), telemetry);
-            turretFSM.update(getRuntime(), telemetry);
-
-            // INTAKE FSM UPDATE — runs sensor polling and auto-stops when full
-            intakeCoordinator.updateActiveIntake(getRuntime(), telemetry);
-
-            // SHOOTING FSM UPDATE — drives spin-up → gate open → gate close → done
-            shootingCoordinator.updateActiveSequence(getRuntime(), telemetry);
-
-            // Snapshot pose once per loop so all coordinators/telemetry use the same frame.
-            double robotX = follower.getPose().getX();
-            double robotY = follower.getPose().getY();
-            double robotHeadingRadians = follower.getPose().getHeading();
-
-            // Camera control runs before manual/odometry controls so driver manual intent can still override.
-            turretVisionCoordinator.updateCameraControl(
-                    getRuntime(),
-                    autoAlliance,
-                    robotX,
-                    robotY,
-                    robotHeadingRadians,
-                    telemetry
-            );
+            isAutoParking = alwaysRunResult.isAutoParking;
+            autoParkStartTime = alwaysRunResult.autoParkStartTime;
+            shotgunPowerLatch = alwaysRunResult.shotgunPowerLatch;
+            double robotX = alwaysRunResult.pose.x;
+            double robotY = alwaysRunResult.pose.y;
+            double robotHeadingRadians = alwaysRunResult.pose.headingRadians;
 
             // -----------------
             // GAMEPAD1 CONTROLS
             // -----------------
 
-            intakeCoordinator.handleDriverControls(
-                    driverOne.intakeRequested,
-                    driverOne.ejectRequested,
-                    driverOne.intakeOffRequested
-            );
-
-            // Auto-park start logic returns the next loop state in one place.
-            AutoParkCoordinator.AutoParkResult startResult = autoParkCoordinator.tryStartAutoPark(
-                    driverOne.autoParkRequested,
+            TeleOpLoopCoordinator.DriverOnePhaseResult driverOnePhaseResult = loopCoordinator.runDriverOnePhase(
                     isAutoParking,
-                    getRuntime(),
                     autoParkStartTime,
+                    shotgunPowerLatch,
                     autoAlliance,
+                    driverOne,
+                    driverTwo,
+                    getRuntime(),
+                    autoParkCoordinator,
+                    intakeCoordinator,
+                    shootingCoordinator,
+                    odometryResetCoordinator,
+                    localizationService,
+                    follower,
+                    intakeFSM,
+                    shotgunFSM,
+                    shootingFSM,
+                    turretFSM,
+                    gateFSM,
+                    telemetry,
                     AutoConfig.PARK_RED_X,
                     AutoConfig.PARK_RED_Y,
                     AutoConfig.PARK_RED_H_DEG,
@@ -206,96 +190,43 @@ public class TeleOpFSM extends DarienOpModeFSM {
                     AutoConfig.PARK_BLUE_Y,
                     AutoConfig.PARK_BLUE_H_DEG,
                     AutoConfig.AUTO_PARK_POWER,
-                    follower,
-                    intakeFSM,
-                    shotgunFSM,
-                    shootingFSM,
-                    turretFSM,
-                    gateFSM,
-                    shotgunPowerLatch
-            );
-            isAutoParking = startResult.isAutoParking;
-            autoParkStartTime = startResult.autoParkStartTime;
-            shotgunPowerLatch = startResult.shotgunPowerLatch;
-
-            shootingCoordinator.handleDriverControls(
-                    getRuntime(),
-                    driverTwo.closeGateRequested,
-                    driverTwo.shootPressed,
-                    driverTwo.shootReleased,
-                    driverTwo.shootingStickY,
-                    ShooterConfig.SHOOT_POWER_SELECT_STICK_THRESHOLD
-            );
-
-            odometryResetCoordinator.tryResetToHumanPlayerPosition(
-                    driverOne.odometryResetRequested,
-                    autoAlliance,
                     AutoConfig.HUMAN_PLAYER_RED_X,
                     AutoConfig.HUMAN_PLAYER_RED_Y,
                     AutoConfig.HUMAN_PLAYER_BLUE_X,
                     AutoConfig.HUMAN_PLAYER_BLUE_Y,
                     DriveConfig.ROBOT_CENTER_OFFSET_X,
                     DriveConfig.ROBOT_CENTER_OFFSET_Y,
-                    localizationService,
-                    telemetry
+                    ShooterConfig.SHOOT_POWER_SELECT_STICK_THRESHOLD
             );
+            isAutoParking = driverOnePhaseResult.isAutoParking;
+            autoParkStartTime = driverOnePhaseResult.autoParkStartTime;
+            shotgunPowerLatch = driverOnePhaseResult.shotgunPowerLatch;
 
             // -----------------
             // GAMEPAD2 CONTROLS
             // -----------------
 
-            //SET ALLIANCE COLOR CONTROL
-            TurretVisionCoordinator.AllianceSwitchResult allianceSwitchResult = turretVisionCoordinator.handleAllianceButtons(
-                    driverTwo.setAllianceRedRequested,
-                    driverTwo.setAllianceBlueRequested,
+            TeleOpLoopCoordinator.DriverTwoPhaseResult driverTwoPhaseResult = loopCoordinator.runDriverTwoPhase(
                     autoAlliance,
-                    telemetry
-            );
-            autoAlliance = allianceSwitchResult.alliance;
-
-            TurretModeCoordinator.ModeSwitchResult modeSwitchResult = turretModeCoordinator.handleModeSwitches(
-                    driverTwo.odometryModeRequested,
-                    driverTwo.cameraModeRequested,
-                    shootingPowerMode
-            );
-            shootingPowerMode = modeSwitchResult.shootingPowerMode;
-            if (modeSwitchResult.shouldStartGoalReading) {
-                turretVisionCoordinator.startReadingGoalId(getRuntime());
-            }
-
-
-            // Turret coordinator resolves manual stick intent first, then odometry aiming fallback.
-            turretCoordinator.applyManualOrOdometryControl(
-                    autoAlliance,
-                    driverTwo.turretManualAxis,
-                    driverTwo.turretSpeedTrigger,
-                    driverTwo.turretCenterRequested,
-                    robotX,
-                    robotY,
-                    robotHeadingRadians
-            );
-
-            // Compute latch/mode first, then apply shooter power command.
-            ShooterPowerCoordinator.PowerState powerState = shooterPowerCoordinator.computePowerState(
                     shootingPowerMode,
                     shotgunPowerLatch,
-                    robotY,
-                    ShooterConfig.SHOOTING_POWER_ODOMETRY_Y_THRESHOLD,
-                    driverTwo.shootingStickY,
-                    ShooterConfig.SHOOT_POWER_SELECT_STICK_THRESHOLD,
-                    driverTwo.toggleShotgunPowerLatchRequested,
-                    driverTwo.forceShotgunLowPowerRequested
-            );
-            shootingPowerMode = powerState.mode;
-            shotgunPowerLatch = powerState.latch;
-
-            shooterPowerCoordinator.applyRequestedPower(
+                    driverTwo,
+                    alwaysRunResult.pose,
+                    getRuntime(),
+                    turretVisionCoordinator,
+                    turretModeCoordinator,
+                    turretCoordinator,
+                    shooterPowerCoordinator,
                     shotgunFSM,
-                    shotgunPowerLatch,
+                    telemetry,
+                    ShooterConfig.SHOOTING_POWER_ODOMETRY_Y_THRESHOLD,
+                    ShooterConfig.SHOOT_POWER_SELECT_STICK_THRESHOLD,
                     ShooterConfig.SHOT_GUN_POWER_UP_RPM,
-                    ShooterConfig.SHOT_GUN_POWER_UP_FAR_RPM_TELEOP,
-                    telemetry
+                    ShooterConfig.SHOT_GUN_POWER_UP_FAR_RPM_TELEOP
             );
+            autoAlliance = driverTwoPhaseResult.autoAlliance;
+            shootingPowerMode = driverTwoPhaseResult.shootingPowerMode;
+            shotgunPowerLatch = driverTwoPhaseResult.shotgunPowerLatch;
             telemetryCoordinator.addLoopTelemetry(
                     telemetry,
                     gateFSM,
