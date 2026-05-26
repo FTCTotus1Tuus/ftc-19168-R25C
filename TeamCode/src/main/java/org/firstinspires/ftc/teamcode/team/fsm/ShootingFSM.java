@@ -4,6 +4,7 @@ import com.acmerobotics.dashboard.config.Config;
 import com.bylazar.configurables.annotations.Configurable;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.teamcode.team.config.ShooterConfig;
 import org.firstinspires.ftc.teamcode.team.subsystems.GateControl;
 import org.firstinspires.ftc.teamcode.team.subsystems.ShooterIntakeControl;
 import org.firstinspires.ftc.teamcode.team.subsystems.ShootingControl;
@@ -246,7 +247,7 @@ public class ShootingFSM implements SubsystemLifecycle, ShootingControl {
             double robotY = parent.getRobotY();
             if (!Double.isNaN(robotY)) {
                 // FAR power if Y <= threshold (closer to audience side), CLOSE otherwise
-                effectivePowerLevel = (robotY <= DarienOpModeFSM.SHOOTING_POWER_ODOMETRY_Y_THRESHOLD)
+                effectivePowerLevel = (robotY <= ShooterConfig.SHOOTING_POWER_ODOMETRY_Y_THRESHOLD)
                     ? PowerLevel.FAR
                     : PowerLevel.CLOSE;
             }
@@ -256,13 +257,13 @@ public class ShootingFSM implements SubsystemLifecycle, ShootingControl {
         double targetRPM;
         if (effectivePowerLevel == PowerLevel.FAR) {
             targetRPM = parent.isAutonomousMode()
-                ? DarienOpModeFSM.SHOT_GUN_POWER_UP_FAR_RPM_AUTO
-                : DarienOpModeFSM.SHOT_GUN_POWER_UP_FAR_RPM_TELEOP;
+                ? ShooterConfig.SHOT_GUN_POWER_UP_FAR_RPM_AUTO
+                : ShooterConfig.SHOT_GUN_POWER_UP_FAR_RPM_TELEOP;
             shotgunFSM.toPowerUpFar(targetRPM);
         } else {
             targetRPM = parent.isAutonomousMode()
-                ? DarienOpModeFSM.SHOT_GUN_POWER_UP_RPM_AUTO
-                : DarienOpModeFSM.SHOT_GUN_POWER_UP_RPM;
+                ? ShooterConfig.SHOT_GUN_POWER_UP_RPM_AUTO
+                : ShooterConfig.SHOT_GUN_POWER_UP_RPM;
             shotgunFSM.toPowerUp(targetRPM);
         }
     }

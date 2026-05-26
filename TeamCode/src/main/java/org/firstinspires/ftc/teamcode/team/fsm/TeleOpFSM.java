@@ -8,6 +8,10 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.bylazar.configurables.annotations.Configurable;
 
 import android.annotation.SuppressLint;
+import org.firstinspires.ftc.teamcode.team.config.AutoConfig;
+import org.firstinspires.ftc.teamcode.team.config.DriveConfig;
+import org.firstinspires.ftc.teamcode.team.config.ShooterConfig;
+import org.firstinspires.ftc.teamcode.team.config.VisionConfig;
 import org.firstinspires.ftc.teamcode.team.core.AutoParkCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.DriveControlCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.IntakeCoordinator;
@@ -24,15 +28,6 @@ import org.firstinspires.ftc.teamcode.team.services.LocalizationService;
 @Config
 @Configurable
 public class TeleOpFSM extends DarienOpModeFSM {
-
-    // INSTANCES
-    // follower is inherited from DarienOpModeFSM
-    // TUNING CONSTANTS
-    public static double ROTATION_SCALE = 0.5;
-    public static double SPEED_SCALE = 1.0;
-    public static double SPEED_SCALE_TURN = 0.8;
-    public static double INPUT_EXPONENT = 3.0; // 1.0=linear, 2.0=squared, 3.0=cubed (preserves sign)
-    public static double SHOOT_POWER_SELECT_STICK_THRESHOLD = 0.05;
 
     // VARIABLES
     private ShotgunPowerLevel shotgunPowerLatch = ShotgunPowerLevel.OFF;
@@ -52,10 +47,6 @@ public class TeleOpFSM extends DarienOpModeFSM {
     // AUTO-PARK STATE
     private boolean isAutoParking = false;
     private double autoParkStartTime = 0;
-    private static final double AUTO_PARK_STICK_DEADZONE = 0.1; // stick threshold to cancel auto-park
-    public static double DEADZONE = 0.1;
-
-
     @Override
     public void initControls() {
         super.initControls();
@@ -73,9 +64,9 @@ public class TeleOpFSM extends DarienOpModeFSM {
         turretVisionCoordinator = new TurretVisionCoordinator(
                 aprilTagService,
                 turretFSM,
-                APRILTAG_ID_GOAL_BLUE,
-                APRILTAG_ID_GOAL_RED,
-                CAMERA_FALLBACK_TIMEOUT_MS
+                VisionConfig.APRILTAG_ID_GOAL_BLUE,
+                VisionConfig.APRILTAG_ID_GOAL_RED,
+                VisionConfig.CAMERA_FALLBACK_TIMEOUT_MS
         );
     }
 
@@ -95,12 +86,12 @@ public class TeleOpFSM extends DarienOpModeFSM {
         LocalizationService.SeedResult seedResult = localizationService.seedTeleOpPose(
                 autoAlliance,
                 preferencesService,
-                HUMAN_PLAYER_RED_X,
-                HUMAN_PLAYER_RED_Y,
-                HUMAN_PLAYER_BLUE_X,
-                HUMAN_PLAYER_BLUE_Y,
-                ROBOT_CENTER_OFFSET_X,
-                ROBOT_CENTER_OFFSET_Y
+                AutoConfig.HUMAN_PLAYER_RED_X,
+                AutoConfig.HUMAN_PLAYER_RED_Y,
+                AutoConfig.HUMAN_PLAYER_BLUE_X,
+                AutoConfig.HUMAN_PLAYER_BLUE_Y,
+                DriveConfig.ROBOT_CENTER_OFFSET_X,
+                DriveConfig.ROBOT_CENTER_OFFSET_Y
         );
 
         if (seedResult.loadedFromAuto) {
@@ -132,8 +123,8 @@ public class TeleOpFSM extends DarienOpModeFSM {
                     gamepad1.left_stick_x,
                     gamepad1.left_stick_y,
                     gamepad1.right_stick_x,
-                    AUTO_PARK_STICK_DEADZONE,
-                    AUTO_PARK_TIMEOUT,
+                    AutoConfig.AUTO_PARK_STICK_DEADZONE,
+                    AutoConfig.AUTO_PARK_TIMEOUT,
                     follower,
                     telemetry,
                     shotgunPowerLatch
@@ -148,11 +139,11 @@ public class TeleOpFSM extends DarienOpModeFSM {
                     gamepad1.left_stick_y,
                     gamepad1.left_stick_x,
                     gamepad1.right_stick_x,
-                    DEADZONE,
-                    INPUT_EXPONENT,
-                    SPEED_SCALE,
-                    SPEED_SCALE_TURN,
-                    ROTATION_SCALE,
+                    DriveConfig.DRIVE_DEADZONE,
+                    DriveConfig.INPUT_EXPONENT,
+                    DriveConfig.SPEED_SCALE,
+                    DriveConfig.SPEED_SCALE_TURN,
+                    DriveConfig.ROTATION_SCALE,
                     follower
             );
 
@@ -199,13 +190,13 @@ public class TeleOpFSM extends DarienOpModeFSM {
                     getRuntime(),
                     autoParkStartTime,
                     autoAlliance,
-                    PARK_RED_X,
-                    PARK_RED_Y,
-                    PARK_RED_H_DEG,
-                    PARK_BLUE_X,
-                    PARK_BLUE_Y,
-                    PARK_BLUE_H_DEG,
-                    AUTO_PARK_POWER,
+                    AutoConfig.PARK_RED_X,
+                    AutoConfig.PARK_RED_Y,
+                    AutoConfig.PARK_RED_H_DEG,
+                    AutoConfig.PARK_BLUE_X,
+                    AutoConfig.PARK_BLUE_Y,
+                    AutoConfig.PARK_BLUE_H_DEG,
+                    AutoConfig.AUTO_PARK_POWER,
                     follower,
                     intakeFSM,
                     shotgunFSM,
@@ -224,18 +215,18 @@ public class TeleOpFSM extends DarienOpModeFSM {
                     gamepad2.rightBumperWasPressed(),
                     gamepad2.rightBumperWasReleased(),
                     gamepad2.right_stick_y,
-                    SHOOT_POWER_SELECT_STICK_THRESHOLD
+                    ShooterConfig.SHOOT_POWER_SELECT_STICK_THRESHOLD
             );
 
             odometryResetCoordinator.tryResetToHumanPlayerPosition(
                     gamepad1.dpadUpWasPressed(),
                     autoAlliance,
-                    HUMAN_PLAYER_RED_X,
-                    HUMAN_PLAYER_RED_Y,
-                    HUMAN_PLAYER_BLUE_X,
-                    HUMAN_PLAYER_BLUE_Y,
-                    ROBOT_CENTER_OFFSET_X,
-                    ROBOT_CENTER_OFFSET_Y,
+                    AutoConfig.HUMAN_PLAYER_RED_X,
+                    AutoConfig.HUMAN_PLAYER_RED_Y,
+                    AutoConfig.HUMAN_PLAYER_BLUE_X,
+                    AutoConfig.HUMAN_PLAYER_BLUE_Y,
+                    DriveConfig.ROBOT_CENTER_OFFSET_X,
+                    DriveConfig.ROBOT_CENTER_OFFSET_Y,
                     localizationService,
                     telemetry
             );
@@ -280,9 +271,9 @@ public class TeleOpFSM extends DarienOpModeFSM {
                     shootingPowerMode,
                     shotgunPowerLatch,
                     robotY,
-                    SHOOTING_POWER_ODOMETRY_Y_THRESHOLD,
+                    ShooterConfig.SHOOTING_POWER_ODOMETRY_Y_THRESHOLD,
                     gamepad2.right_stick_y,
-                    SHOOT_POWER_SELECT_STICK_THRESHOLD,
+                    ShooterConfig.SHOOT_POWER_SELECT_STICK_THRESHOLD,
                     gamepad2.rightStickButtonWasPressed(),
                     gamepad2.a
             );
@@ -292,8 +283,8 @@ public class TeleOpFSM extends DarienOpModeFSM {
             shooterPowerCoordinator.applyRequestedPower(
                     shotgunFSM,
                     shotgunPowerLatch,
-                    SHOT_GUN_POWER_UP_RPM,
-                    SHOT_GUN_POWER_UP_FAR_RPM_TELEOP,
+                    ShooterConfig.SHOT_GUN_POWER_UP_RPM,
+                    ShooterConfig.SHOT_GUN_POWER_UP_FAR_RPM_TELEOP,
                     telemetry
             );
             telemetryCoordinator.addLoopTelemetry(
@@ -304,7 +295,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
                     turretFSM,
                     shootingPowerMode.toString(),
                     shotgunPowerLatch.toString(),
-                    ejectionMotor.getVelocity() * 60 / TICKS_PER_ROTATION,
+                    ejectionMotor.getVelocity() * 60 / DriveConfig.TICKS_PER_ROTATION,
                     ejectionMotor.getPower(),
                     ejectionMotor.getVelocity(),
                     autoAlliance,
@@ -313,11 +304,11 @@ public class TeleOpFSM extends DarienOpModeFSM {
                     robotY,
                     robotHeadingRadians,
                     isAutoParking,
-                    PARK_RED_X,
-                    PARK_RED_Y,
-                    PARK_BLUE_X,
-                    PARK_BLUE_Y,
-                    AUTO_PARK_TIMEOUT,
+                    AutoConfig.PARK_RED_X,
+                    AutoConfig.PARK_RED_Y,
+                    AutoConfig.PARK_BLUE_X,
+                    AutoConfig.PARK_BLUE_Y,
+                    AutoConfig.AUTO_PARK_TIMEOUT,
                     autoParkStartTime,
                     getRuntime()
             );

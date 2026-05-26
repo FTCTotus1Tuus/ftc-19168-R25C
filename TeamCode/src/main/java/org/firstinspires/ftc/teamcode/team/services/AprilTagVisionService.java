@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.team.services;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.ExposureControl;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.GainControl;
+import org.firstinspires.ftc.teamcode.team.config.VisionConfig;
 import org.firstinspires.ftc.teamcode.team.fsm.DarienOpModeFSM;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
@@ -44,7 +45,7 @@ public class AprilTagVisionService {
 
     /**
      * Builds the AprilTag processor and VisionPortal, then applies the tuned manual
-     * exposure profile from DarienOpModeFSM constants.
+         * exposure profile from VisionConfig constants.
      *
      * <p>Safe to call during initControls() — blocks briefly until streaming or stop.
      */
@@ -66,7 +67,7 @@ public class AprilTagVisionService {
         }
 
         aprilTagService = null;
-        applyTunedExposure(DarienOpModeFSM.APRILTAG_EXPOSURE_MS, DarienOpModeFSM.APRILTAG_GAIN);
+        applyTunedExposure(VisionConfig.APRILTAG_EXPOSURE_MS, VisionConfig.APRILTAG_GAIN);
     }
 
     /**

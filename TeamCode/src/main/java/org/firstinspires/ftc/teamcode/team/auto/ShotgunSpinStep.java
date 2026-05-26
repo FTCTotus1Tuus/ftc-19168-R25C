@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.team.auto;
 
 import org.firstinspires.ftc.teamcode.team.fsm.DarienOpModeFSM;
+import org.firstinspires.ftc.teamcode.team.config.ShooterConfig;
 
 /**
  * Step to start shotgun spinning at autonomous RPM.
@@ -11,7 +12,7 @@ public class ShotgunSpinStep implements AutoStep {
 
     @Override
     public void init(DarienOpModeFSM opMode) {
-        opMode.shotgunFSM.toPowerUp(DarienOpModeFSM.SHOT_GUN_POWER_UP_RPM_AUTO);
+        opMode.shotgunFSM.toPowerUp(ShooterConfig.SHOT_GUN_POWER_UP_RPM_AUTO);
     }
 
     @Override

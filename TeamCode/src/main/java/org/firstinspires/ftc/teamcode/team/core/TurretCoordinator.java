@@ -1,6 +1,6 @@
 package org.firstinspires.ftc.teamcode.team.core;
 
-import org.firstinspires.ftc.teamcode.team.fsm.DarienOpModeFSM;
+import org.firstinspires.ftc.teamcode.team.config.TurretConfig;
 import org.firstinspires.ftc.teamcode.team.fsm.TurretFSM;
 
 /**
@@ -47,11 +47,11 @@ public class TurretCoordinator {
             double targetGoalX;
             double targetGoalY;
             if ("RED".equals(autoAlliance)) {
-                targetGoalX = DarienOpModeFSM.GOAL_RED_X;
-                targetGoalY = DarienOpModeFSM.GOAL_RED_Y;
+                targetGoalX = TurretConfig.GOAL_RED_X;
+                targetGoalY = TurretConfig.GOAL_RED_Y;
             } else {
-                targetGoalX = DarienOpModeFSM.GOAL_BLUE_X;
-                targetGoalY = DarienOpModeFSM.GOAL_BLUE_Y;
+                targetGoalX = TurretConfig.GOAL_BLUE_X;
+                targetGoalY = TurretConfig.GOAL_BLUE_Y;
             }
 
             turretFSM.setPositionFromOdometry(targetGoalX, targetGoalY, robotX, robotY, robotHeadingRadians);
