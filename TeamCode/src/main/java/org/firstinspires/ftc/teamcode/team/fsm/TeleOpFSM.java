@@ -20,6 +20,7 @@ import org.firstinspires.ftc.teamcode.team.core.IntakeCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.OdometryResetCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.ShooterPowerCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.ShootingCoordinator;
+import org.firstinspires.ftc.teamcode.team.core.TeleOpInitializationCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpInputMapper;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpLoopCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpStatusCoordinator;
@@ -27,7 +28,6 @@ import org.firstinspires.ftc.teamcode.team.core.TeleOpTelemetryCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TurretCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TurretModeCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TurretVisionCoordinator;
-import org.firstinspires.ftc.teamcode.team.services.LocalizationService;
 
 @TeleOp(name = "TeleopFSM", group = "DriverControl")
 @Config
@@ -42,6 +42,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
     private OdometryResetCoordinator odometryResetCoordinator;
     private ShooterPowerCoordinator shooterPowerCoordinator;
     private ShootingCoordinator shootingCoordinator;
+    private TeleOpInitializationCoordinator initializationCoordinator;
     private TeleOpInputMapper inputMapper;
     private TeleOpLoopCoordinator loopCoordinator;
     private TeleOpStatusCoordinator statusCoordinator;
@@ -66,6 +67,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
         odometryResetCoordinator = new OdometryResetCoordinator();
         shooterPowerCoordinator = new ShooterPowerCoordinator();
         shootingCoordinator = new ShootingCoordinator(shootingFSM, intakeFSM, gateFSM);
+        initializationCoordinator = new TeleOpInitializationCoordinator();
         inputMapper = new TeleOpInputMapper();
         loopCoordinator = new TeleOpLoopCoordinator();
         statusCoordinator = new TeleOpStatusCoordinator();
@@ -89,14 +91,12 @@ public class TeleOpFSM extends DarienOpModeFSM {
         tp = new TelemetryPacket();
         dash = FtcDashboard.getInstance();
 
-        String autoAlliance = preferencesService.getAutoAlliance("UNKNOWN");
-
-        // Set align color based on saved color from auto
-        turretVisionCoordinator.setAlliance(autoAlliance);
-
-        LocalizationService.SeedResult seedResult = localizationService.seedTeleOpPose(
-                autoAlliance,
+        TeleOpInitializationCoordinator.InitializationResult initializationResult = initializationCoordinator.initialize(
                 preferencesService,
+                localizationService,
+                turretVisionCoordinator,
+                telemetry,
+                "UNKNOWN",
                 AutoConfig.HUMAN_PLAYER_RED_X,
                 AutoConfig.HUMAN_PLAYER_RED_Y,
                 AutoConfig.HUMAN_PLAYER_BLUE_X,
@@ -104,16 +104,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
                 DriveConfig.ROBOT_CENTER_OFFSET_X,
                 DriveConfig.ROBOT_CENTER_OFFSET_Y
         );
-
-        if (seedResult.loadedFromAuto) {
-            telemetry.addLine("=== ODOMETRY LOADED FROM AUTO ===");
-            telemetry.addData("Loaded Position", String.format("X=%.1f, Y=%.1f, H=%.1f°",
-                                                               seedResult.x, seedResult.y, Math.toDegrees(seedResult.headingRad)));
-        } else {
-            telemetry.addLine("=== NO AUTO DATA - DEFAULT POSITION ===");
-            telemetry.addData("Default Position", String.format("X=%.1f, Y=%.1f, H=%.1f°",
-                                                                seedResult.x, seedResult.y, Math.toDegrees(seedResult.headingRad)));
-        }
+        String autoAlliance = initializationResult.autoAlliance;
 
         waitForStart();
         if (isStopRequested()) return;
