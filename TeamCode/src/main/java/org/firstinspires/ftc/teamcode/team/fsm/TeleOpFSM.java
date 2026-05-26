@@ -34,8 +34,6 @@ import org.firstinspires.ftc.teamcode.team.core.TurretVisionCoordinator;
 @Configurable
 public class TeleOpFSM extends DarienOpModeFSM {
 
-    // VARIABLES
-    private ShotgunPowerLevel shotgunPowerLatch = ShotgunPowerLevel.OFF;
     private AutoParkCoordinator autoParkCoordinator;
     private DriveControlCoordinator driveControlCoordinator;
     private IntakeCoordinator intakeCoordinator;
@@ -51,11 +49,6 @@ public class TeleOpFSM extends DarienOpModeFSM {
     private TurretModeCoordinator turretModeCoordinator;
     private TurretVisionCoordinator turretVisionCoordinator;
 
-
-    // Turret fallback tracking
-    // AUTO-PARK STATE
-    private boolean isAutoParking = false;
-    private double autoParkStartTime = 0;
     @Override
     public void initControls() {
         super.initControls();
@@ -108,16 +101,16 @@ public class TeleOpFSM extends DarienOpModeFSM {
 
         waitForStart();
         if (isStopRequested()) return;
-        //Start
+        // Start follower in TeleOp drive mode before entering loop.
         follower.startTeleopDrive(true);
         follower.update();
 
         TeleOpLoopCoordinator.LoopState loopState = new TeleOpLoopCoordinator.LoopState(
-                isAutoParking,
-                autoParkStartTime,
+                false,
+                0,
                 autoAlliance,
                 shootingPowerMode,
-                shotgunPowerLatch
+                ShotgunPowerLevel.OFF
         );
 
         TeleOpLoopCoordinator.LoopDependencies loopDependencies = new TeleOpLoopCoordinator.LoopDependencies(
@@ -185,10 +178,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
             );
 
             loopState = iterationResult.state;
-            isAutoParking = loopState.isAutoParking;
-            autoParkStartTime = loopState.autoParkStartTime;
             shootingPowerMode = loopState.shootingPowerMode;
-            shotgunPowerLatch = loopState.shotgunPowerLatch;
 
             TeleOpStatusCoordinator.TraceState traceState = iterationResult.traceState;
             addTraceTelemetry("TeleOp", traceState.state, traceState.stateTimerSec);

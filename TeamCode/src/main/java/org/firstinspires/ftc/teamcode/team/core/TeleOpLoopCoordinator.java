@@ -616,4 +616,3 @@ public class TeleOpLoopCoordinator {
         return new IterationResult(nextState, traceState);
     }
 }
-
