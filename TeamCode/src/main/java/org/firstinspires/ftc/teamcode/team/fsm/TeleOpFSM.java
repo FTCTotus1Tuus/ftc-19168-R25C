@@ -14,6 +14,8 @@ import org.firstinspires.ftc.teamcode.team.config.ShooterConfig;
 import org.firstinspires.ftc.teamcode.team.config.VisionConfig;
 import org.firstinspires.ftc.teamcode.team.core.AutoParkCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.DriveControlCoordinator;
+import org.firstinspires.ftc.teamcode.team.core.DriverOneBindings;
+import org.firstinspires.ftc.teamcode.team.core.DriverTwoBindings;
 import org.firstinspires.ftc.teamcode.team.core.IntakeCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.OdometryResetCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.ShooterPowerCoordinator;
@@ -112,6 +114,34 @@ public class TeleOpFSM extends DarienOpModeFSM {
 
         while (this.opModeIsActive() && !isStopRequested()) {
 
+            // Snapshot gamepad inputs once per loop so mapping stays centralized and traceable.
+            DriverOneBindings driverOne = new DriverOneBindings(
+                    gamepad1.left_stick_y,
+                    gamepad1.left_stick_x,
+                    gamepad1.right_stick_x,
+                    gamepad1.y || gamepad1.right_bumper,
+                    gamepad1.a,
+                    gamepad1.x,
+                    gamepad1.bWasPressed(),
+                    gamepad1.dpadUpWasPressed()
+            );
+
+            DriverTwoBindings driverTwo = new DriverTwoBindings(
+                    gamepad2.left_bumper,
+                    gamepad2.rightBumperWasPressed(),
+                    gamepad2.rightBumperWasReleased(),
+                    gamepad2.right_stick_y,
+                    gamepad2.b,
+                    gamepad2.x,
+                    gamepad2.dpadUpWasPressed(),
+                    gamepad2.dpadDownWasPressed(),
+                    gamepad2.left_stick_x,
+                    gamepad2.left_trigger,
+                    gamepad2.left_stick_button,
+                    gamepad2.rightStickButtonWasPressed(),
+                    gamepad2.a
+            );
+
             // -----------------
             // ALWAYS RUN
             // -----------------
@@ -120,9 +150,9 @@ public class TeleOpFSM extends DarienOpModeFSM {
                     isAutoParking,
                     autoParkStartTime,
                     getRuntime(),
-                    gamepad1.left_stick_x,
-                    gamepad1.left_stick_y,
-                    gamepad1.right_stick_x,
+                    driverOne.driveStrafeAxis,
+                    driverOne.driveForwardAxis,
+                    driverOne.driveTurnAxis,
                     AutoConfig.AUTO_PARK_STICK_DEADZONE,
                     AutoConfig.AUTO_PARK_TIMEOUT,
                     follower,
@@ -136,9 +166,9 @@ public class TeleOpFSM extends DarienOpModeFSM {
             // Driver stick shaping + drive command emission are centralized in this coordinator.
             driveControlCoordinator.applyTeleOpDrive(
                     isAutoParking,
-                    gamepad1.left_stick_y,
-                    gamepad1.left_stick_x,
-                    gamepad1.right_stick_x,
+                    driverOne.driveForwardAxis,
+                    driverOne.driveStrafeAxis,
+                    driverOne.driveTurnAxis,
                     DriveConfig.DRIVE_DEADZONE,
                     DriveConfig.INPUT_EXPONENT,
                     DriveConfig.SPEED_SCALE,
@@ -178,14 +208,14 @@ public class TeleOpFSM extends DarienOpModeFSM {
             // -----------------
 
             intakeCoordinator.handleDriverControls(
-                    gamepad1.y || gamepad1.right_bumper,
-                    gamepad1.a,
-                    gamepad1.x
+                    driverOne.intakeRequested,
+                    driverOne.ejectRequested,
+                    driverOne.intakeOffRequested
             );
 
             // Auto-park start logic returns the next loop state in one place.
             AutoParkCoordinator.AutoParkResult startResult = autoParkCoordinator.tryStartAutoPark(
-                    gamepad1.bWasPressed(),
+                    driverOne.autoParkRequested,
                     isAutoParking,
                     getRuntime(),
                     autoParkStartTime,
@@ -211,15 +241,15 @@ public class TeleOpFSM extends DarienOpModeFSM {
 
             shootingCoordinator.handleDriverControls(
                     getRuntime(),
-                    gamepad2.left_bumper,
-                    gamepad2.rightBumperWasPressed(),
-                    gamepad2.rightBumperWasReleased(),
-                    gamepad2.right_stick_y,
+                    driverTwo.closeGateRequested,
+                    driverTwo.shootPressed,
+                    driverTwo.shootReleased,
+                    driverTwo.shootingStickY,
                     ShooterConfig.SHOOT_POWER_SELECT_STICK_THRESHOLD
             );
 
             odometryResetCoordinator.tryResetToHumanPlayerPosition(
-                    gamepad1.dpadUpWasPressed(),
+                    driverOne.odometryResetRequested,
                     autoAlliance,
                     AutoConfig.HUMAN_PLAYER_RED_X,
                     AutoConfig.HUMAN_PLAYER_RED_Y,
@@ -237,16 +267,16 @@ public class TeleOpFSM extends DarienOpModeFSM {
 
             //SET ALLIANCE COLOR CONTROL
             TurretVisionCoordinator.AllianceSwitchResult allianceSwitchResult = turretVisionCoordinator.handleAllianceButtons(
-                    gamepad2.b,
-                    gamepad2.x,
+                    driverTwo.setAllianceRedRequested,
+                    driverTwo.setAllianceBlueRequested,
                     autoAlliance,
                     telemetry
             );
             autoAlliance = allianceSwitchResult.alliance;
 
             TurretModeCoordinator.ModeSwitchResult modeSwitchResult = turretModeCoordinator.handleModeSwitches(
-                    gamepad2.dpadUpWasPressed(),
-                    gamepad2.dpadDownWasPressed(),
+                    driverTwo.odometryModeRequested,
+                    driverTwo.cameraModeRequested,
                     shootingPowerMode
             );
             shootingPowerMode = modeSwitchResult.shootingPowerMode;
@@ -258,9 +288,9 @@ public class TeleOpFSM extends DarienOpModeFSM {
             // Turret coordinator resolves manual stick intent first, then odometry aiming fallback.
             turretCoordinator.applyManualOrOdometryControl(
                     autoAlliance,
-                    gamepad2.left_stick_x,
-                    gamepad2.left_trigger,
-                    gamepad2.left_stick_button,
+                    driverTwo.turretManualAxis,
+                    driverTwo.turretSpeedTrigger,
+                    driverTwo.turretCenterRequested,
                     robotX,
                     robotY,
                     robotHeadingRadians
@@ -272,10 +302,10 @@ public class TeleOpFSM extends DarienOpModeFSM {
                     shotgunPowerLatch,
                     robotY,
                     ShooterConfig.SHOOTING_POWER_ODOMETRY_Y_THRESHOLD,
-                    gamepad2.right_stick_y,
+                    driverTwo.shootingStickY,
                     ShooterConfig.SHOOT_POWER_SELECT_STICK_THRESHOLD,
-                    gamepad2.rightStickButtonWasPressed(),
-                    gamepad2.a
+                    driverTwo.toggleShotgunPowerLatchRequested,
+                    driverTwo.forceShotgunLowPowerRequested
             );
             shootingPowerMode = powerState.mode;
             shotgunPowerLatch = powerState.latch;
