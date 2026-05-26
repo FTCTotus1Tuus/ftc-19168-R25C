@@ -17,6 +17,9 @@ import org.firstinspires.ftc.teamcode.team.auto.ShootSequenceStep;
 import org.firstinspires.ftc.teamcode.team.auto.ShotgunSpinFarStep;
 import org.firstinspires.ftc.teamcode.team.auto.StopShotgunStep;
 import org.firstinspires.ftc.teamcode.team.auto.RedAudienceSidePaths;
+import org.firstinspires.ftc.teamcode.team.config.ShooterConfig;
+import org.firstinspires.ftc.teamcode.team.config.TurretConfig;
+import org.firstinspires.ftc.teamcode.team.config.VisionConfig;
 import org.firstinspires.ftc.teamcode.team.fsm.DarienOpModeFSM;
 import org.firstinspires.ftc.teamcode.team.fsm.ShootingFSM;
 import org.firstinspires.ftc.teamcode.team.fsm.ShotgunFSM;
@@ -43,8 +46,8 @@ public class RedAudience1 extends DarienOpModeFSM {
 
     private AutoPlan autoPlan;
     private Timer planTimer;
-    public double targetGoalX = DarienOpModeFSM.GOAL_RED_X;
-    public double targetGoalY = DarienOpModeFSM.GOAL_RED_Y;
+    public double targetGoalX = TurretConfig.GOAL_RED_X;
+    public double targetGoalY = TurretConfig.GOAL_RED_Y;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -89,7 +92,7 @@ public class RedAudience1 extends DarienOpModeFSM {
         if (isStopRequested()) return;
 
         autoPlan.init(this);
-        targetGoalId = APRILTAG_ID_GOAL_RED;
+        targetGoalId = VisionConfig.APRILTAG_ID_GOAL_RED;
 
         // --- MAIN AUTONOMOUS LOOP ---
         while (opModeIsActive() && !isStopRequested()) {
@@ -99,9 +102,9 @@ public class RedAudience1 extends DarienOpModeFSM {
 
             // Keep shotgun PID running during the plan
             if (shotgunFSM.getState() == ShotgunFSM.State.POWER_UP_FAR) {
-                shotgunFSM.toPowerUpFar(DarienOpModeFSM.SHOT_GUN_POWER_UP_FAR_RPM_AUTO);
+                shotgunFSM.toPowerUpFar(ShooterConfig.SHOT_GUN_POWER_UP_FAR_RPM_AUTO);
             } else {
-                shotgunFSM.toPowerUp(DarienOpModeFSM.SHOT_GUN_POWER_UP_RPM_AUTO);
+                shotgunFSM.toPowerUp(ShooterConfig.SHOT_GUN_POWER_UP_RPM_AUTO);
             }
 
             double robotX = follower.getPose().getX();

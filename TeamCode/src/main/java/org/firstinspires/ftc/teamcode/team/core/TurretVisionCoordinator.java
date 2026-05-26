@@ -1,7 +1,7 @@
 package org.firstinspires.ftc.teamcode.team.core;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.team.fsm.DarienOpModeFSM;
+import org.firstinspires.ftc.teamcode.team.config.TurretConfig;
 import org.firstinspires.ftc.teamcode.team.fsm.TurretFSM;
 import org.firstinspires.ftc.teamcode.team.services.AprilTagService;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
@@ -180,10 +180,10 @@ public class TurretVisionCoordinator {
     private void applyOdometryFallback(String autoAlliance, double robotX, double robotY, double robotHeadingRadians) {
         if ("RED".equals(autoAlliance)) {
             turretFSM.setOffsetRed();
-            turretFSM.setPositionFromOdometry(DarienOpModeFSM.GOAL_RED_X, DarienOpModeFSM.GOAL_RED_Y, robotX, robotY, robotHeadingRadians);
+            turretFSM.setPositionFromOdometry(TurretConfig.GOAL_RED_X, TurretConfig.GOAL_RED_Y, robotX, robotY, robotHeadingRadians);
         } else {
             turretFSM.setOffsetBlue();
-            turretFSM.setPositionFromOdometry(DarienOpModeFSM.GOAL_BLUE_X, DarienOpModeFSM.GOAL_BLUE_Y, robotX, robotY, robotHeadingRadians);
+            turretFSM.setPositionFromOdometry(TurretConfig.GOAL_BLUE_X, TurretConfig.GOAL_BLUE_Y, robotX, robotY, robotHeadingRadians);
         }
     }
 

@@ -3,10 +3,10 @@ package org.firstinspires.ftc.teamcode.team.fsm;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 
 import org.firstinspires.ftc.teamcode.team.MotorHelper;
+import org.firstinspires.ftc.teamcode.team.config.ShooterConfig;
 
 public class ShotgunFSM {
 
-    private final DarienOpModeFSM opmode;
     private final MotorHelper MotorHelper;
     private final double SHOT_GUN_POWER_UP;
     private final double SHOT_GUN_POWER_UP_FAR;
@@ -21,11 +21,10 @@ public class ShotgunFSM {
 
     private State current = State.OFF;
 
-    public ShotgunFSM(double powerlow, double powerhigh, DcMotorEx motor, DarienOpModeFSM opmode, MotorHelper motorHelper) {
+    public ShotgunFSM(double powerlow, double powerhigh, DcMotorEx motor, MotorHelper motorHelper) {
         this.SHOT_GUN_POWER_UP = powerlow;
         this.SHOT_GUN_POWER_UP_FAR = powerhigh;
         this.shotgunMotor = motor;
-        this.opmode = opmode;
         MotorHelper = motorHelper;
     }
 
@@ -55,20 +54,20 @@ public class ShotgunFSM {
         //shotgunMotor.setVelocity(opmode.getTicksPerSecond(opmode.SHOT_GUN_POWER_UP_RPM));
         pidOutput = MotorHelper.pidRunWithEncoder(
                 shotgunMotor,
-                opmode.SHOT_GUN_PGAIN,
-                opmode.SHOT_GUN_PGAIN2,
-                opmode.SHOT_GUN_IGAIN,
+                ShooterConfig.SHOT_GUN_PGAIN,
+                ShooterConfig.SHOT_GUN_PGAIN2,
+                ShooterConfig.SHOT_GUN_IGAIN,
                 power,
-                opmode.SHOT_GUN_PDUTY_MIN,
-                opmode.SHOT_GUN_PDUTY_MAX,
-                opmode.SHOT_GUN_IDUTY_MIN,
-                opmode.SHOT_GUN_IDUTY_MAX,
+                ShooterConfig.SHOT_GUN_PDUTY_MIN,
+                ShooterConfig.SHOT_GUN_PDUTY_MAX,
+                ShooterConfig.SHOT_GUN_IDUTY_MIN,
+                ShooterConfig.SHOT_GUN_IDUTY_MAX,
                 pidOutput[1],
-                opmode.SHOT_GUN_POWER_MIN,
-                opmode.SHOT_GUN_POWER_MAX,
-                opmode.SHOT_GUN_GAIN,
-                opmode.SHOT_GUN_MIN_RPM,
-                opmode.SHOT_GUN_MAX_RPM,
+                ShooterConfig.SHOT_GUN_POWER_MIN,
+                ShooterConfig.SHOT_GUN_POWER_MAX,
+                ShooterConfig.SHOT_GUN_GAIN,
+                ShooterConfig.SHOT_GUN_MIN_RPM,
+                ShooterConfig.SHOT_GUN_MAX_RPM,
                 0,
                 true
         );
@@ -85,20 +84,20 @@ public class ShotgunFSM {
         //shotgunMotor.setVelocity(opmode.getTicksPerSecond(power));
         pidOutput = MotorHelper.pidRunWithEncoder(
                 shotgunMotor,
-                opmode.SHOT_GUN_PGAIN,
-                opmode.SHOT_GUN_PGAIN2,
-                opmode.SHOT_GUN_IGAIN,
+                ShooterConfig.SHOT_GUN_PGAIN,
+                ShooterConfig.SHOT_GUN_PGAIN2,
+                ShooterConfig.SHOT_GUN_IGAIN,
                 power,
-                opmode.SHOT_GUN_PDUTY_MIN,
-                opmode.SHOT_GUN_PDUTY_MAX,
-                opmode.SHOT_GUN_IDUTY_MIN,
-                opmode.SHOT_GUN_IDUTY_MAX,
+                ShooterConfig.SHOT_GUN_PDUTY_MIN,
+                ShooterConfig.SHOT_GUN_PDUTY_MAX,
+                ShooterConfig.SHOT_GUN_IDUTY_MIN,
+                ShooterConfig.SHOT_GUN_IDUTY_MAX,
                 pidOutput[1],
-                opmode.SHOT_GUN_POWER_MIN,
-                opmode.SHOT_GUN_POWER_MAX,
-                opmode.SHOT_GUN_GAIN,
-                opmode.SHOT_GUN_MIN_RPM,
-                opmode.SHOT_GUN_MAX_RPM,
+                ShooterConfig.SHOT_GUN_POWER_MIN,
+                ShooterConfig.SHOT_GUN_POWER_MAX,
+                ShooterConfig.SHOT_GUN_GAIN,
+                ShooterConfig.SHOT_GUN_MIN_RPM,
+                ShooterConfig.SHOT_GUN_MAX_RPM,
                 0,
                 true
         );

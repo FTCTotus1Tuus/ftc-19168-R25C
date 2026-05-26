@@ -17,7 +17,9 @@ import org.firstinspires.ftc.teamcode.team.auto.ShootSequenceStep;
 import org.firstinspires.ftc.teamcode.team.auto.ShotgunSpinFarStep;
 import org.firstinspires.ftc.teamcode.team.auto.StopShotgunStep;
 import org.firstinspires.ftc.teamcode.team.auto.BlueAudienceSidePaths;
-import org.firstinspires.ftc.teamcode.team.auto.BlueAudienceSidePaths;
+import org.firstinspires.ftc.teamcode.team.config.ShooterConfig;
+import org.firstinspires.ftc.teamcode.team.config.TurretConfig;
+import org.firstinspires.ftc.teamcode.team.config.VisionConfig;
 import org.firstinspires.ftc.teamcode.team.fsm.DarienOpModeFSM;
 import org.firstinspires.ftc.teamcode.team.fsm.ShootingFSM;
 import org.firstinspires.ftc.teamcode.team.fsm.ShotgunFSM;
@@ -43,8 +45,8 @@ public class BlueAudience2 extends DarienOpModeFSM {
 
     private AutoPlan autoPlan;
     private Timer planTimer;
-    public double targetGoalX = DarienOpModeFSM.GOAL_BLUE_X;
-    public double targetGoalY = DarienOpModeFSM.GOAL_BLUE_Y;
+    public double targetGoalX = TurretConfig.GOAL_BLUE_X;
+    public double targetGoalY = TurretConfig.GOAL_BLUE_Y;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -93,7 +95,7 @@ public class BlueAudience2 extends DarienOpModeFSM {
         if (isStopRequested()) return;
 
         autoPlan.init(this);
-        targetGoalId = APRILTAG_ID_GOAL_BLUE;
+        targetGoalId = VisionConfig.APRILTAG_ID_GOAL_BLUE;
 
         // --- MAIN AUTONOMOUS LOOP ---
         while (opModeIsActive() && !isStopRequested()) {
@@ -103,9 +105,9 @@ public class BlueAudience2 extends DarienOpModeFSM {
 
             // Keep shotgun PID running during the plan
             if (shotgunFSM.getState() == ShotgunFSM.State.POWER_UP_FAR) {
-                shotgunFSM.toPowerUpFar(DarienOpModeFSM.SHOT_GUN_POWER_UP_FAR_RPM_AUTO);
+                shotgunFSM.toPowerUpFar(ShooterConfig.SHOT_GUN_POWER_UP_FAR_RPM_AUTO);
             } else {
-                shotgunFSM.toPowerUp(DarienOpModeFSM.SHOT_GUN_POWER_UP_RPM_AUTO);
+                shotgunFSM.toPowerUp(ShooterConfig.SHOT_GUN_POWER_UP_RPM_AUTO);
             }
 
             double robotX = follower.getPose().getX();

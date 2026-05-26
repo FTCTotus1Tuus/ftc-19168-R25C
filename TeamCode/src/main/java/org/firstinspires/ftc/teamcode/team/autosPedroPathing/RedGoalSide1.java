@@ -17,6 +17,9 @@ import org.firstinspires.ftc.teamcode.team.auto.ShootSequenceStep;
 import org.firstinspires.ftc.teamcode.team.auto.ShotgunSpinStep;
 import org.firstinspires.ftc.teamcode.team.auto.StopShotgunStep;
 import org.firstinspires.ftc.teamcode.team.auto.RedGoalSidePaths;
+import org.firstinspires.ftc.teamcode.team.config.ShooterConfig;
+import org.firstinspires.ftc.teamcode.team.config.TurretConfig;
+import org.firstinspires.ftc.teamcode.team.config.VisionConfig;
 import org.firstinspires.ftc.teamcode.team.fsm.DarienOpModeFSM;
 import org.firstinspires.ftc.teamcode.team.fsm.ShootingFSM;
 import org.firstinspires.ftc.teamcode.team.fsm.ShotgunFSM;
@@ -43,8 +46,8 @@ public class RedGoalSide1 extends DarienOpModeFSM {
 
     private AutoPlan autoPlan;
     private Timer planTimer;
-    public double targetGoalX = DarienOpModeFSM.GOAL_RED_X;
-    public double targetGoalY = DarienOpModeFSM.GOAL_RED_Y;
+    public double targetGoalX = TurretConfig.GOAL_RED_X;
+    public double targetGoalY = TurretConfig.GOAL_RED_Y;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -88,7 +91,7 @@ public class RedGoalSide1 extends DarienOpModeFSM {
         if (isStopRequested()) return;
 
         autoPlan.init(this);
-        targetGoalId = APRILTAG_ID_GOAL_RED;
+        targetGoalId = VisionConfig.APRILTAG_ID_GOAL_RED;
 
         // --- MAIN AUTONOMOUS LOOP ---
         while (opModeIsActive() && !isStopRequested()) {
@@ -98,8 +101,8 @@ public class RedGoalSide1 extends DarienOpModeFSM {
 
             // Keep shotgun PID running during the plan
             double targetShotgunRPM = shotgunFSM.getState() == ShotgunFSM.State.POWER_UP_FAR
-                ? DarienOpModeFSM.SHOT_GUN_POWER_UP_FAR_RPM_AUTO
-                : DarienOpModeFSM.SHOT_GUN_POWER_UP_RPM_AUTO;
+                ? ShooterConfig.SHOT_GUN_POWER_UP_FAR_RPM_AUTO
+                : ShooterConfig.SHOT_GUN_POWER_UP_RPM_AUTO;
             shotgunFSM.toPowerUp(targetShotgunRPM);
 
             double robotX = follower.getPose().getX();

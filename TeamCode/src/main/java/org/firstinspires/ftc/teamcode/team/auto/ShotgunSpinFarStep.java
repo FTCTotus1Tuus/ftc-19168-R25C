@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.team.auto;
 
 import org.firstinspires.ftc.teamcode.team.fsm.DarienOpModeFSM;
+import org.firstinspires.ftc.teamcode.team.config.ShooterConfig;
 
 /**
  * Step to start shotgun spinning at FAR RPM (for audience side).
@@ -11,7 +12,7 @@ public class ShotgunSpinFarStep implements AutoStep {
 
     @Override
     public void init(DarienOpModeFSM opMode) {
-        opMode.shotgunFSM.toPowerUpFar(DarienOpModeFSM.SHOT_GUN_POWER_UP_FAR_RPM_AUTO);
+        opMode.shotgunFSM.toPowerUpFar(ShooterConfig.SHOT_GUN_POWER_UP_FAR_RPM_AUTO);
     }
 
     @Override

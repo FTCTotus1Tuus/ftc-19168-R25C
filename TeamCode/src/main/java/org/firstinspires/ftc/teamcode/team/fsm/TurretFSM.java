@@ -1,13 +1,12 @@
 package org.firstinspires.ftc.teamcode.team.fsm;
 
-import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.teamcode.team.config.TurretConfig;
 import org.firstinspires.ftc.teamcode.team.subsystems.SubsystemLifecycle;
 
-@Config
 public class TurretFSM implements SubsystemLifecycle {
 
     public enum TurretStates {MANUAL, CAMERA, ODOMETRY}
@@ -23,31 +22,6 @@ public class TurretFSM implements SubsystemLifecycle {
     public static final int FIVE_ROTATION_SERVO_SPAN_DEG = 1800; // Degrees of rotation (5-rotation goBILDA servo)
 
     /**
-     * Turret gear reduction ratio (input:output).
-     *
-     * A gear reduction of N:1 means the servo (input) must turn N times for the
-     * turret (output) to turn once.  Equivalently, one full servo sweep of 1800°
-     * produces  1800 / N  degrees of turret rotation.
-     *
-     * History:
-     *   6.0  – original code assumption (gave 1800/6 = 300 °/unit — turret overshot)
-     *   5.0  – CAD-specified ratio       (gives 1800/5 = 360 °/unit)
-     *   ~4.55 – tape-measured on robot   (gives 1800/4.55 ≈ 395.6 °/unit)
-     *   5.8  – field-tuned 3/3/2026      (gives 1800/5.8 ≈ 310.3 °/unit — aims on target)
-     *
-     * This is a public static (not final) so it can be tuned live via FTC Dashboard.
-     *
-     * HOW TO TUNE:
-     *   If the turret OVERSHOOTS (aims too far left when pointing left, too far
-     *   right when pointing right), the real ratio is LOWER than the current value
-     *   → DECREASE this number.
-     *
-     *   If the turret UNDERSHOOTS (doesn't turn far enough), the real ratio is
-     *   HIGHER → INCREASE this number.
-     */
-    public static double TURRET_GEAR_RATIO = 5.8;
-
-    /**
      * Returns the effective turret degrees of rotation per full servo unit (0.0→1.0).
      * Recomputed from the live TURRET_GEAR_RATIO every call so FTC Dashboard
      * changes take effect immediately.
@@ -59,40 +33,12 @@ public class TurretFSM implements SubsystemLifecycle {
      * ratio 4.55 → 1800/4.55 ≈ 395.6 °/unit  (tape)
      */
     private static double turretDegPerServoUnit() {
-        return (double) FIVE_ROTATION_SERVO_SPAN_DEG / TURRET_GEAR_RATIO;
+        return (double) FIVE_ROTATION_SERVO_SPAN_DEG / TurretConfig.TURRET_GEAR_RATIO;
     }
 
-    // HARDWARE TUNING CONSTANTS
-    public static double TURRET_ROTATION_INCREMENT = 0.001;
-    public static double TURRET_ROTATION_INCREMENT_FAST = 0.003;
-    public static double TURRET_POSITION_CENTER = 0.5;
-    public static double TURRET_OFFSET_DEG_RED = 1.0;
-    public static double TURRET_OFFSET_DEG_BLUE = -3.0;
-    /**
-     * Distance (inches) from the robot's odometry center of rotation to the turret pivot,
-     * measured along the robot's forward axis. Negative = toward the rear of the robot.
-     * Corrects the parallax aiming error that grows as the robot turns away from the goal.
-     */
-    public static double TURRET_PIVOT_OFFSET_INCHES = -1.5;
-
-    /**
-     * Distance (inches) from the robot's odometry center of rotation to the turret pivot,
-     * measured perpendicular to the robot's forward axis (i.e. sideways).
-     * Positive = turret pivot is to the LEFT of center, Negative = to the RIGHT.
-     * Corrects a lateral parallax error that causes heading-dependent aiming drift
-     * (the turret aims too far right at some headings and too far left at others).
-     */
-    public static double TURRET_PIVOT_OFFSET_LATERAL_INCHES = 0;
-
-    // Turret range of motion in turret degrees (physically measurable on the robot).
-    // Positive = CCW from center (left), Negative = CW from center (right).
-    // Change these when hardware changes; servo clamp limits are derived automatically.
-    public static double TURRET_MAX_DEG_LEFT = 150.0;  // degrees CCW from center
-    public static double TURRET_MAX_DEG_RIGHT = 180.0;  // degrees CW  from center
-
     // DYNAMIC VARIABLES
-    private double TURRET_SERVO_POSITION_MAX_LEFT = TURRET_POSITION_CENTER + 0.1; // Increases counter clockwise
-    private double TURRET_SERVO_POSITION_MAX_RIGHT = TURRET_POSITION_CENTER - 0.1; // Decreases clockwise
+    private double TURRET_SERVO_POSITION_MAX_LEFT = TurretConfig.TURRET_POSITION_CENTER + 0.1; // Increases counter clockwise
+    private double TURRET_SERVO_POSITION_MAX_RIGHT = TurretConfig.TURRET_POSITION_CENTER - 0.1; // Decreases clockwise
 
     private double currentTurretPosition;
 
@@ -125,7 +71,7 @@ public class TurretFSM implements SubsystemLifecycle {
      */
     public double getTurretHeading() {
         // (servo - center) * degreesPerUnit gives turret degrees offset from forward
-        return (currentTurretPosition - TURRET_POSITION_CENTER)
+        return (currentTurretPosition - TurretConfig.TURRET_POSITION_CENTER)
                 * turretDegPerServoUnit();
     }
 
@@ -160,11 +106,11 @@ public class TurretFSM implements SubsystemLifecycle {
         //   pivotX = robotX + cos(h) * forward + (-sin(h)) * lateral
         //   pivotY = robotY + sin(h) * forward + cos(h)    * lateral
         double pivotX = robotX
-                + Math.cos(robotHeadingRadians) * TURRET_PIVOT_OFFSET_INCHES
-                - Math.sin(robotHeadingRadians) * TURRET_PIVOT_OFFSET_LATERAL_INCHES;
+                + Math.cos(robotHeadingRadians) * TurretConfig.TURRET_PIVOT_OFFSET_INCHES
+                - Math.sin(robotHeadingRadians) * TurretConfig.TURRET_PIVOT_OFFSET_LATERAL_INCHES;
         double pivotY = robotY
-                + Math.sin(robotHeadingRadians) * TURRET_PIVOT_OFFSET_INCHES
-                + Math.cos(robotHeadingRadians) * TURRET_PIVOT_OFFSET_LATERAL_INCHES;
+                + Math.sin(robotHeadingRadians) * TurretConfig.TURRET_PIVOT_OFFSET_INCHES
+                + Math.cos(robotHeadingRadians) * TurretConfig.TURRET_PIVOT_OFFSET_LATERAL_INCHES;
 
         // Calculate vector from turret pivot to goal
         double deltaX = goalX - pivotX;
@@ -185,7 +131,7 @@ public class TurretFSM implements SubsystemLifecycle {
 
         // Apply fine mechanical trim AFTER normalization.
         // Read the static constant directly so FTC Dashboard changes take effect immediately.
-        double offsetDeg = isBlueAlliance ? TURRET_OFFSET_DEG_BLUE : TURRET_OFFSET_DEG_RED;
+        double offsetDeg = isBlueAlliance ? TurretConfig.TURRET_OFFSET_DEG_BLUE : TurretConfig.TURRET_OFFSET_DEG_RED;
         angleTurretRelativeToRobotRadians += Math.toRadians(offsetDeg);
 
         // Convert to degrees
@@ -208,7 +154,7 @@ public class TurretFSM implements SubsystemLifecycle {
         //   30° left  → 0.5 + 30/310.3 ≈ 0.597
         //   45° left  → 0.5 + 45/310.3 ≈ 0.645
         //   20° right → 0.5 − 20/310.3 ≈ 0.436
-        double servoPosition = TURRET_POSITION_CENTER +
+        double servoPosition = TurretConfig.TURRET_POSITION_CENTER +
                 (angleDegrees / turretDegPerServoUnit());
 
         // Clamp to servo physical limits to prevent damage
@@ -275,7 +221,7 @@ public class TurretFSM implements SubsystemLifecycle {
     public void alignToBearing(double bearingDeg) {
         // Convert a field-relative bearing (degrees) to a servo position.
         // Same math as calculateServoPositionFromAngle but without clamping.
-        double targetServoPos = TURRET_POSITION_CENTER + bearingDeg / turretDegPerServoUnit();
+        double targetServoPos = TurretConfig.TURRET_POSITION_CENTER + bearingDeg / turretDegPerServoUnit();
         if (!Double.isNaN(targetServoPos)) {
             this.setPosition(targetServoPos);
         }
@@ -290,11 +236,11 @@ public class TurretFSM implements SubsystemLifecycle {
     }
 
     public void rotateLeft() {
-        rotateLeft(TURRET_ROTATION_INCREMENT);
+        rotateLeft(TurretConfig.TURRET_ROTATION_INCREMENT);
     }
 
     public void rotateLeftFast() {
-        rotateLeft(TURRET_ROTATION_INCREMENT_FAST);
+        rotateLeft(TurretConfig.TURRET_ROTATION_INCREMENT_FAST);
     }
 
     public void rotateLeft(double rotationIncrement) {
@@ -305,11 +251,11 @@ public class TurretFSM implements SubsystemLifecycle {
     }
 
     public void rotateRight() {
-        rotateRight(TURRET_ROTATION_INCREMENT);
+        rotateRight(TurretConfig.TURRET_ROTATION_INCREMENT);
     }
 
     public void rotateRightFast() {
-        rotateRight(TURRET_ROTATION_INCREMENT_FAST);
+        rotateRight(TurretConfig.TURRET_ROTATION_INCREMENT_FAST);
     }
 
     public void rotateRight(double rotationIncrement) {
@@ -320,7 +266,7 @@ public class TurretFSM implements SubsystemLifecycle {
     }
 
     public void center() {
-        this.setPosition(TURRET_POSITION_CENTER); // set to center position
+        this.setPosition(TurretConfig.TURRET_POSITION_CENTER); // set to center position
     }
 
     public void setOffsetBlue() {
@@ -339,8 +285,8 @@ public class TurretFSM implements SubsystemLifecycle {
      */
     public void updateTurretServoLimits() {
         double degPerUnit = turretDegPerServoUnit();
-        TURRET_SERVO_POSITION_MAX_LEFT = TURRET_POSITION_CENTER + TURRET_MAX_DEG_LEFT / degPerUnit;
-        TURRET_SERVO_POSITION_MAX_RIGHT = TURRET_POSITION_CENTER - TURRET_MAX_DEG_RIGHT / degPerUnit;
+        TURRET_SERVO_POSITION_MAX_LEFT = TurretConfig.TURRET_POSITION_CENTER + TurretConfig.TURRET_MAX_DEG_LEFT / degPerUnit;
+        TURRET_SERVO_POSITION_MAX_RIGHT = TurretConfig.TURRET_POSITION_CENTER - TurretConfig.TURRET_MAX_DEG_RIGHT / degPerUnit;
     }
 
     public void update() {

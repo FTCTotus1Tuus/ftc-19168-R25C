@@ -2,6 +2,8 @@ package org.firstinspires.ftc.teamcode.team.fsm;
 
 import com.acmerobotics.dashboard.config.Config;
 
+import org.firstinspires.ftc.teamcode.team.config.ShooterConfig;
+
 @Config
 
 public class ShootArtifactFSM {
@@ -81,10 +83,10 @@ public class ShootArtifactFSM {
 
     public void shotGun(double power) {
         //opMode.ejectionMotor.setPower(opMode.getVoltageAdjustedMotorPower(power));
-        if (power == DarienOpModeFSM.SHOT_GUN_POWER_UP) {
-            shotGunRPM(DarienOpModeFSM.SHOT_GUN_POWER_UP_RPM_AUTO);
-        } else if (power == DarienOpModeFSM.SHOT_GUN_POWER_UP_FAR) {
-            shotGunRPM(DarienOpModeFSM.SHOT_GUN_POWER_UP_FAR_RPM_AUTO);
+        if (power == ShooterConfig.SHOT_GUN_POWER_UP) {
+            shotGunRPM(ShooterConfig.SHOT_GUN_POWER_UP_RPM_AUTO);
+        } else if (power == ShooterConfig.SHOT_GUN_POWER_UP_FAR) {
+            shotGunRPM(ShooterConfig.SHOT_GUN_POWER_UP_FAR_RPM_AUTO);
         }
     }
 

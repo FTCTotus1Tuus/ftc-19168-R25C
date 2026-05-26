@@ -3,6 +3,9 @@ package org.firstinspires.ftc.teamcode.team.core;
 import com.pedropathing.follower.Follower;
 
 import org.firstinspires.ftc.teamcode.team.MotorHelper;
+import org.firstinspires.ftc.teamcode.team.config.DriveConfig;
+import org.firstinspires.ftc.teamcode.team.config.ShooterConfig;
+import org.firstinspires.ftc.teamcode.team.config.VisionConfig;
 import org.firstinspires.ftc.teamcode.team.fsm.DarienOpModeFSM;
 import org.firstinspires.ftc.teamcode.team.fsm.GateFSM;
 import org.firstinspires.ftc.teamcode.team.fsm.IntakeFSM;
@@ -48,16 +51,15 @@ public class RobotContainer {
     public void initialize() {
         hardware.initialize(opMode.hardwareMap);
         services.initialize();
-        aprilTagService = services.getVisionService().getAprilTagService(DarienOpModeFSM.TIMEOUT_APRILTAG_DETECTION);
+        aprilTagService = services.getVisionService().getAprilTagService(VisionConfig.TIMEOUT_APRILTAG_DETECTION);
 
-        motorHelper = new MotorHelper(opMode.telemetry, DarienOpModeFSM.TICKS_PER_ROTATION);
+        motorHelper = new MotorHelper(opMode.telemetry, DriveConfig.TICKS_PER_ROTATION);
         shootArtifactFSM = new ShootArtifactFSM(opMode);
         shootPatternFSM = new ShootPatternFSM(opMode);
         shotgunFSM = new ShotgunFSM(
-                DarienOpModeFSM.SHOT_GUN_POWER_UP,
-                DarienOpModeFSM.SHOT_GUN_POWER_UP_FAR,
+                ShooterConfig.SHOT_GUN_POWER_UP,
+                ShooterConfig.SHOT_GUN_POWER_UP_FAR,
                 hardware.ejectionMotor,
-                opMode,
                 motorHelper
         );
 

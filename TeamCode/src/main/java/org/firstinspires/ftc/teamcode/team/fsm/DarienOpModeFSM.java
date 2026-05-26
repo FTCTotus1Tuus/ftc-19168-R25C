@@ -11,6 +11,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.pedropathing.follower.Follower;
 
 import org.firstinspires.ftc.teamcode.team.core.RobotContainer;
+import org.firstinspires.ftc.teamcode.team.config.DriveConfig;
 import org.firstinspires.ftc.teamcode.team.MotorHelper;
 import org.firstinspires.ftc.teamcode.team.services.AprilTagService;
 import org.firstinspires.ftc.teamcode.team.services.AprilTagVisionService;
@@ -60,85 +61,8 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     public static final double constMult = (wheelDiameter * (Math.PI));
     public static final double inchesToEncoder = encoderResolution / constMult;
     public static final double PI = 3.1416;
-    public static final double TICKS_PER_ROTATION = 28*4; // for goBILDA 6000 rpm motor 5203. Each rotation has 28 ticks, and with 4x encoder mode, it's 28*4.
-    //public static double TICKS_PER_ROTATION = 103.8 * 4; // for goBILDA 1620 rpm motor 5202. Each rotation has 103.8 PPR at the Output Shaft, and with quadrature (4x) encoder mode, it's 103.8 * 4 = 415.2
-    public static double ROBOT_CENTER_OFFSET_X = 8.5;
-    public static double ROBOT_CENTER_OFFSET_Y = 8.25;
-
-    // HARDWARE TUNING CONSTANTS
-    public static double SHOT_GUN_POWER_UP = 0.60;
-    public static double SHOT_GUN_POWER_UP_FAR = 0.64;//66
-    public static double SHOT_GUN_POWER_UP_RPM = 1100; // tuned to 6000 rpm motor mounted vertically with small bevel gears
-    public static double SHOT_GUN_POWER_UP_RPM_AUTO = 1075;
-    public static double SHOT_GUN_POWER_UP_FAR_RPM_AUTO = 1350;// tuned to 6000 rpm motor mounted vertically with small bevel gears
-    public static double SHOT_GUN_POWER_UP_FAR_RPM_TELEOP = 1350; // tuned to 6000 rpm motor mounted vertically with small bevel gears
-    public static double SHOT_GUN_POWER_DOWN = 0.2; // tuned to 6000 rpm motor
-
-    // SHOOTING POWER ODOMETRY TUNING
-    public static double SHOOTING_POWER_ODOMETRY_Y_THRESHOLD = 48.0; // Y threshold for automatic FAR vs CLOSE power selection
-
-    // For FTC AprilTag detection with a Logitech C910 webcam,
-    // 1.0 to 1.5 seconds is typically sufficient and more reasonable than 3 seconds.
-    // Recommended timeout values:
-    //   1.0 second (1000ms): Good for typical autonomous scenarios where the camera has a clear view of tags
-    //   1.5 seconds (1500ms): More conservative, allows for slight delays in camera initialization or processing
-    //   0.5 seconds (500ms): Can work if tags are large, close, and well-lit, but may be too aggressive
-    // Factors to consider:
-    //   Camera exposure: The C910 may need 1-2 frames to adjust exposure in varying light conditions
-    //   Processing time: AprilTag detection typically runs at 10-30 FPS, so 1 second gives 10-30 detection attempts
-    //   Distance/size: Tags further away or smaller may need slightly more time
-    //   Lighting: Poor lighting may require longer timeout
-    public static double TIMEOUT_APRILTAG_DETECTION = 0.75; // seconds
-
-    // PID Constants for custom MotorHelper PID functions
-    public static double SHOT_GUN_PGAIN = 0.002;
-    public static double SHOT_GUN_PGAIN2 = 0.0005;
-    public static double SHOT_GUN_IGAIN = 0.00003;
-    public static double SHOT_GUN_PDUTY_MIN = -0.5; // SHOT_GUN_PDUTY_MIN = -0.5 may cause the PID to brake the motor if it overshoots — consider setting it to 0.0 for a flywheel since you never want reverse braking.
-    public static double SHOT_GUN_PDUTY_MAX = 1;
-    public static double SHOT_GUN_IDUTY_MIN = 0;
-    public static double SHOT_GUN_IDUTY_MAX = 1;
-    public static double SHOT_GUN_POWER_MIN = 0;
-    public static double SHOT_GUN_POWER_MAX = 1;
-    public static double SHOT_GUN_GAIN = 1;
-    public static double SHOT_GUN_MIN_RPM = 0;
-    public static double SHOT_GUN_MAX_RPM = 3000;
-
-    public final int APRILTAG_ID_GOAL_BLUE = 20;
-    public final int APRILTAG_ID_GOAL_RED = 24;
-
-    // CAMERA EXPOSURE/GAIN SETTINGS FOR APRILTAG DETECTION
-    // Low exposure (5-6ms) with high gain reduces motion blur and improves far-distance detection
-    // Tune these values using the TuneAprilTagExposure OpMode while viewing camera stream
-    public static int APRILTAG_EXPOSURE_MS = 6;  // Milliseconds (lower = less blur, start with 5-6)
-    public static int APRILTAG_GAIN = 255;       // 0-255 (higher = brighter in low light, start at max)
-
-    // FIELD GOAL POSITION CONSTANTS (in inches, Pedro Pathing coordinate system)
-    // (0,0) = left audience side (red loading zone), (72,72) = field center, (144,144) = red goal
-    public static final double GOAL_RED_X = 144;
-    public static final double GOAL_RED_Y = 144;
-    public static final double GOAL_BLUE_X = 0;
-    public static final double GOAL_BLUE_Y = 144;
-
-    // HUMAN PLAYER POSITION CONSTANTS (in inches, Pedro Pathing coordinate system)
-    public static final double HUMAN_PLAYER_RED_X = 0;
-    public static final double HUMAN_PLAYER_RED_Y = 0;
-    public static final double HUMAN_PLAYER_BLUE_X = 144;
-    public static final double HUMAN_PLAYER_BLUE_Y = 0;
-
-    // AUTO-PARK POSITION CONSTANTS (in inches + degrees, Pedro Pathing coordinate system)
-    // Tune these via FTC Dashboard or update them here for each alliance's park zone.
-    public static double PARK_RED_X = 39.0;
-    public static double PARK_RED_Y = 33.0;
-    public static double PARK_RED_H_DEG = 180.0;
-    public static double PARK_BLUE_X = 105.0;
-    public static double PARK_BLUE_Y = 33.0;
-    public static double PARK_BLUE_H_DEG = 0.0;
-    public static double AUTO_PARK_TIMEOUT = 10.0;       // seconds — safety timeout to abort auto-park
-    public static double AUTO_PARK_POWER = 0.7;          // max follower power during auto-park
-
-    // ODOMETRY AIMING TUNING
-    public static double CAMERA_FALLBACK_TIMEOUT_MS = 500; // Auto-switch to odometry after this timeout
+    // Fixed encoder geometry constants.
+    // Note: tunable drivetrain/scoring values now live under team.config.*
 
     public int targetGoalId = 0;
     protected RobotContainer robotContainer;
@@ -266,7 +190,7 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     public double getTicksPerSecond(double requestedRPM) {
         try {
             double targetRPM = requestedRPM;
-            double ticksPerSecond = (targetRPM / 60.0) * TICKS_PER_ROTATION;
+            double ticksPerSecond = (targetRPM / 60.0) * DriveConfig.TICKS_PER_ROTATION;
             return ticksPerSecond;
         }
         catch (Exception e) {
@@ -278,7 +202,7 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
 
     public double getRpmFromTicksPerSecond(double ticksPerSecond) {
         try {
-            double rpm = (ticksPerSecond * 60.0) / TICKS_PER_ROTATION;
+            double rpm = (ticksPerSecond * 60.0) / DriveConfig.TICKS_PER_ROTATION;
             return rpm;
         } catch (Exception e) {
             // telemetry.addData("RPM from Ticks/Sec Error", e.getMessage());
@@ -299,7 +223,7 @@ public abstract class DarienOpModeFSM extends LinearOpMode {
     }
 
     public void displayRpmTelemetry() {
-        telemetry.addData("Actual ShotGun RPM", ejectionMotor.getVelocity() * 60 / TICKS_PER_ROTATION); // convert from ticks per second to RPM
+        telemetry.addData("Actual ShotGun RPM", ejectionMotor.getVelocity() * 60 / DriveConfig.TICKS_PER_ROTATION); // convert from ticks per second to RPM
         telemetry.addData("ejectionMotor power", ejectionMotor.getPower());
         telemetry.addData("Actual ShotGun TPS", ejectionMotor.getVelocity()); // convert from ticks per second to RPM
         telemetry.addData("Shooting Power Mode", shootingPowerMode.toString());
