@@ -51,6 +51,44 @@ public class TeleOpFSM extends DarienOpModeFSM {
         return nextLoopContext;
     }
 
+    private String initializeFromAutoState() {
+        TeleOpInitializationCoordinator.InitializationResult initializationResult = coordinators.initializationCoordinator.initialize(
+                preferencesService,
+                localizationService,
+                coordinators.turretVisionCoordinator,
+                telemetry,
+                "UNKNOWN",
+                AutoConfig.HUMAN_PLAYER_RED_X,
+                AutoConfig.HUMAN_PLAYER_RED_Y,
+                AutoConfig.HUMAN_PLAYER_BLUE_X,
+                AutoConfig.HUMAN_PLAYER_BLUE_Y,
+                DriveConfig.ROBOT_CENTER_OFFSET_X,
+                DriveConfig.ROBOT_CENTER_OFFSET_Y
+        );
+        return initializationResult.autoAlliance;
+    }
+
+    private TeleOpLoopContext createInitialLoopContext(String autoAlliance) {
+        TeleOpLoopConfig loopConfig = TeleOpLoopConfig.createDefault();
+        TeleOpLoopRuntimeBindings loopRuntime = new TeleOpLoopRuntimeBindings(
+                localizationService,
+                follower,
+                intakeFSM,
+                shotgunFSM,
+                shootingFSM,
+                turretFSM,
+                gateFSM,
+                telemetry
+        );
+        return TeleOpLoopContext.create(
+                coordinators,
+                loopRuntime,
+                autoAlliance,
+                shootingPowerMode,
+                loopConfig
+        );
+    }
+
     @Override
     public void initControls() {
         super.initControls();
@@ -69,20 +107,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
     public void runOpMode() throws InterruptedException {
         initControls();
 
-        TeleOpInitializationCoordinator.InitializationResult initializationResult = coordinators.initializationCoordinator.initialize(
-                preferencesService,
-                localizationService,
-                coordinators.turretVisionCoordinator,
-                telemetry,
-                "UNKNOWN",
-                AutoConfig.HUMAN_PLAYER_RED_X,
-                AutoConfig.HUMAN_PLAYER_RED_Y,
-                AutoConfig.HUMAN_PLAYER_BLUE_X,
-                AutoConfig.HUMAN_PLAYER_BLUE_Y,
-                DriveConfig.ROBOT_CENTER_OFFSET_X,
-                DriveConfig.ROBOT_CENTER_OFFSET_Y
-        );
-        String autoAlliance = initializationResult.autoAlliance;
+        String autoAlliance = initializeFromAutoState();
 
         waitForStart();
         if (isStopRequested()) return;
@@ -90,24 +115,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
         follower.startTeleopDrive(true);
         follower.update();
 
-        TeleOpLoopConfig loopConfig = TeleOpLoopConfig.createDefault();
-        TeleOpLoopRuntimeBindings loopRuntime = new TeleOpLoopRuntimeBindings(
-                localizationService,
-                follower,
-                intakeFSM,
-                shotgunFSM,
-                shootingFSM,
-                turretFSM,
-                gateFSM,
-                telemetry
-        );
-        TeleOpLoopContext loopContext = TeleOpLoopContext.create(
-                coordinators,
-                loopRuntime,
-                autoAlliance,
-                shootingPowerMode,
-                loopConfig
-        );
+        TeleOpLoopContext loopContext = createInitialLoopContext(autoAlliance);
 
         while (this.opModeIsActive() && !isStopRequested()) {
             TeleOpLoopIterationInput loopInput = buildLoopInput();
