@@ -70,7 +70,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
 
     private TeleOpLoopContext createInitialLoopContext(String autoAlliance) {
         TeleOpLoopConfig loopConfig = TeleOpLoopConfig.createDefault();
-        TeleOpLoopRuntimeBindings loopRuntime = new TeleOpLoopRuntimeBindings(
+        TeleOpLoopRuntimeBindings loopRuntime = TeleOpLoopRuntimeBindings.create(
                 localizationService,
                 follower,
                 intakeFSM,

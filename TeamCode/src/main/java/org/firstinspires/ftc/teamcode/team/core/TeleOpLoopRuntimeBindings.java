@@ -42,5 +42,27 @@ public class TeleOpLoopRuntimeBindings {
         this.gateFSM = gateFSM;
         this.telemetry = telemetry;
     }
+
+    public static TeleOpLoopRuntimeBindings create(
+            LocalizationService localizationService,
+            Follower follower,
+            IntakeFSM intakeFSM,
+            ShotgunFSM shotgunFSM,
+            ShootingFSM shootingFSM,
+            TurretFSM turretFSM,
+            GateFSM gateFSM,
+            Telemetry telemetry
+    ) {
+        return new TeleOpLoopRuntimeBindings(
+                localizationService,
+                follower,
+                intakeFSM,
+                shotgunFSM,
+                shootingFSM,
+                turretFSM,
+                gateFSM,
+                telemetry
+        );
+    }
 }
 
