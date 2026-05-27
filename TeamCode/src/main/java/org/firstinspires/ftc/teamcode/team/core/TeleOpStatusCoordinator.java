@@ -1,10 +1,6 @@
 package org.firstinspires.ftc.teamcode.team.core;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.team.fsm.GateFSM;
-import org.firstinspires.ftc.teamcode.team.fsm.IntakeFSM;
-import org.firstinspires.ftc.teamcode.team.fsm.ShootingFSM;
-import org.firstinspires.ftc.teamcode.team.fsm.TurretFSM;
 
 import java.util.Locale;
 
@@ -27,61 +23,16 @@ public class TeleOpStatusCoordinator {
             Telemetry telemetry,
             TeleOpTelemetryCoordinator telemetryCoordinator,
             TurretVisionCoordinator turretVisionCoordinator,
-            GateFSM gateFSM,
-            IntakeFSM intakeFSM,
-            ShootingFSM shootingFSM,
-            TurretFSM turretFSM,
-            String shootingPowerMode,
-            String shotgunPowerLatch,
-            double ejectionMotorRpm,
-            double ejectionMotorPower,
-            double ejectionMotorVelocity,
-            String autoAlliance,
-            double robotX,
-            double robotY,
-            double robotHeadingRadians,
-            boolean isAutoParking,
-            int targetGoalTagId,
-            double parkRedX,
-            double parkRedY,
-            double parkBlueX,
-            double parkBlueY,
-            double autoParkTimeout,
-            double autoParkStartTime,
-            double currentTime
+            TeleOpStatusSnapshot status
     ) {
-        telemetryCoordinator.addLoopTelemetry(
-                telemetry,
-                gateFSM,
-                intakeFSM,
-                shootingFSM,
-                turretFSM,
-                shootingPowerMode,
-                shotgunPowerLatch,
-                ejectionMotorRpm,
-                ejectionMotorPower,
-                ejectionMotorVelocity,
-                autoAlliance,
-                targetGoalTagId,
-                robotX,
-                robotY,
-                robotHeadingRadians,
-                isAutoParking,
-                parkRedX,
-                parkRedY,
-                parkBlueX,
-                parkBlueY,
-                autoParkTimeout,
-                autoParkStartTime,
-                currentTime
-        );
+        telemetryCoordinator.addLoopTelemetry(telemetry, status);
 
         telemetry.addData("Vision Status", turretVisionCoordinator.getVisionStatusLine());
         telemetry.addData("Vision Fallback", turretVisionCoordinator.getFallbackStatusLine());
         telemetry.addData("Vision Age (ms)", String.format(Locale.US, "%.0f", turretVisionCoordinator.getLastCameraAgeMs()));
 
-        String traceState = isAutoParking ? "AUTO_PARK" : "DRIVER_CONTROL";
-        double traceStateTimer = isAutoParking ? (currentTime - autoParkStartTime) : 0.0;
+        String traceState = status.isAutoParking ? "AUTO_PARK" : "DRIVER_CONTROL";
+        double traceStateTimer = status.isAutoParking ? (status.currentTime - status.autoParkStartTime) : 0.0;
         return new TraceState(traceState, traceStateTimer);
     }
 }

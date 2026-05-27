@@ -227,6 +227,40 @@ public class TeleOpLoopCoordinator {
         );
     }
 
+    private TeleOpStatusSnapshot buildStatusSnapshot(
+            LoopAccumulator accumulator,
+            TeleOpLoopDependencies deps,
+            double ejectionMotorRpm,
+            double ejectionMotorPower,
+            double ejectionMotorVelocity,
+            double currentTime
+    ) {
+        return new TeleOpStatusSnapshot(
+                deps.gateFSM,
+                deps.intakeFSM,
+                deps.shootingFSM,
+                deps.turretFSM,
+                accumulator.shootingPowerMode.toString(),
+                accumulator.shotgunPowerLatch.toString(),
+                ejectionMotorRpm,
+                ejectionMotorPower,
+                ejectionMotorVelocity,
+                accumulator.autoAlliance,
+                deps.turretVisionCoordinator.getTargetGoalTagId(),
+                accumulator.pose.x,
+                accumulator.pose.y,
+                accumulator.pose.headingRadians,
+                accumulator.isAutoParking,
+                deps.config.parkRedX,
+                deps.config.parkRedY,
+                deps.config.parkBlueX,
+                deps.config.parkBlueY,
+                deps.config.autoParkTimeout,
+                accumulator.autoParkStartTime,
+                currentTime
+        );
+    }
+
     public TeleOpIterationResult runLoopIteration(
             TeleOpLoopContext loopContext,
             DriverOneBindings driverOne,
@@ -262,32 +296,20 @@ public class TeleOpLoopCoordinator {
                 deps
         );
 
+        TeleOpStatusSnapshot status = buildStatusSnapshot(
+                accumulator,
+                deps,
+                ejectionMotorRpm,
+                ejectionMotorPower,
+                ejectionMotorVelocity,
+                currentTime
+        );
+
         TeleOpStatusCoordinator.TraceState traceState = deps.statusCoordinator.publishStatus(
                 deps.telemetry,
                 deps.telemetryCoordinator,
                 deps.turretVisionCoordinator,
-                deps.gateFSM,
-                deps.intakeFSM,
-                deps.shootingFSM,
-                deps.turretFSM,
-                accumulator.shootingPowerMode.toString(),
-                accumulator.shotgunPowerLatch.toString(),
-                ejectionMotorRpm,
-                ejectionMotorPower,
-                ejectionMotorVelocity,
-                accumulator.autoAlliance,
-                accumulator.pose.x,
-                accumulator.pose.y,
-                accumulator.pose.headingRadians,
-                accumulator.isAutoParking,
-                deps.turretVisionCoordinator.getTargetGoalTagId(),
-                deps.config.parkRedX,
-                deps.config.parkRedY,
-                deps.config.parkBlueX,
-                deps.config.parkBlueY,
-                deps.config.autoParkTimeout,
-                accumulator.autoParkStartTime,
-                currentTime
+                status
         );
 
         TeleOpLoopState nextState = new TeleOpLoopState(
