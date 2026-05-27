@@ -81,14 +81,7 @@ public class TeleOpLoopDependencies {
 
     public static TeleOpLoopDependencies create(
             TeleOpCoordinatorSet coordinators,
-            LocalizationService localizationService,
-            Follower follower,
-            IntakeFSM intakeFSM,
-            ShotgunFSM shotgunFSM,
-            ShootingFSM shootingFSM,
-            TurretFSM turretFSM,
-            GateFSM gateFSM,
-            Telemetry telemetry,
+            TeleOpLoopRuntimeBindings runtime,
             TeleOpLoopConfig config
     ) {
         return new TeleOpLoopDependencies(
@@ -103,14 +96,14 @@ public class TeleOpLoopDependencies {
                 coordinators.turretCoordinator,
                 coordinators.statusCoordinator,
                 coordinators.telemetryCoordinator,
-                localizationService,
-                follower,
-                intakeFSM,
-                shotgunFSM,
-                shootingFSM,
-                turretFSM,
-                gateFSM,
-                telemetry,
+                runtime.localizationService,
+                runtime.follower,
+                runtime.intakeFSM,
+                runtime.shotgunFSM,
+                runtime.shootingFSM,
+                runtime.turretFSM,
+                runtime.gateFSM,
+                runtime.telemetry,
                 config
         );
     }

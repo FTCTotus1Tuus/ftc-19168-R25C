@@ -14,6 +14,7 @@ import org.firstinspires.ftc.teamcode.team.core.TeleOpCoordinatorSet;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpInitializationCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpLoopConfig;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpLoopContext;
+import org.firstinspires.ftc.teamcode.team.core.TeleOpLoopRuntimeBindings;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpStatusCoordinator;
 
 @TeleOp(name = "TeleopFSM", group = "DriverControl")
@@ -63,8 +64,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
         follower.update();
 
         TeleOpLoopConfig loopConfig = TeleOpLoopConfig.createDefault();
-        TeleOpLoopContext loopContext = TeleOpLoopContext.create(
-                coordinators,
+        TeleOpLoopRuntimeBindings loopRuntime = new TeleOpLoopRuntimeBindings(
                 localizationService,
                 follower,
                 intakeFSM,
@@ -72,7 +72,11 @@ public class TeleOpFSM extends DarienOpModeFSM {
                 shootingFSM,
                 turretFSM,
                 gateFSM,
-                telemetry,
+                telemetry
+        );
+        TeleOpLoopContext loopContext = TeleOpLoopContext.create(
+                coordinators,
+                loopRuntime,
                 autoAlliance,
                 shootingPowerMode,
                 loopConfig
