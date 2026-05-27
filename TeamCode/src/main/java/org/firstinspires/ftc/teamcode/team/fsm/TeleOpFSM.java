@@ -22,7 +22,10 @@ import org.firstinspires.ftc.teamcode.team.core.ShooterPowerCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.ShootingCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpInitializationCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpInputMapper;
+import org.firstinspires.ftc.teamcode.team.core.TeleOpIterationResult;
+import org.firstinspires.ftc.teamcode.team.core.TeleOpLoopDependencies;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpLoopCoordinator;
+import org.firstinspires.ftc.teamcode.team.core.TeleOpLoopState;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpStatusCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpTelemetryCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TurretCoordinator;
@@ -109,8 +112,8 @@ public class TeleOpFSM extends DarienOpModeFSM {
         follower.startTeleopDrive(true);
         follower.update();
 
-        TeleOpLoopCoordinator.LoopState loopState = createInitialLoopState(autoAlliance);
-        TeleOpLoopCoordinator.LoopDependencies loopDependencies = createLoopDependencies();
+        TeleOpLoopState loopState = createInitialLoopState(autoAlliance);
+        TeleOpLoopDependencies loopDependencies = createLoopDependencies();
 
         while (this.opModeIsActive() && !isStopRequested()) {
 
@@ -119,7 +122,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
             DriverTwoBindings driverTwo = inputMapper.mapDriverTwo(gamepad2);
 
             double currentTime = getRuntime();
-            TeleOpLoopCoordinator.IterationResult iterationResult = loopCoordinator.runLoopIteration(
+            TeleOpIterationResult iterationResult = loopCoordinator.runLoopIteration(
                     loopState,
                     driverOne,
                     driverTwo,
@@ -142,8 +145,8 @@ public class TeleOpFSM extends DarienOpModeFSM {
         stopRobot();
     } //runOpMode
 
-    private TeleOpLoopCoordinator.LoopState createInitialLoopState(String autoAlliance) {
-        return new TeleOpLoopCoordinator.LoopState(
+    private TeleOpLoopState createInitialLoopState(String autoAlliance) {
+        return new TeleOpLoopState(
                 false,
                 0,
                 autoAlliance,
@@ -152,8 +155,8 @@ public class TeleOpFSM extends DarienOpModeFSM {
         );
     }
 
-    private TeleOpLoopCoordinator.LoopDependencies createLoopDependencies() {
-        return new TeleOpLoopCoordinator.LoopDependencies(
+    private TeleOpLoopDependencies createLoopDependencies() {
+        return new TeleOpLoopDependencies(
                 autoParkCoordinator,
                 driveControlCoordinator,
                 intakeCoordinator,
