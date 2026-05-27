@@ -25,5 +25,18 @@ public class TeleOpLoopState {
         this.shootingPowerMode = shootingPowerMode;
         this.shotgunPowerLatch = shotgunPowerLatch;
     }
+
+    public static TeleOpLoopState initial(
+            String autoAlliance,
+            DarienOpModeFSM.ShootingPowerModes shootingPowerMode
+    ) {
+        return new TeleOpLoopState(
+                false,
+                0.0,
+                autoAlliance,
+                shootingPowerMode,
+                DarienOpModeFSM.ShotgunPowerLevel.OFF
+        );
+    }
 }
 

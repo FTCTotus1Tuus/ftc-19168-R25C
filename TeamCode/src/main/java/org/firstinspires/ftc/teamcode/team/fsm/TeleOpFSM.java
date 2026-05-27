@@ -70,62 +70,9 @@ public class TeleOpFSM extends DarienOpModeFSM {
         follower.startTeleopDrive(true);
         follower.update();
 
-        TeleOpLoopState loopState = createInitialLoopState(autoAlliance);
-        TeleOpLoopDependencies loopDependencies = createLoopDependencies();
-
-        while (this.opModeIsActive() && !isStopRequested()) {
-
-            // Snapshot gamepad inputs once per loop so mapping stays centralized and traceable.
-            DriverOneBindings driverOne = coordinators.inputMapper.mapDriverOne(gamepad1);
-            DriverTwoBindings driverTwo = coordinators.inputMapper.mapDriverTwo(gamepad2);
-
-            double currentTime = getRuntime();
-            TeleOpIterationResult iterationResult = coordinators.loopCoordinator.runLoopIteration(
-                    loopState,
-                    driverOne,
-                    driverTwo,
-                    currentTime,
-                    loopDependencies,
-                    ejectionMotor.getVelocity() * 60 / DriveConfig.TICKS_PER_ROTATION,
-                    ejectionMotor.getPower(),
-                    ejectionMotor.getVelocity()
-            );
-
-            loopState = iterationResult.state;
-            shootingPowerMode = loopState.shootingPowerMode;
-
-            TeleOpStatusCoordinator.TraceState traceState = iterationResult.traceState;
-            addTraceTelemetry("TeleOp", traceState.state, traceState.stateTimerSec);
-
-            telemetry.update();
-        } //while opModeIsActive
-
-        stopRobot();
-    } //runOpMode
-
-    private TeleOpLoopState createInitialLoopState(String autoAlliance) {
-        return new TeleOpLoopState(
-                false,
-                0,
-                autoAlliance,
-                shootingPowerMode,
-                ShotgunPowerLevel.OFF
-        );
-    }
-
-    private TeleOpLoopDependencies createLoopDependencies() {
-        return new TeleOpLoopDependencies(
-                coordinators.autoParkCoordinator,
-                coordinators.driveControlCoordinator,
-                coordinators.intakeCoordinator,
-                coordinators.shootingCoordinator,
-                coordinators.odometryResetCoordinator,
-                coordinators.shooterPowerCoordinator,
-                coordinators.turretVisionCoordinator,
-                coordinators.turretModeCoordinator,
-                coordinators.turretCoordinator,
-                coordinators.statusCoordinator,
-                coordinators.telemetryCoordinator,
+        TeleOpLoopState loopState = TeleOpLoopState.initial(autoAlliance, shootingPowerMode);
+        TeleOpLoopDependencies loopDependencies = TeleOpLoopDependencies.create(
+                coordinators,
                 localizationService,
                 follower,
                 intakeFSM,
@@ -159,7 +106,35 @@ public class TeleOpFSM extends DarienOpModeFSM {
                 ShooterConfig.SHOT_GUN_POWER_UP_RPM,
                 ShooterConfig.SHOT_GUN_POWER_UP_FAR_RPM_TELEOP
         );
-    }
 
+        while (this.opModeIsActive() && !isStopRequested()) {
+
+            // Snapshot gamepad inputs once per loop so mapping stays centralized and traceable.
+            DriverOneBindings driverOne = coordinators.inputMapper.mapDriverOne(gamepad1);
+            DriverTwoBindings driverTwo = coordinators.inputMapper.mapDriverTwo(gamepad2);
+
+            double currentTime = getRuntime();
+            TeleOpIterationResult iterationResult = coordinators.loopCoordinator.runLoopIteration(
+                    loopState,
+                    driverOne,
+                    driverTwo,
+                    currentTime,
+                    loopDependencies,
+                    ejectionMotor.getVelocity() * 60 / DriveConfig.TICKS_PER_ROTATION,
+                    ejectionMotor.getPower(),
+                    ejectionMotor.getVelocity()
+            );
+
+            loopState = iterationResult.state;
+            shootingPowerMode = loopState.shootingPowerMode;
+
+            TeleOpStatusCoordinator.TraceState traceState = iterationResult.traceState;
+            addTraceTelemetry("TeleOp", traceState.state, traceState.stateTimerSec);
+
+            telemetry.update();
+        } //while opModeIsActive
+
+        stopRobot();
+    } //runOpMode
 
 } //TeleOpFSM class
