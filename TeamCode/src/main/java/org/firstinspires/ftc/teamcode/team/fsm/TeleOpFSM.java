@@ -11,27 +11,14 @@ import android.annotation.SuppressLint;
 import org.firstinspires.ftc.teamcode.team.config.AutoConfig;
 import org.firstinspires.ftc.teamcode.team.config.DriveConfig;
 import org.firstinspires.ftc.teamcode.team.config.ShooterConfig;
-import org.firstinspires.ftc.teamcode.team.config.VisionConfig;
-import org.firstinspires.ftc.teamcode.team.core.AutoParkCoordinator;
-import org.firstinspires.ftc.teamcode.team.core.DriveControlCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.DriverOneBindings;
 import org.firstinspires.ftc.teamcode.team.core.DriverTwoBindings;
-import org.firstinspires.ftc.teamcode.team.core.IntakeCoordinator;
-import org.firstinspires.ftc.teamcode.team.core.OdometryResetCoordinator;
-import org.firstinspires.ftc.teamcode.team.core.ShooterPowerCoordinator;
-import org.firstinspires.ftc.teamcode.team.core.ShootingCoordinator;
-import org.firstinspires.ftc.teamcode.team.core.TeleOpInitializationCoordinator;
-import org.firstinspires.ftc.teamcode.team.core.TeleOpInputMapper;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpIterationResult;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpCoordinatorSet;
+import org.firstinspires.ftc.teamcode.team.core.TeleOpInitializationCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpLoopDependencies;
-import org.firstinspires.ftc.teamcode.team.core.TeleOpLoopCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpLoopState;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpStatusCoordinator;
-import org.firstinspires.ftc.teamcode.team.core.TeleOpTelemetryCoordinator;
-import org.firstinspires.ftc.teamcode.team.core.TurretCoordinator;
-import org.firstinspires.ftc.teamcode.team.core.TurretModeCoordinator;
-import org.firstinspires.ftc.teamcode.team.core.TurretVisionCoordinator;
 
 @TeleOp(name = "TeleopFSM", group = "DriverControl")
 @Config
@@ -45,31 +32,12 @@ public class TeleOpFSM extends DarienOpModeFSM {
         super.initControls();
         gateFSM.close();
         turretFSM.center(); // set to center position
-        coordinators = createCoordinatorSet();
-    }
-
-    private TeleOpCoordinatorSet createCoordinatorSet() {
-        return new TeleOpCoordinatorSet(
-                new AutoParkCoordinator(),
-                new DriveControlCoordinator(),
-                new IntakeCoordinator(intakeFSM),
-                new OdometryResetCoordinator(),
-                new ShooterPowerCoordinator(),
-                new ShootingCoordinator(shootingFSM, intakeFSM, gateFSM),
-                new TeleOpInitializationCoordinator(),
-                new TeleOpInputMapper(),
-                new TeleOpLoopCoordinator(),
-                new TeleOpStatusCoordinator(),
-                new TeleOpTelemetryCoordinator(),
-                new TurretCoordinator(turretFSM),
-                new TurretModeCoordinator(turretFSM),
-                new TurretVisionCoordinator(
-                        aprilTagService,
-                        turretFSM,
-                        VisionConfig.APRILTAG_ID_GOAL_BLUE,
-                        VisionConfig.APRILTAG_ID_GOAL_RED,
-                        VisionConfig.CAMERA_FALLBACK_TIMEOUT_MS
-                )
+        coordinators = TeleOpCoordinatorSet.create(
+                aprilTagService,
+                turretFSM,
+                intakeFSM,
+                shootingFSM,
+                gateFSM
         );
     }
 

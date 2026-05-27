@@ -1,5 +1,12 @@
 package org.firstinspires.ftc.teamcode.team.core;
 
+import org.firstinspires.ftc.teamcode.team.config.VisionConfig;
+import org.firstinspires.ftc.teamcode.team.fsm.GateFSM;
+import org.firstinspires.ftc.teamcode.team.fsm.IntakeFSM;
+import org.firstinspires.ftc.teamcode.team.fsm.ShootingFSM;
+import org.firstinspires.ftc.teamcode.team.fsm.TurretFSM;
+import org.firstinspires.ftc.teamcode.team.services.AprilTagService;
+
 /**
  * Bundles TeleOp coordinator instances so the OpMode shell owns one reference.
  */
@@ -49,6 +56,37 @@ public class TeleOpCoordinatorSet {
         this.turretCoordinator = turretCoordinator;
         this.turretModeCoordinator = turretModeCoordinator;
         this.turretVisionCoordinator = turretVisionCoordinator;
+    }
+
+    public static TeleOpCoordinatorSet create(
+            AprilTagService aprilTagService,
+            TurretFSM turretFSM,
+            IntakeFSM intakeFSM,
+            ShootingFSM shootingFSM,
+            GateFSM gateFSM
+    ) {
+        return new TeleOpCoordinatorSet(
+                new AutoParkCoordinator(),
+                new DriveControlCoordinator(),
+                new IntakeCoordinator(intakeFSM),
+                new OdometryResetCoordinator(),
+                new ShooterPowerCoordinator(),
+                new ShootingCoordinator(shootingFSM, intakeFSM, gateFSM),
+                new TeleOpInitializationCoordinator(),
+                new TeleOpInputMapper(),
+                new TeleOpLoopCoordinator(),
+                new TeleOpStatusCoordinator(),
+                new TeleOpTelemetryCoordinator(),
+                new TurretCoordinator(turretFSM),
+                new TurretModeCoordinator(turretFSM),
+                new TurretVisionCoordinator(
+                        aprilTagService,
+                        turretFSM,
+                        VisionConfig.APRILTAG_ID_GOAL_BLUE,
+                        VisionConfig.APRILTAG_ID_GOAL_RED,
+                        VisionConfig.CAMERA_FALLBACK_TIMEOUT_MS
+                )
+        );
     }
 }
 
