@@ -26,6 +26,31 @@ public class TeleOpFSM extends DarienOpModeFSM {
 
     private TeleOpCoordinatorSet coordinators;
 
+    private TeleOpLoopIterationInput buildLoopInput() {
+        DriverOneBindings driverOne = coordinators.inputMapper.mapDriverOne(gamepad1);
+        DriverTwoBindings driverTwo = coordinators.inputMapper.mapDriverTwo(gamepad2);
+
+        double currentTime = getRuntime();
+        double ejectionVelocity = ejectionMotor.getVelocity();
+        TeleOpLoopMetrics loopMetrics = TeleOpLoopMetrics.fromShooterMotor(
+                currentTime,
+                DriveConfig.TICKS_PER_ROTATION,
+                ejectionVelocity,
+                ejectionMotor.getPower()
+        );
+        return TeleOpLoopIterationInput.of(driverOne, driverTwo, loopMetrics);
+    }
+
+    private TeleOpLoopContext applyLoopResult(TeleOpIterationResult iterationResult) {
+        TeleOpLoopContext nextLoopContext = iterationResult.context;
+        shootingPowerMode = nextLoopContext.state.shootingPowerMode;
+
+        TeleOpStatusCoordinator.TraceState traceState = iterationResult.traceState;
+        addTraceTelemetry("TeleOp", traceState.state, traceState.stateTimerSec);
+        telemetry.update();
+        return nextLoopContext;
+    }
+
     @Override
     public void initControls() {
         super.initControls();
@@ -85,37 +110,13 @@ public class TeleOpFSM extends DarienOpModeFSM {
         );
 
         while (this.opModeIsActive() && !isStopRequested()) {
-
-            // Snapshot gamepad inputs once per loop so mapping stays centralized and traceable.
-            DriverOneBindings driverOne = coordinators.inputMapper.mapDriverOne(gamepad1);
-            DriverTwoBindings driverTwo = coordinators.inputMapper.mapDriverTwo(gamepad2);
-
-            double currentTime = getRuntime();
-            double ejectionVelocity = ejectionMotor.getVelocity();
-            TeleOpLoopMetrics loopMetrics = TeleOpLoopMetrics.fromShooterMotor(
-                    currentTime,
-                    DriveConfig.TICKS_PER_ROTATION,
-                    ejectionVelocity,
-                    ejectionMotor.getPower()
-            );
-            TeleOpLoopIterationInput loopInput = TeleOpLoopIterationInput.of(
-                    driverOne,
-                    driverTwo,
-                    loopMetrics
-            );
+            TeleOpLoopIterationInput loopInput = buildLoopInput();
 
             TeleOpIterationResult iterationResult = coordinators.loopCoordinator.runLoopIteration(
                     loopContext,
                     loopInput
             );
-
-            loopContext = iterationResult.context;
-            shootingPowerMode = loopContext.state.shootingPowerMode;
-
-            TeleOpStatusCoordinator.TraceState traceState = iterationResult.traceState;
-            addTraceTelemetry("TeleOp", traceState.state, traceState.stateTimerSec);
-
-            telemetry.update();
+            loopContext = applyLoopResult(iterationResult);
         } //while opModeIsActive
 
         stopRobot();
