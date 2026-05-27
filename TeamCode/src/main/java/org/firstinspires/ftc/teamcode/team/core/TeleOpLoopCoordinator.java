@@ -19,70 +19,40 @@ public class TeleOpLoopCoordinator {
         }
     }
 
-    private static class AlwaysRunResult {
-        public final boolean isAutoParking;
-        public final double autoParkStartTime;
-        public final DarienOpModeFSM.ShotgunPowerLevel shotgunPowerLatch;
-        public final PoseSnapshot pose;
+    /**
+     * Mutable loop working state used only inside a single runLoopIteration call.
+     * Keeping one object avoids juggling many small return classes between phases.
+     */
+    private static class LoopAccumulator {
+        public boolean isAutoParking;
+        public double autoParkStartTime;
+        public String autoAlliance;
+        public DarienOpModeFSM.ShootingPowerModes shootingPowerMode;
+        public DarienOpModeFSM.ShotgunPowerLevel shotgunPowerLatch;
+        public PoseSnapshot pose;
 
-        public AlwaysRunResult(
-                boolean isAutoParking,
-                double autoParkStartTime,
-                DarienOpModeFSM.ShotgunPowerLevel shotgunPowerLatch,
-                PoseSnapshot pose
-        ) {
-            this.isAutoParking = isAutoParking;
-            this.autoParkStartTime = autoParkStartTime;
-            this.shotgunPowerLatch = shotgunPowerLatch;
-            this.pose = pose;
-        }
-    }
-
-    private static class DriverOnePhaseResult {
-        public final boolean isAutoParking;
-        public final double autoParkStartTime;
-        public final DarienOpModeFSM.ShotgunPowerLevel shotgunPowerLatch;
-
-        public DriverOnePhaseResult(
-                boolean isAutoParking,
-                double autoParkStartTime,
-                DarienOpModeFSM.ShotgunPowerLevel shotgunPowerLatch
-        ) {
-            this.isAutoParking = isAutoParking;
-            this.autoParkStartTime = autoParkStartTime;
-            this.shotgunPowerLatch = shotgunPowerLatch;
-        }
-    }
-
-    private static class DriverTwoPhaseResult {
-        public final String autoAlliance;
-        public final DarienOpModeFSM.ShootingPowerModes shootingPowerMode;
-        public final DarienOpModeFSM.ShotgunPowerLevel shotgunPowerLatch;
-
-        public DriverTwoPhaseResult(
-                String autoAlliance,
-                DarienOpModeFSM.ShootingPowerModes shootingPowerMode,
-                DarienOpModeFSM.ShotgunPowerLevel shotgunPowerLatch
-        ) {
-            this.autoAlliance = autoAlliance;
-            this.shootingPowerMode = shootingPowerMode;
-            this.shotgunPowerLatch = shotgunPowerLatch;
+        public LoopAccumulator(TeleOpLoopState loopState) {
+            this.isAutoParking = loopState.isAutoParking;
+            this.autoParkStartTime = loopState.autoParkStartTime;
+            this.autoAlliance = loopState.autoAlliance;
+            this.shootingPowerMode = loopState.shootingPowerMode;
+            this.shotgunPowerLatch = loopState.shotgunPowerLatch;
         }
     }
 
 
-    private AlwaysRunResult runAlwaysPhase(
-            boolean isAutoParking,
-            double autoParkStartTime,
-            DarienOpModeFSM.ShotgunPowerLevel shotgunPowerLatch,
+    /**
+     * Phase 1: always-run systems (drive, follower update, FSM updates, vision polling).
+     */
+    private void runAlwaysPhase(
+            LoopAccumulator accumulator,
             DriverOneBindings driverOne,
             double currentTime,
-            String autoAlliance,
             TeleOpLoopDependencies deps
     ) {
         AutoParkCoordinator.AutoParkResult progressResult = deps.autoParkCoordinator.updateAutoParkProgress(
-                isAutoParking,
-                autoParkStartTime,
+                accumulator.isAutoParking,
+                accumulator.autoParkStartTime,
                 currentTime,
                 driverOne.driveStrafeAxis,
                 driverOne.driveForwardAxis,
@@ -91,14 +61,14 @@ public class TeleOpLoopCoordinator {
                 deps.config.autoParkTimeout,
                 deps.follower,
                 deps.telemetry,
-                shotgunPowerLatch
+                accumulator.shotgunPowerLatch
         );
-        isAutoParking = progressResult.isAutoParking;
-        autoParkStartTime = progressResult.autoParkStartTime;
-        shotgunPowerLatch = progressResult.shotgunPowerLatch;
+        accumulator.isAutoParking = progressResult.isAutoParking;
+        accumulator.autoParkStartTime = progressResult.autoParkStartTime;
+        accumulator.shotgunPowerLatch = progressResult.shotgunPowerLatch;
 
         deps.driveControlCoordinator.applyTeleOpDrive(
-                isAutoParking,
+                accumulator.isAutoParking,
                 driverOne.driveForwardAxis,
                 driverOne.driveStrafeAxis,
                 driverOne.driveTurnAxis,
@@ -118,7 +88,7 @@ public class TeleOpLoopCoordinator {
         deps.intakeCoordinator.updateActiveIntake(currentTime, deps.telemetry);
         deps.shootingCoordinator.updateActiveSequence(currentTime, deps.telemetry);
 
-        PoseSnapshot pose = new PoseSnapshot(
+        accumulator.pose = new PoseSnapshot(
                 deps.follower.getPose().getX(),
                 deps.follower.getPose().getY(),
                 deps.follower.getPose().getHeading()
@@ -126,21 +96,19 @@ public class TeleOpLoopCoordinator {
 
         deps.turretVisionCoordinator.updateCameraControl(
                 currentTime,
-                autoAlliance,
-                pose.x,
-                pose.y,
-                pose.headingRadians,
+                accumulator.autoAlliance,
+                accumulator.pose.x,
+                accumulator.pose.y,
+                accumulator.pose.headingRadians,
                 deps.telemetry
         );
-
-        return new AlwaysRunResult(isAutoParking, autoParkStartTime, shotgunPowerLatch, pose);
     }
 
-    private DriverOnePhaseResult runDriverOnePhase(
-            boolean isAutoParking,
-            double autoParkStartTime,
-            DarienOpModeFSM.ShotgunPowerLevel shotgunPowerLatch,
-            String autoAlliance,
+    /**
+     * Phase 2: driver one commands (intake, auto-park start, odometry reset, shoot trigger).
+     */
+    private void runDriverOnePhase(
+            LoopAccumulator accumulator,
             DriverOneBindings driverOne,
             DriverTwoBindings driverTwo,
             double currentTime,
@@ -154,10 +122,10 @@ public class TeleOpLoopCoordinator {
 
         AutoParkCoordinator.AutoParkResult startResult = deps.autoParkCoordinator.tryStartAutoPark(
                 driverOne.autoParkRequested,
-                isAutoParking,
+                accumulator.isAutoParking,
                 currentTime,
-                autoParkStartTime,
-                autoAlliance,
+                accumulator.autoParkStartTime,
+                accumulator.autoAlliance,
                 deps.config.parkRedX,
                 deps.config.parkRedY,
                 deps.config.parkRedHeadingDeg,
@@ -171,11 +139,11 @@ public class TeleOpLoopCoordinator {
                 deps.shootingFSM,
                 deps.turretFSM,
                 deps.gateFSM,
-                shotgunPowerLatch
+                accumulator.shotgunPowerLatch
         );
-        isAutoParking = startResult.isAutoParking;
-        autoParkStartTime = startResult.autoParkStartTime;
-        shotgunPowerLatch = startResult.shotgunPowerLatch;
+        accumulator.isAutoParking = startResult.isAutoParking;
+        accumulator.autoParkStartTime = startResult.autoParkStartTime;
+        accumulator.shotgunPowerLatch = startResult.shotgunPowerLatch;
 
         deps.shootingCoordinator.handleDriverControls(
                 currentTime,
@@ -188,7 +156,7 @@ public class TeleOpLoopCoordinator {
 
         deps.odometryResetCoordinator.tryResetToHumanPlayerPosition(
                 driverOne.odometryResetRequested,
-                autoAlliance,
+                accumulator.autoAlliance,
                 deps.config.humanPlayerRedX,
                 deps.config.humanPlayerRedY,
                 deps.config.humanPlayerBlueX,
@@ -198,69 +166,65 @@ public class TeleOpLoopCoordinator {
                 deps.localizationService,
                 deps.telemetry
         );
-
-        return new DriverOnePhaseResult(isAutoParking, autoParkStartTime, shotgunPowerLatch);
     }
 
-    private DriverTwoPhaseResult runDriverTwoPhase(
-            String autoAlliance,
-            DarienOpModeFSM.ShootingPowerModes shootingPowerMode,
-            DarienOpModeFSM.ShotgunPowerLevel shotgunPowerLatch,
+    /**
+     * Phase 3: driver two commands (alliance/turret mode, turret aim, shooter power selection).
+     */
+    private void runDriverTwoPhase(
+            LoopAccumulator accumulator,
             DriverTwoBindings driverTwo,
-            PoseSnapshot pose,
             double currentTime,
             TeleOpLoopDependencies deps
     ) {
         TurretVisionCoordinator.AllianceSwitchResult allianceSwitchResult = deps.turretVisionCoordinator.handleAllianceButtons(
                 driverTwo.setAllianceRedRequested,
                 driverTwo.setAllianceBlueRequested,
-                autoAlliance,
+                accumulator.autoAlliance,
                 deps.telemetry
         );
-        autoAlliance = allianceSwitchResult.alliance;
+        accumulator.autoAlliance = allianceSwitchResult.alliance;
 
         TurretModeCoordinator.ModeSwitchResult modeSwitchResult = deps.turretModeCoordinator.handleModeSwitches(
                 driverTwo.odometryModeRequested,
                 driverTwo.cameraModeRequested,
-                shootingPowerMode
+                accumulator.shootingPowerMode
         );
-        shootingPowerMode = modeSwitchResult.shootingPowerMode;
+        accumulator.shootingPowerMode = modeSwitchResult.shootingPowerMode;
         if (modeSwitchResult.shouldStartGoalReading) {
             deps.turretVisionCoordinator.startReadingGoalId(currentTime);
         }
 
         deps.turretCoordinator.applyManualOrOdometryControl(
-                autoAlliance,
+                accumulator.autoAlliance,
                 driverTwo.turretManualAxis,
                 driverTwo.turretSpeedTrigger,
                 driverTwo.turretCenterRequested,
-                pose.x,
-                pose.y,
-                pose.headingRadians
+                accumulator.pose.x,
+                accumulator.pose.y,
+                accumulator.pose.headingRadians
         );
 
         ShooterPowerCoordinator.PowerState powerState = deps.shooterPowerCoordinator.computePowerState(
-                shootingPowerMode,
-                shotgunPowerLatch,
-                pose.y,
+                accumulator.shootingPowerMode,
+                accumulator.shotgunPowerLatch,
+                accumulator.pose.y,
                 deps.config.shootingPowerOdometryYThreshold,
                 driverTwo.shootingStickY,
                 deps.config.shootPowerSelectStickThreshold,
                 driverTwo.toggleShotgunPowerLatchRequested,
                 driverTwo.forceShotgunLowPowerRequested
         );
-        shootingPowerMode = powerState.mode;
-        shotgunPowerLatch = powerState.latch;
+        accumulator.shootingPowerMode = powerState.mode;
+        accumulator.shotgunPowerLatch = powerState.latch;
 
         deps.shooterPowerCoordinator.applyRequestedPower(
                 deps.shotgunFSM,
-                shotgunPowerLatch,
+                accumulator.shotgunPowerLatch,
                 deps.config.closeRpm,
                 deps.config.farRpm,
                 deps.telemetry
         );
-
-        return new DriverTwoPhaseResult(autoAlliance, shootingPowerMode, shotgunPowerLatch);
     }
 
     public TeleOpIterationResult runLoopIteration(
@@ -274,34 +238,26 @@ public class TeleOpLoopCoordinator {
     ) {
         TeleOpLoopState loopState = loopContext.state;
         TeleOpLoopDependencies deps = loopContext.dependencies;
+        LoopAccumulator accumulator = new LoopAccumulator(loopState);
 
-        AlwaysRunResult alwaysRunResult = runAlwaysPhase(
-                loopState.isAutoParking,
-                loopState.autoParkStartTime,
-                loopState.shotgunPowerLatch,
+        runAlwaysPhase(
+                accumulator,
                 driverOne,
                 currentTime,
-                loopState.autoAlliance,
                 deps
         );
 
-        DriverOnePhaseResult driverOnePhaseResult = runDriverOnePhase(
-                alwaysRunResult.isAutoParking,
-                alwaysRunResult.autoParkStartTime,
-                alwaysRunResult.shotgunPowerLatch,
-                loopState.autoAlliance,
+        runDriverOnePhase(
+                accumulator,
                 driverOne,
                 driverTwo,
                 currentTime,
                 deps
         );
 
-        DriverTwoPhaseResult driverTwoPhaseResult = runDriverTwoPhase(
-                loopState.autoAlliance,
-                loopState.shootingPowerMode,
-                driverOnePhaseResult.shotgunPowerLatch,
+        runDriverTwoPhase(
+                accumulator,
                 driverTwo,
-                alwaysRunResult.pose,
                 currentTime,
                 deps
         );
@@ -314,32 +270,32 @@ public class TeleOpLoopCoordinator {
                 deps.intakeFSM,
                 deps.shootingFSM,
                 deps.turretFSM,
-                driverTwoPhaseResult.shootingPowerMode.toString(),
-                driverTwoPhaseResult.shotgunPowerLatch.toString(),
+                accumulator.shootingPowerMode.toString(),
+                accumulator.shotgunPowerLatch.toString(),
                 ejectionMotorRpm,
                 ejectionMotorPower,
                 ejectionMotorVelocity,
-                driverTwoPhaseResult.autoAlliance,
-                alwaysRunResult.pose.x,
-                alwaysRunResult.pose.y,
-                alwaysRunResult.pose.headingRadians,
-                driverOnePhaseResult.isAutoParking,
+                accumulator.autoAlliance,
+                accumulator.pose.x,
+                accumulator.pose.y,
+                accumulator.pose.headingRadians,
+                accumulator.isAutoParking,
                 deps.turretVisionCoordinator.getTargetGoalTagId(),
                 deps.config.parkRedX,
                 deps.config.parkRedY,
                 deps.config.parkBlueX,
                 deps.config.parkBlueY,
                 deps.config.autoParkTimeout,
-                driverOnePhaseResult.autoParkStartTime,
+                accumulator.autoParkStartTime,
                 currentTime
         );
 
         TeleOpLoopState nextState = new TeleOpLoopState(
-                driverOnePhaseResult.isAutoParking,
-                driverOnePhaseResult.autoParkStartTime,
-                driverTwoPhaseResult.autoAlliance,
-                driverTwoPhaseResult.shootingPowerMode,
-                driverTwoPhaseResult.shotgunPowerLatch
+                accumulator.isAutoParking,
+                accumulator.autoParkStartTime,
+                accumulator.autoAlliance,
+                accumulator.shootingPowerMode,
+                accumulator.shotgunPowerLatch
         );
         return new TeleOpIterationResult(loopContext.withState(nextState), traceState);
     }
