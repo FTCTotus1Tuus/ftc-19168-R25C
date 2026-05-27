@@ -14,6 +14,7 @@ import org.firstinspires.ftc.teamcode.team.core.TeleOpCoordinatorSet;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpInitializationCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpLoopConfig;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpLoopContext;
+import org.firstinspires.ftc.teamcode.team.core.TeleOpLoopIterationInput;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpLoopMetrics;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpLoopRuntimeBindings;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpStatusCoordinator;
@@ -96,12 +97,15 @@ public class TeleOpFSM extends DarienOpModeFSM {
                     ejectionMotor.getPower(),
                     ejectionMotor.getVelocity()
             );
-
-            TeleOpIterationResult iterationResult = coordinators.loopCoordinator.runLoopIteration(
-                    loopContext,
+            TeleOpLoopIterationInput loopInput = new TeleOpLoopIterationInput(
                     driverOne,
                     driverTwo,
                     loopMetrics
+            );
+
+            TeleOpIterationResult iterationResult = coordinators.loopCoordinator.runLoopIteration(
+                    loopContext,
+                    loopInput
             );
 
             loopContext = iterationResult.context;

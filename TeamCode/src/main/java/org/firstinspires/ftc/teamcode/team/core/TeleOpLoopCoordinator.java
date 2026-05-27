@@ -260,13 +260,14 @@ public class TeleOpLoopCoordinator {
 
     public TeleOpIterationResult runLoopIteration(
             TeleOpLoopContext loopContext,
-            DriverOneBindings driverOne,
-            DriverTwoBindings driverTwo,
-            TeleOpLoopMetrics metrics
+            TeleOpLoopIterationInput iterationInput
     ) {
         TeleOpLoopState loopState = loopContext.state;
         TeleOpLoopDependencies deps = loopContext.dependencies;
         LoopAccumulator accumulator = new LoopAccumulator(loopState);
+        DriverOneBindings driverOne = iterationInput.driverOne;
+        DriverTwoBindings driverTwo = iterationInput.driverTwo;
+        TeleOpLoopMetrics metrics = iterationInput.metrics;
 
         runAlwaysPhase(
                 accumulator,
