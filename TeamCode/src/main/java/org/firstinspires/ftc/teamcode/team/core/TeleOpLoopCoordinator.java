@@ -322,15 +322,17 @@ public class TeleOpLoopCoordinator {
     }
 
     public TeleOpIterationResult runLoopIteration(
-            TeleOpLoopState loopState,
+            TeleOpLoopContext loopContext,
             DriverOneBindings driverOne,
             DriverTwoBindings driverTwo,
             double currentTime,
-            TeleOpLoopDependencies deps,
             double ejectionMotorRpm,
             double ejectionMotorPower,
             double ejectionMotorVelocity
     ) {
+        TeleOpLoopState loopState = loopContext.state;
+        TeleOpLoopDependencies deps = loopContext.dependencies;
+
         AlwaysRunResult alwaysRunResult = runAlwaysPhase(
                 loopState.isAutoParking,
                 loopState.autoParkStartTime,
@@ -446,6 +448,6 @@ public class TeleOpLoopCoordinator {
                 driverTwoPhaseResult.shootingPowerMode,
                 driverTwoPhaseResult.shotgunPowerLatch
         );
-        return new TeleOpIterationResult(nextState, traceState);
+        return new TeleOpIterationResult(loopContext.withState(nextState), traceState);
     }
 }

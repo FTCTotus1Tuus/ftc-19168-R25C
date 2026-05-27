@@ -16,8 +16,7 @@ import org.firstinspires.ftc.teamcode.team.core.DriverTwoBindings;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpIterationResult;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpCoordinatorSet;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpInitializationCoordinator;
-import org.firstinspires.ftc.teamcode.team.core.TeleOpLoopDependencies;
-import org.firstinspires.ftc.teamcode.team.core.TeleOpLoopState;
+import org.firstinspires.ftc.teamcode.team.core.TeleOpLoopContext;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpStatusCoordinator;
 
 @TeleOp(name = "TeleopFSM", group = "DriverControl")
@@ -70,8 +69,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
         follower.startTeleopDrive(true);
         follower.update();
 
-        TeleOpLoopState loopState = TeleOpLoopState.initial(autoAlliance, shootingPowerMode);
-        TeleOpLoopDependencies loopDependencies = TeleOpLoopDependencies.create(
+        TeleOpLoopContext loopContext = TeleOpLoopContext.create(
                 coordinators,
                 localizationService,
                 follower,
@@ -81,6 +79,8 @@ public class TeleOpFSM extends DarienOpModeFSM {
                 turretFSM,
                 gateFSM,
                 telemetry,
+                autoAlliance,
+                shootingPowerMode,
                 AutoConfig.AUTO_PARK_STICK_DEADZONE,
                 AutoConfig.AUTO_PARK_TIMEOUT,
                 DriveConfig.DRIVE_DEADZONE,
@@ -115,18 +115,17 @@ public class TeleOpFSM extends DarienOpModeFSM {
 
             double currentTime = getRuntime();
             TeleOpIterationResult iterationResult = coordinators.loopCoordinator.runLoopIteration(
-                    loopState,
+                    loopContext,
                     driverOne,
                     driverTwo,
                     currentTime,
-                    loopDependencies,
                     ejectionMotor.getVelocity() * 60 / DriveConfig.TICKS_PER_ROTATION,
                     ejectionMotor.getPower(),
                     ejectionMotor.getVelocity()
             );
 
-            loopState = iterationResult.state;
-            shootingPowerMode = loopState.shootingPowerMode;
+            loopContext = iterationResult.context;
+            shootingPowerMode = loopContext.state.shootingPowerMode;
 
             TeleOpStatusCoordinator.TraceState traceState = iterationResult.traceState;
             addTraceTelemetry("TeleOp", traceState.state, traceState.stateTimerSec);
