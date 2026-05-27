@@ -1,13 +1,10 @@
 package org.firstinspires.ftc.teamcode.team.fsm;
 
-import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
-import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import com.bylazar.configurables.annotations.Configurable;
 
-import android.annotation.SuppressLint;
 import org.firstinspires.ftc.teamcode.team.config.AutoConfig;
 import org.firstinspires.ftc.teamcode.team.config.DriveConfig;
 import org.firstinspires.ftc.teamcode.team.core.DriverOneBindings;
@@ -40,13 +37,9 @@ public class TeleOpFSM extends DarienOpModeFSM {
         );
     }
 
-
-    @SuppressLint("DefaultLocale")
     @Override
     public void runOpMode() throws InterruptedException {
         initControls();
-        tp = new TelemetryPacket();
-        dash = FtcDashboard.getInstance();
 
         TeleOpInitializationCoordinator.InitializationResult initializationResult = coordinators.initializationCoordinator.initialize(
                 preferencesService,
