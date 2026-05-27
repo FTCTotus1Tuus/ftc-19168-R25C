@@ -23,6 +23,7 @@ import org.firstinspires.ftc.teamcode.team.core.ShootingCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpInitializationCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpInputMapper;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpIterationResult;
+import org.firstinspires.ftc.teamcode.team.core.TeleOpCoordinatorSet;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpLoopDependencies;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpLoopCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpLoopState;
@@ -37,49 +38,38 @@ import org.firstinspires.ftc.teamcode.team.core.TurretVisionCoordinator;
 @Configurable
 public class TeleOpFSM extends DarienOpModeFSM {
 
-    private AutoParkCoordinator autoParkCoordinator;
-    private DriveControlCoordinator driveControlCoordinator;
-    private IntakeCoordinator intakeCoordinator;
-    private OdometryResetCoordinator odometryResetCoordinator;
-    private ShooterPowerCoordinator shooterPowerCoordinator;
-    private ShootingCoordinator shootingCoordinator;
-    private TeleOpInitializationCoordinator initializationCoordinator;
-    private TeleOpInputMapper inputMapper;
-    private TeleOpLoopCoordinator loopCoordinator;
-    private TeleOpStatusCoordinator statusCoordinator;
-    private TeleOpTelemetryCoordinator telemetryCoordinator;
-    private TurretCoordinator turretCoordinator;
-    private TurretModeCoordinator turretModeCoordinator;
-    private TurretVisionCoordinator turretVisionCoordinator;
+    private TeleOpCoordinatorSet coordinators;
 
     @Override
     public void initControls() {
         super.initControls();
         gateFSM.close();
         turretFSM.center(); // set to center position
-        initializeCoordinators();
+        coordinators = createCoordinatorSet();
     }
 
-    private void initializeCoordinators() {
-        autoParkCoordinator = new AutoParkCoordinator();
-        driveControlCoordinator = new DriveControlCoordinator();
-        intakeCoordinator = new IntakeCoordinator(intakeFSM);
-        odometryResetCoordinator = new OdometryResetCoordinator();
-        shooterPowerCoordinator = new ShooterPowerCoordinator();
-        shootingCoordinator = new ShootingCoordinator(shootingFSM, intakeFSM, gateFSM);
-        initializationCoordinator = new TeleOpInitializationCoordinator();
-        inputMapper = new TeleOpInputMapper();
-        loopCoordinator = new TeleOpLoopCoordinator();
-        statusCoordinator = new TeleOpStatusCoordinator();
-        telemetryCoordinator = new TeleOpTelemetryCoordinator();
-        turretCoordinator = new TurretCoordinator(turretFSM);
-        turretModeCoordinator = new TurretModeCoordinator(turretFSM);
-        turretVisionCoordinator = new TurretVisionCoordinator(
-                aprilTagService,
-                turretFSM,
-                VisionConfig.APRILTAG_ID_GOAL_BLUE,
-                VisionConfig.APRILTAG_ID_GOAL_RED,
-                VisionConfig.CAMERA_FALLBACK_TIMEOUT_MS
+    private TeleOpCoordinatorSet createCoordinatorSet() {
+        return new TeleOpCoordinatorSet(
+                new AutoParkCoordinator(),
+                new DriveControlCoordinator(),
+                new IntakeCoordinator(intakeFSM),
+                new OdometryResetCoordinator(),
+                new ShooterPowerCoordinator(),
+                new ShootingCoordinator(shootingFSM, intakeFSM, gateFSM),
+                new TeleOpInitializationCoordinator(),
+                new TeleOpInputMapper(),
+                new TeleOpLoopCoordinator(),
+                new TeleOpStatusCoordinator(),
+                new TeleOpTelemetryCoordinator(),
+                new TurretCoordinator(turretFSM),
+                new TurretModeCoordinator(turretFSM),
+                new TurretVisionCoordinator(
+                        aprilTagService,
+                        turretFSM,
+                        VisionConfig.APRILTAG_ID_GOAL_BLUE,
+                        VisionConfig.APRILTAG_ID_GOAL_RED,
+                        VisionConfig.CAMERA_FALLBACK_TIMEOUT_MS
+                )
         );
     }
 
@@ -91,10 +81,10 @@ public class TeleOpFSM extends DarienOpModeFSM {
         tp = new TelemetryPacket();
         dash = FtcDashboard.getInstance();
 
-        TeleOpInitializationCoordinator.InitializationResult initializationResult = initializationCoordinator.initialize(
+        TeleOpInitializationCoordinator.InitializationResult initializationResult = coordinators.initializationCoordinator.initialize(
                 preferencesService,
                 localizationService,
-                turretVisionCoordinator,
+                coordinators.turretVisionCoordinator,
                 telemetry,
                 "UNKNOWN",
                 AutoConfig.HUMAN_PLAYER_RED_X,
@@ -118,11 +108,11 @@ public class TeleOpFSM extends DarienOpModeFSM {
         while (this.opModeIsActive() && !isStopRequested()) {
 
             // Snapshot gamepad inputs once per loop so mapping stays centralized and traceable.
-            DriverOneBindings driverOne = inputMapper.mapDriverOne(gamepad1);
-            DriverTwoBindings driverTwo = inputMapper.mapDriverTwo(gamepad2);
+            DriverOneBindings driverOne = coordinators.inputMapper.mapDriverOne(gamepad1);
+            DriverTwoBindings driverTwo = coordinators.inputMapper.mapDriverTwo(gamepad2);
 
             double currentTime = getRuntime();
-            TeleOpIterationResult iterationResult = loopCoordinator.runLoopIteration(
+            TeleOpIterationResult iterationResult = coordinators.loopCoordinator.runLoopIteration(
                     loopState,
                     driverOne,
                     driverTwo,
@@ -157,17 +147,17 @@ public class TeleOpFSM extends DarienOpModeFSM {
 
     private TeleOpLoopDependencies createLoopDependencies() {
         return new TeleOpLoopDependencies(
-                autoParkCoordinator,
-                driveControlCoordinator,
-                intakeCoordinator,
-                shootingCoordinator,
-                odometryResetCoordinator,
-                shooterPowerCoordinator,
-                turretVisionCoordinator,
-                turretModeCoordinator,
-                turretCoordinator,
-                statusCoordinator,
-                telemetryCoordinator,
+                coordinators.autoParkCoordinator,
+                coordinators.driveControlCoordinator,
+                coordinators.intakeCoordinator,
+                coordinators.shootingCoordinator,
+                coordinators.odometryResetCoordinator,
+                coordinators.shooterPowerCoordinator,
+                coordinators.turretVisionCoordinator,
+                coordinators.turretModeCoordinator,
+                coordinators.turretCoordinator,
+                coordinators.statusCoordinator,
+                coordinators.telemetryCoordinator,
                 localizationService,
                 follower,
                 intakeFSM,
