@@ -349,13 +349,13 @@ public class TeleOpLoopCoordinator {
                 deps.turretFSM,
                 deps.follower,
                 deps.telemetry,
-                deps.autoParkStickDeadzone,
-                deps.autoParkTimeout,
-                deps.driveDeadzone,
-                deps.inputExponent,
-                deps.speedScale,
-                deps.speedScaleTurn,
-                deps.rotationScale
+                deps.config.autoParkStickDeadzone,
+                deps.config.autoParkTimeout,
+                deps.config.driveDeadzone,
+                deps.config.inputExponent,
+                deps.config.speedScale,
+                deps.config.speedScaleTurn,
+                deps.config.rotationScale
         );
 
         DriverOnePhaseResult driverOnePhaseResult = runDriverOnePhase(
@@ -378,20 +378,20 @@ public class TeleOpLoopCoordinator {
                 deps.turretFSM,
                 deps.gateFSM,
                 deps.telemetry,
-                deps.parkRedX,
-                deps.parkRedY,
-                deps.parkRedHeadingDeg,
-                deps.parkBlueX,
-                deps.parkBlueY,
-                deps.parkBlueHeadingDeg,
-                deps.autoParkPower,
-                deps.humanPlayerRedX,
-                deps.humanPlayerRedY,
-                deps.humanPlayerBlueX,
-                deps.humanPlayerBlueY,
-                deps.robotCenterOffsetX,
-                deps.robotCenterOffsetY,
-                deps.shootPowerSelectStickThreshold
+                deps.config.parkRedX,
+                deps.config.parkRedY,
+                deps.config.parkRedHeadingDeg,
+                deps.config.parkBlueX,
+                deps.config.parkBlueY,
+                deps.config.parkBlueHeadingDeg,
+                deps.config.autoParkPower,
+                deps.config.humanPlayerRedX,
+                deps.config.humanPlayerRedY,
+                deps.config.humanPlayerBlueX,
+                deps.config.humanPlayerBlueY,
+                deps.config.robotCenterOffsetX,
+                deps.config.robotCenterOffsetY,
+                deps.config.shootPowerSelectStickThreshold
         );
 
         DriverTwoPhaseResult driverTwoPhaseResult = runDriverTwoPhase(
@@ -407,10 +407,10 @@ public class TeleOpLoopCoordinator {
                 deps.shooterPowerCoordinator,
                 deps.shotgunFSM,
                 deps.telemetry,
-                deps.shootingPowerOdometryYThreshold,
-                deps.shootPowerSelectStickThreshold,
-                deps.closeRpm,
-                deps.farRpm
+                deps.config.shootingPowerOdometryYThreshold,
+                deps.config.shootPowerSelectStickThreshold,
+                deps.config.closeRpm,
+                deps.config.farRpm
         );
 
         TeleOpStatusCoordinator.TraceState traceState = deps.statusCoordinator.publishStatus(
@@ -432,11 +432,11 @@ public class TeleOpLoopCoordinator {
                 alwaysRunResult.pose.headingRadians,
                 driverOnePhaseResult.isAutoParking,
                 deps.turretVisionCoordinator.getTargetGoalTagId(),
-                deps.parkRedX,
-                deps.parkRedY,
-                deps.parkBlueX,
-                deps.parkBlueY,
-                deps.autoParkTimeout,
+                deps.config.parkRedX,
+                deps.config.parkRedY,
+                deps.config.parkBlueX,
+                deps.config.parkBlueY,
+                deps.config.autoParkTimeout,
                 driverOnePhaseResult.autoParkStartTime,
                 currentTime
         );

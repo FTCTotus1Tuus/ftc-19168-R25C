@@ -10,12 +10,12 @@ import com.bylazar.configurables.annotations.Configurable;
 import android.annotation.SuppressLint;
 import org.firstinspires.ftc.teamcode.team.config.AutoConfig;
 import org.firstinspires.ftc.teamcode.team.config.DriveConfig;
-import org.firstinspires.ftc.teamcode.team.config.ShooterConfig;
 import org.firstinspires.ftc.teamcode.team.core.DriverOneBindings;
 import org.firstinspires.ftc.teamcode.team.core.DriverTwoBindings;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpIterationResult;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpCoordinatorSet;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpInitializationCoordinator;
+import org.firstinspires.ftc.teamcode.team.core.TeleOpLoopConfig;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpLoopContext;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpStatusCoordinator;
 
@@ -69,6 +69,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
         follower.startTeleopDrive(true);
         follower.update();
 
+        TeleOpLoopConfig loopConfig = TeleOpLoopConfig.createDefault();
         TeleOpLoopContext loopContext = TeleOpLoopContext.create(
                 coordinators,
                 localizationService,
@@ -81,30 +82,7 @@ public class TeleOpFSM extends DarienOpModeFSM {
                 telemetry,
                 autoAlliance,
                 shootingPowerMode,
-                AutoConfig.AUTO_PARK_STICK_DEADZONE,
-                AutoConfig.AUTO_PARK_TIMEOUT,
-                DriveConfig.DRIVE_DEADZONE,
-                DriveConfig.INPUT_EXPONENT,
-                DriveConfig.SPEED_SCALE,
-                DriveConfig.SPEED_SCALE_TURN,
-                DriveConfig.ROTATION_SCALE,
-                AutoConfig.PARK_RED_X,
-                AutoConfig.PARK_RED_Y,
-                AutoConfig.PARK_RED_H_DEG,
-                AutoConfig.PARK_BLUE_X,
-                AutoConfig.PARK_BLUE_Y,
-                AutoConfig.PARK_BLUE_H_DEG,
-                AutoConfig.AUTO_PARK_POWER,
-                AutoConfig.HUMAN_PLAYER_RED_X,
-                AutoConfig.HUMAN_PLAYER_RED_Y,
-                AutoConfig.HUMAN_PLAYER_BLUE_X,
-                AutoConfig.HUMAN_PLAYER_BLUE_Y,
-                DriveConfig.ROBOT_CENTER_OFFSET_X,
-                DriveConfig.ROBOT_CENTER_OFFSET_Y,
-                ShooterConfig.SHOOTING_POWER_ODOMETRY_Y_THRESHOLD,
-                ShooterConfig.SHOOT_POWER_SELECT_STICK_THRESHOLD,
-                ShooterConfig.SHOT_GUN_POWER_UP_RPM,
-                ShooterConfig.SHOT_GUN_POWER_UP_FAR_RPM_TELEOP
+                loopConfig
         );
 
         while (this.opModeIsActive() && !isStopRequested()) {
