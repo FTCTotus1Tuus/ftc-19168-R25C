@@ -230,10 +230,7 @@ public class TeleOpLoopCoordinator {
     private TeleOpStatusSnapshot buildStatusSnapshot(
             LoopAccumulator accumulator,
             TeleOpLoopDependencies deps,
-            double ejectionMotorRpm,
-            double ejectionMotorPower,
-            double ejectionMotorVelocity,
-            double currentTime
+            TeleOpLoopMetrics metrics
     ) {
         return new TeleOpStatusSnapshot(
                 deps.gateFSM,
@@ -242,9 +239,9 @@ public class TeleOpLoopCoordinator {
                 deps.turretFSM,
                 accumulator.shootingPowerMode.toString(),
                 accumulator.shotgunPowerLatch.toString(),
-                ejectionMotorRpm,
-                ejectionMotorPower,
-                ejectionMotorVelocity,
+                metrics.ejectionMotorRpm,
+                metrics.ejectionMotorPower,
+                metrics.ejectionMotorVelocity,
                 accumulator.autoAlliance,
                 deps.turretVisionCoordinator.getTargetGoalTagId(),
                 accumulator.pose.x,
@@ -257,7 +254,7 @@ public class TeleOpLoopCoordinator {
                 deps.config.parkBlueY,
                 deps.config.autoParkTimeout,
                 accumulator.autoParkStartTime,
-                currentTime
+                metrics.currentTime
         );
     }
 
@@ -265,10 +262,7 @@ public class TeleOpLoopCoordinator {
             TeleOpLoopContext loopContext,
             DriverOneBindings driverOne,
             DriverTwoBindings driverTwo,
-            double currentTime,
-            double ejectionMotorRpm,
-            double ejectionMotorPower,
-            double ejectionMotorVelocity
+            TeleOpLoopMetrics metrics
     ) {
         TeleOpLoopState loopState = loopContext.state;
         TeleOpLoopDependencies deps = loopContext.dependencies;
@@ -277,7 +271,7 @@ public class TeleOpLoopCoordinator {
         runAlwaysPhase(
                 accumulator,
                 driverOne,
-                currentTime,
+                metrics.currentTime,
                 deps
         );
 
@@ -285,24 +279,21 @@ public class TeleOpLoopCoordinator {
                 accumulator,
                 driverOne,
                 driverTwo,
-                currentTime,
+                metrics.currentTime,
                 deps
         );
 
         runDriverTwoPhase(
                 accumulator,
                 driverTwo,
-                currentTime,
+                metrics.currentTime,
                 deps
         );
 
         TeleOpStatusSnapshot status = buildStatusSnapshot(
                 accumulator,
                 deps,
-                ejectionMotorRpm,
-                ejectionMotorPower,
-                ejectionMotorVelocity,
-                currentTime
+                metrics
         );
 
         TeleOpStatusCoordinator.TraceState traceState = deps.statusCoordinator.publishStatus(

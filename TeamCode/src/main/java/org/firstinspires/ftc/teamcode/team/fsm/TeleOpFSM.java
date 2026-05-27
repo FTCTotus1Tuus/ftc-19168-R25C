@@ -14,6 +14,7 @@ import org.firstinspires.ftc.teamcode.team.core.TeleOpCoordinatorSet;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpInitializationCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpLoopConfig;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpLoopContext;
+import org.firstinspires.ftc.teamcode.team.core.TeleOpLoopMetrics;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpLoopRuntimeBindings;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpStatusCoordinator;
 
@@ -89,14 +90,18 @@ public class TeleOpFSM extends DarienOpModeFSM {
             DriverTwoBindings driverTwo = coordinators.inputMapper.mapDriverTwo(gamepad2);
 
             double currentTime = getRuntime();
-            TeleOpIterationResult iterationResult = coordinators.loopCoordinator.runLoopIteration(
-                    loopContext,
-                    driverOne,
-                    driverTwo,
+            TeleOpLoopMetrics loopMetrics = new TeleOpLoopMetrics(
                     currentTime,
                     ejectionMotor.getVelocity() * 60 / DriveConfig.TICKS_PER_ROTATION,
                     ejectionMotor.getPower(),
                     ejectionMotor.getVelocity()
+            );
+
+            TeleOpIterationResult iterationResult = coordinators.loopCoordinator.runLoopIteration(
+                    loopContext,
+                    driverOne,
+                    driverTwo,
+                    loopMetrics
             );
 
             loopContext = iterationResult.context;
