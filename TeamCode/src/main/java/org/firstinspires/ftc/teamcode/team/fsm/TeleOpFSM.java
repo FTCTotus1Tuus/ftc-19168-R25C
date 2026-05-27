@@ -91,13 +91,14 @@ public class TeleOpFSM extends DarienOpModeFSM {
             DriverTwoBindings driverTwo = coordinators.inputMapper.mapDriverTwo(gamepad2);
 
             double currentTime = getRuntime();
-            TeleOpLoopMetrics loopMetrics = new TeleOpLoopMetrics(
+            double ejectionVelocity = ejectionMotor.getVelocity();
+            TeleOpLoopMetrics loopMetrics = TeleOpLoopMetrics.fromShooterMotor(
                     currentTime,
-                    ejectionMotor.getVelocity() * 60 / DriveConfig.TICKS_PER_ROTATION,
-                    ejectionMotor.getPower(),
-                    ejectionMotor.getVelocity()
+                    DriveConfig.TICKS_PER_ROTATION,
+                    ejectionVelocity,
+                    ejectionMotor.getPower()
             );
-            TeleOpLoopIterationInput loopInput = new TeleOpLoopIterationInput(
+            TeleOpLoopIterationInput loopInput = TeleOpLoopIterationInput.of(
                     driverOne,
                     driverTwo,
                     loopMetrics

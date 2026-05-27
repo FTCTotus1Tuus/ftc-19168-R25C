@@ -17,5 +17,13 @@ public class TeleOpLoopIterationInput {
         this.driverTwo = driverTwo;
         this.metrics = metrics;
     }
+
+    public static TeleOpLoopIterationInput of(
+            DriverOneBindings driverOne,
+            DriverTwoBindings driverTwo,
+            TeleOpLoopMetrics metrics
+    ) {
+        return new TeleOpLoopIterationInput(driverOne, driverTwo, metrics);
+    }
 }
 

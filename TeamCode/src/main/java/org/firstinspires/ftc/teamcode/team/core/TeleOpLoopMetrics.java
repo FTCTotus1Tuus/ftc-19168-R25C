@@ -23,5 +23,15 @@ public class TeleOpLoopMetrics {
         this.ejectionMotorPower = ejectionMotorPower;
         this.ejectionMotorVelocity = ejectionMotorVelocity;
     }
+
+    public static TeleOpLoopMetrics fromShooterMotor(
+            double currentTime,
+            double ticksPerRotation,
+            double ejectionMotorVelocity,
+            double ejectionMotorPower
+    ) {
+        double ejectionMotorRpm = ejectionMotorVelocity * 60 / ticksPerRotation;
+        return new TeleOpLoopMetrics(currentTime, ejectionMotorRpm, ejectionMotorPower, ejectionMotorVelocity);
+    }
 }
 
