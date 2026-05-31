@@ -40,288 +40,262 @@ public class TeleOpLoopCoordinator {
         }
     }
 
+    /**
+     * Immutable per-iteration references shared by phase helper methods.
+     */
+    private static class PhaseContext {
+        public final LoopAccumulator accumulator;
+        public final DriverOneBindings driverOne;
+        public final DriverTwoBindings driverTwo;
+        public final TeleOpLoopMetrics metrics;
+        public final TeleOpLoopDependencies deps;
+
+        public PhaseContext(
+                LoopAccumulator accumulator,
+                DriverOneBindings driverOne,
+                DriverTwoBindings driverTwo,
+                TeleOpLoopMetrics metrics,
+                TeleOpLoopDependencies deps
+        ) {
+            this.accumulator = accumulator;
+            this.driverOne = driverOne;
+            this.driverTwo = driverTwo;
+            this.metrics = metrics;
+            this.deps = deps;
+        }
+    }
+
 
     /**
      * Phase 1: always-run systems (drive, follower update, FSM updates, vision polling).
      */
-    private void runAlwaysPhase(
-            LoopAccumulator accumulator,
-            DriverOneBindings driverOne,
-            double currentTime,
-            TeleOpLoopDependencies deps
-    ) {
+    private void runAlwaysPhase(PhaseContext context) {
         // Update auto-park progress if active.
-        updateAutoParkIfActive(accumulator, driverOne, currentTime, deps);
+        updateAutoParkIfActive(context);
 
         // Apply driver-requested drive, then update follower position.
-        applyDriveAndUpdateFollower(accumulator, driverOne, deps);
+        applyDriveAndUpdateFollower(context);
 
         // Update mechanism FSMs (gate, turret, intake, shooting).
-        updateMechanismFSMs(currentTime, deps);
+        updateMechanismFSMs(context);
 
         // Capture current robot pose for later use.
-        capturePoseSnapshot(accumulator, deps);
+        capturePoseSnapshot(context);
 
         // Poll camera and update turret vision state.
-        updateCameraControl(accumulator, currentTime, deps);
+        updateCameraControl(context);
     }
 
-    private void updateAutoParkIfActive(
-            LoopAccumulator accumulator,
-            DriverOneBindings driverOne,
-            double currentTime,
-            TeleOpLoopDependencies deps
-    ) {
-        AutoParkCoordinator.AutoParkResult progressResult = deps.autoParkCoordinator.updateAutoParkProgress(
-                accumulator.isAutoParking,
-                accumulator.autoParkStartTime,
-                currentTime,
-                driverOne.driveStrafeAxis,
-                driverOne.driveForwardAxis,
-                driverOne.driveTurnAxis,
-                deps.config.autoParkStickDeadzone,
-                deps.config.autoParkTimeout,
-                deps.follower,
-                deps.telemetry,
-                accumulator.shotgunPowerLatch
+    private void updateAutoParkIfActive(PhaseContext context) {
+        AutoParkCoordinator.AutoParkResult progressResult = context.deps.autoParkCoordinator.updateAutoParkProgress(
+                context.accumulator.isAutoParking,
+                context.accumulator.autoParkStartTime,
+                context.metrics.currentTime,
+                context.driverOne.driveStrafeAxis,
+                context.driverOne.driveForwardAxis,
+                context.driverOne.driveTurnAxis,
+                context.deps.config.autoParkStickDeadzone,
+                context.deps.config.autoParkTimeout,
+                context.deps.follower,
+                context.deps.telemetry,
+                context.accumulator.shotgunPowerLatch
         );
-        accumulator.isAutoParking = progressResult.isAutoParking;
-        accumulator.autoParkStartTime = progressResult.autoParkStartTime;
-        accumulator.shotgunPowerLatch = progressResult.shotgunPowerLatch;
+        context.accumulator.isAutoParking = progressResult.isAutoParking;
+        context.accumulator.autoParkStartTime = progressResult.autoParkStartTime;
+        context.accumulator.shotgunPowerLatch = progressResult.shotgunPowerLatch;
     }
 
-    private void applyDriveAndUpdateFollower(
-            LoopAccumulator accumulator,
-            DriverOneBindings driverOne,
-            TeleOpLoopDependencies deps
-    ) {
-        deps.driveControlCoordinator.applyTeleOpDrive(
-                accumulator.isAutoParking,
-                driverOne.driveForwardAxis,
-                driverOne.driveStrafeAxis,
-                driverOne.driveTurnAxis,
-                deps.config.driveDeadzone,
-                deps.config.inputExponent,
-                deps.config.speedScale,
-                deps.config.speedScaleTurn,
-                deps.config.rotationScale,
-                deps.follower
+    private void applyDriveAndUpdateFollower(PhaseContext context) {
+        context.deps.driveControlCoordinator.applyTeleOpDrive(
+                context.accumulator.isAutoParking,
+                context.driverOne.driveForwardAxis,
+                context.driverOne.driveStrafeAxis,
+                context.driverOne.driveTurnAxis,
+                context.deps.config.driveDeadzone,
+                context.deps.config.inputExponent,
+                context.deps.config.speedScale,
+                context.deps.config.speedScaleTurn,
+                context.deps.config.rotationScale,
+                context.deps.follower
         );
-        deps.follower.update();
+        context.deps.follower.update();
     }
 
-    private void updateMechanismFSMs(double currentTime, TeleOpLoopDependencies deps) {
-        deps.gateFSM.update(currentTime, deps.telemetry);
-        deps.turretFSM.update(currentTime, deps.telemetry);
-        deps.intakeCoordinator.updateActiveIntake(currentTime, deps.telemetry);
-        deps.shootingCoordinator.updateActiveSequence(currentTime, deps.telemetry);
+    private void updateMechanismFSMs(PhaseContext context) {
+        context.deps.gateFSM.update(context.metrics.currentTime, context.deps.telemetry);
+        context.deps.turretFSM.update(context.metrics.currentTime, context.deps.telemetry);
+        context.deps.intakeCoordinator.updateActiveIntake(context.metrics.currentTime, context.deps.telemetry);
+        context.deps.shootingCoordinator.updateActiveSequence(context.metrics.currentTime, context.deps.telemetry);
     }
 
-    private void capturePoseSnapshot(LoopAccumulator accumulator, TeleOpLoopDependencies deps) {
-        accumulator.pose = new PoseSnapshot(
-                deps.follower.getPose().getX(),
-                deps.follower.getPose().getY(),
-                deps.follower.getPose().getHeading()
+    private void capturePoseSnapshot(PhaseContext context) {
+        context.accumulator.pose = new PoseSnapshot(
+                context.deps.follower.getPose().getX(),
+                context.deps.follower.getPose().getY(),
+                context.deps.follower.getPose().getHeading()
         );
     }
 
-    private void updateCameraControl(
-            LoopAccumulator accumulator,
-            double currentTime,
-            TeleOpLoopDependencies deps
-    ) {
-        deps.turretVisionCoordinator.updateCameraControl(
-                currentTime,
-                accumulator.autoAlliance,
-                accumulator.pose.x,
-                accumulator.pose.y,
-                accumulator.pose.headingRadians,
-                deps.telemetry
+    private void updateCameraControl(PhaseContext context) {
+        context.deps.turretVisionCoordinator.updateCameraControl(
+                context.metrics.currentTime,
+                context.accumulator.autoAlliance,
+                context.accumulator.pose.x,
+                context.accumulator.pose.y,
+                context.accumulator.pose.headingRadians,
+                context.deps.telemetry
         );
     }
 
     /**
      * Phase 2: driver one commands (intake, auto-park start, odometry reset, shoot trigger).
      */
-    private void runDriverOnePhase(
-            LoopAccumulator accumulator,
-            DriverOneBindings driverOne,
-            DriverTwoBindings driverTwo,
-            double currentTime,
-            TeleOpLoopDependencies deps
-    ) {
+    private void runDriverOnePhase(PhaseContext context) {
         // Process driver one intake and eject commands.
-        handleIntakeFromDriver(driverOne, deps);
+        handleIntakeFromDriver(context);
 
         // Try to start auto-park if requested.
-        tryStartAutoParkSequence(accumulator, driverOne, currentTime, deps);
+        tryStartAutoParkSequence(context);
 
         // Process driver two shooting controls.
-        handleShootingFromDriver(driverTwo, currentTime, deps);
+        handleShootingFromDriver(context);
 
         // Reset odometry to human player corner if requested.
-        tryResetOdometry(driverOne, accumulator, deps);
+        tryResetOdometry(context);
     }
 
-    private void handleIntakeFromDriver(DriverOneBindings driverOne, TeleOpLoopDependencies deps) {
-        deps.intakeCoordinator.handleDriverControls(
-                driverOne.intakeRequested,
-                driverOne.ejectRequested,
-                driverOne.intakeOffRequested
+    private void handleIntakeFromDriver(PhaseContext context) {
+        context.deps.intakeCoordinator.handleDriverControls(
+                context.driverOne.intakeRequested,
+                context.driverOne.ejectRequested,
+                context.driverOne.intakeOffRequested
         );
     }
 
-    private void tryStartAutoParkSequence(
-            LoopAccumulator accumulator,
-            DriverOneBindings driverOne,
-            double currentTime,
-            TeleOpLoopDependencies deps
-    ) {
-        AutoParkCoordinator.AutoParkResult startResult = deps.autoParkCoordinator.tryStartAutoPark(
-                driverOne.autoParkRequested,
-                accumulator.isAutoParking,
-                currentTime,
-                accumulator.autoParkStartTime,
-                accumulator.autoAlliance,
-                deps.config.parkRedX,
-                deps.config.parkRedY,
-                deps.config.parkRedHeadingDeg,
-                deps.config.parkBlueX,
-                deps.config.parkBlueY,
-                deps.config.parkBlueHeadingDeg,
-                deps.config.autoParkPower,
-                deps.follower,
-                deps.intakeFSM,
-                deps.shotgunFSM,
-                deps.shootingFSM,
-                deps.turretFSM,
-                deps.gateFSM,
-                accumulator.shotgunPowerLatch
+    private void tryStartAutoParkSequence(PhaseContext context) {
+        AutoParkCoordinator.AutoParkResult startResult = context.deps.autoParkCoordinator.tryStartAutoPark(
+                context.driverOne.autoParkRequested,
+                context.accumulator.isAutoParking,
+                context.metrics.currentTime,
+                context.accumulator.autoParkStartTime,
+                context.accumulator.autoAlliance,
+                context.deps.config.parkRedX,
+                context.deps.config.parkRedY,
+                context.deps.config.parkRedHeadingDeg,
+                context.deps.config.parkBlueX,
+                context.deps.config.parkBlueY,
+                context.deps.config.parkBlueHeadingDeg,
+                context.deps.config.autoParkPower,
+                context.deps.follower,
+                context.deps.intakeFSM,
+                context.deps.shotgunFSM,
+                context.deps.shootingFSM,
+                context.deps.turretFSM,
+                context.deps.gateFSM,
+                context.accumulator.shotgunPowerLatch
         );
-        accumulator.isAutoParking = startResult.isAutoParking;
-        accumulator.autoParkStartTime = startResult.autoParkStartTime;
-        accumulator.shotgunPowerLatch = startResult.shotgunPowerLatch;
+        context.accumulator.isAutoParking = startResult.isAutoParking;
+        context.accumulator.autoParkStartTime = startResult.autoParkStartTime;
+        context.accumulator.shotgunPowerLatch = startResult.shotgunPowerLatch;
     }
 
-    private void handleShootingFromDriver(DriverTwoBindings driverTwo, double currentTime, TeleOpLoopDependencies deps) {
-        deps.shootingCoordinator.handleDriverControls(
-                currentTime,
-                driverTwo.closeGateRequested,
-                driverTwo.shootPressed,
-                driverTwo.shootReleased,
-                driverTwo.shootingStickY,
-                deps.config.shootPowerSelectStickThreshold
+    private void handleShootingFromDriver(PhaseContext context) {
+        context.deps.shootingCoordinator.handleDriverControls(
+                context.metrics.currentTime,
+                context.driverTwo.closeGateRequested,
+                context.driverTwo.shootPressed,
+                context.driverTwo.shootReleased,
+                context.driverTwo.shootingStickY,
+                context.deps.config.shootPowerSelectStickThreshold
         );
     }
 
-    private void tryResetOdometry(DriverOneBindings driverOne, LoopAccumulator accumulator, TeleOpLoopDependencies deps) {
-        deps.odometryResetCoordinator.tryResetToHumanPlayerPosition(
-                driverOne.odometryResetRequested,
-                accumulator.autoAlliance,
-                deps.config.humanPlayerRedX,
-                deps.config.humanPlayerRedY,
-                deps.config.humanPlayerBlueX,
-                deps.config.humanPlayerBlueY,
-                deps.config.robotCenterOffsetX,
-                deps.config.robotCenterOffsetY,
-                deps.localizationService,
-                deps.telemetry
+    private void tryResetOdometry(PhaseContext context) {
+        context.deps.odometryResetCoordinator.tryResetToHumanPlayerPosition(
+                context.driverOne.odometryResetRequested,
+                context.accumulator.autoAlliance,
+                context.deps.config.humanPlayerRedX,
+                context.deps.config.humanPlayerRedY,
+                context.deps.config.humanPlayerBlueX,
+                context.deps.config.humanPlayerBlueY,
+                context.deps.config.robotCenterOffsetX,
+                context.deps.config.robotCenterOffsetY,
+                context.deps.localizationService,
+                context.deps.telemetry
         );
     }
 
     /**
      * Phase 3: driver two commands (alliance/turret mode, turret aim, shooter power selection).
      */
-    private void runDriverTwoPhase(
-            LoopAccumulator accumulator,
-            DriverTwoBindings driverTwo,
-            double currentTime,
-            TeleOpLoopDependencies deps
-    ) {
+    private void runDriverTwoPhase(PhaseContext context) {
         // Handle driver requests to switch alliance and update internal state.
-        handleAllianceSwitch(accumulator, driverTwo, deps);
+        handleAllianceSwitch(context);
 
         // Handle driver requests to switch turret aiming mode.
-        handleTurretModeSwitch(accumulator, currentTime, driverTwo, deps);
+        handleTurretModeSwitch(context);
 
         // Apply manual or odometry-based turret control.
-        applyTurretControl(accumulator, driverTwo, deps);
+        applyTurretControl(context);
 
         // Compute and apply shooter power (close/far RPM) based on mode and position.
-        handleShooterPowerSelection(accumulator, driverTwo, deps);
+        handleShooterPowerSelection(context);
     }
 
-    private void handleAllianceSwitch(
-            LoopAccumulator accumulator,
-            DriverTwoBindings driverTwo,
-            TeleOpLoopDependencies deps
-    ) {
-        TurretVisionCoordinator.AllianceSwitchResult allianceSwitchResult = deps.turretVisionCoordinator.handleAllianceButtons(
-                driverTwo.setAllianceRedRequested,
-                driverTwo.setAllianceBlueRequested,
-                accumulator.autoAlliance,
-                deps.telemetry
+    private void handleAllianceSwitch(PhaseContext context) {
+        TurretVisionCoordinator.AllianceSwitchResult allianceSwitchResult = context.deps.turretVisionCoordinator.handleAllianceButtons(
+                context.driverTwo.setAllianceRedRequested,
+                context.driverTwo.setAllianceBlueRequested,
+                context.accumulator.autoAlliance,
+                context.deps.telemetry
         );
-        accumulator.autoAlliance = allianceSwitchResult.alliance;
+        context.accumulator.autoAlliance = allianceSwitchResult.alliance;
     }
 
-    private void handleTurretModeSwitch(
-            LoopAccumulator accumulator,
-            double currentTime,
-            DriverTwoBindings driverTwo,
-            TeleOpLoopDependencies deps
-    ) {
-        TurretModeCoordinator.ModeSwitchResult modeSwitchResult = deps.turretModeCoordinator.handleModeSwitches(
-                driverTwo.odometryModeRequested,
-                driverTwo.cameraModeRequested,
-                accumulator.shootingPowerMode
+    private void handleTurretModeSwitch(PhaseContext context) {
+        TurretModeCoordinator.ModeSwitchResult modeSwitchResult = context.deps.turretModeCoordinator.handleModeSwitches(
+                context.driverTwo.odometryModeRequested,
+                context.driverTwo.cameraModeRequested,
+                context.accumulator.shootingPowerMode
         );
-        accumulator.shootingPowerMode = modeSwitchResult.shootingPowerMode;
+        context.accumulator.shootingPowerMode = modeSwitchResult.shootingPowerMode;
         if (modeSwitchResult.shouldStartGoalReading) {
-            deps.turretVisionCoordinator.startReadingGoalId(currentTime);
+            context.deps.turretVisionCoordinator.startReadingGoalId(context.metrics.currentTime);
         }
     }
 
-    private void applyTurretControl(
-            LoopAccumulator accumulator,
-            DriverTwoBindings driverTwo,
-            TeleOpLoopDependencies deps
-    ) {
-        deps.turretCoordinator.applyManualOrOdometryControl(
-                accumulator.autoAlliance,
-                driverTwo.turretManualAxis,
-                driverTwo.turretSpeedTrigger,
-                driverTwo.turretCenterRequested,
-                accumulator.pose.x,
-                accumulator.pose.y,
-                accumulator.pose.headingRadians
+    private void applyTurretControl(PhaseContext context) {
+        context.deps.turretCoordinator.applyManualOrOdometryControl(
+                context.accumulator.autoAlliance,
+                context.driverTwo.turretManualAxis,
+                context.driverTwo.turretSpeedTrigger,
+                context.driverTwo.turretCenterRequested,
+                context.accumulator.pose.x,
+                context.accumulator.pose.y,
+                context.accumulator.pose.headingRadians
         );
     }
 
-    private void handleShooterPowerSelection(
-            LoopAccumulator accumulator,
-            DriverTwoBindings driverTwo,
-            TeleOpLoopDependencies deps
-    ) {
-        ShooterPowerCoordinator.PowerState powerState = deps.shooterPowerCoordinator.computePowerState(
-                accumulator.shootingPowerMode,
-                accumulator.shotgunPowerLatch,
-                accumulator.pose.y,
-                deps.config.shootingPowerOdometryYThreshold,
-                driverTwo.shootingStickY,
-                deps.config.shootPowerSelectStickThreshold,
-                driverTwo.toggleShotgunPowerLatchRequested,
-                driverTwo.forceShotgunLowPowerRequested
+    private void handleShooterPowerSelection(PhaseContext context) {
+        ShooterPowerCoordinator.PowerState powerState = context.deps.shooterPowerCoordinator.computePowerState(
+                context.accumulator.shootingPowerMode,
+                context.accumulator.shotgunPowerLatch,
+                context.accumulator.pose.y,
+                context.deps.config.shootingPowerOdometryYThreshold,
+                context.driverTwo.shootingStickY,
+                context.deps.config.shootPowerSelectStickThreshold,
+                context.driverTwo.toggleShotgunPowerLatchRequested,
+                context.driverTwo.forceShotgunLowPowerRequested
         );
-        accumulator.shootingPowerMode = powerState.mode;
-        accumulator.shotgunPowerLatch = powerState.latch;
+        context.accumulator.shootingPowerMode = powerState.mode;
+        context.accumulator.shotgunPowerLatch = powerState.latch;
 
-        deps.shooterPowerCoordinator.applyRequestedPower(
-                deps.shotgunFSM,
-                accumulator.shotgunPowerLatch,
-                deps.config.closeRpm,
-                deps.config.farRpm,
-                deps.telemetry
+        context.deps.shooterPowerCoordinator.applyRequestedPower(
+                context.deps.shotgunFSM,
+                context.accumulator.shotgunPowerLatch,
+                context.deps.config.closeRpm,
+                context.deps.config.farRpm,
+                context.deps.telemetry
         );
     }
 
@@ -356,34 +330,10 @@ public class TeleOpLoopCoordinator {
         );
     }
 
-    private void runAllPhases(
-            LoopAccumulator accumulator,
-            DriverOneBindings driverOne,
-            DriverTwoBindings driverTwo,
-            TeleOpLoopMetrics metrics,
-            TeleOpLoopDependencies deps
-    ) {
-        runAlwaysPhase(
-                accumulator,
-                driverOne,
-                metrics.currentTime,
-                deps
-        );
-
-        runDriverOnePhase(
-                accumulator,
-                driverOne,
-                driverTwo,
-                metrics.currentTime,
-                deps
-        );
-
-        runDriverTwoPhase(
-                accumulator,
-                driverTwo,
-                metrics.currentTime,
-                deps
-        );
+    private void runAllPhases(PhaseContext context) {
+        runAlwaysPhase(context);
+        runDriverOnePhase(context);
+        runDriverTwoPhase(context);
     }
 
     private TeleOpStatusCoordinator.TraceState publishTraceState(
@@ -425,7 +375,9 @@ public class TeleOpLoopCoordinator {
         DriverTwoBindings driverTwo = iterationInput.driverTwo;
         TeleOpLoopMetrics metrics = iterationInput.metrics;
 
-        runAllPhases(accumulator, driverOne, driverTwo, metrics, deps);
+        PhaseContext context = new PhaseContext(accumulator, driverOne, driverTwo, metrics, deps);
+
+        runAllPhases(context);
         TeleOpStatusCoordinator.TraceState traceState = publishTraceState(accumulator, deps, metrics);
         TeleOpLoopState nextState = buildNextState(accumulator);
         return new TeleOpIterationResult(loopContext.withState(nextState), traceState);
