@@ -6,6 +6,7 @@ This folder contains architecture notes, refactor planning, and issue-specific t
 - [`refactoring-plan-2026-05.md`](refactoring-plan-2026-05.md) - phased architecture refactor plan.
 - [`refactor-branch-pr-checklist.md`](refactor-branch-pr-checklist.md) - branch strategy and PR execution checklist.
 - [`TRACE_TELEMETRY_SCHEMA.md`](TRACE_TELEMETRY_SCHEMA.md) - shared TeleOp/auto trace keys used for P0 baseline validation.
+- [`ROBOT_SKELETON_ARCHITECTURE_GUIDE.md`](ROBOT_SKELETON_ARCHITECTURE_GUIDE.md) - season-start architecture guide for building the robot skeleton and keeping OpModes thin.
 
 ## Vision/AprilTag notes
 - [`APRILTAG_CAMERA_OPTIMIZATION.md`](APRILTAG_CAMERA_OPTIMIZATION.md) - exposure/gain tuning workflow and camera guidance.
