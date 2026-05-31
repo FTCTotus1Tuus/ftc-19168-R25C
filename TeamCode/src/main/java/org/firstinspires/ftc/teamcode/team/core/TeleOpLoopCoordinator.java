@@ -50,6 +50,28 @@ public class TeleOpLoopCoordinator {
             double currentTime,
             TeleOpLoopDependencies deps
     ) {
+        // Update auto-park progress if active.
+        updateAutoParkIfActive(accumulator, driverOne, currentTime, deps);
+
+        // Apply driver-requested drive, then update follower position.
+        applyDriveAndUpdateFollower(accumulator, driverOne, deps);
+
+        // Update mechanism FSMs (gate, turret, intake, shooting).
+        updateMechanismFSMs(currentTime, deps);
+
+        // Capture current robot pose for later use.
+        capturePoseSnapshot(accumulator, deps);
+
+        // Poll camera and update turret vision state.
+        updateCameraControl(accumulator, currentTime, deps);
+    }
+
+    private void updateAutoParkIfActive(
+            LoopAccumulator accumulator,
+            DriverOneBindings driverOne,
+            double currentTime,
+            TeleOpLoopDependencies deps
+    ) {
         AutoParkCoordinator.AutoParkResult progressResult = deps.autoParkCoordinator.updateAutoParkProgress(
                 accumulator.isAutoParking,
                 accumulator.autoParkStartTime,
@@ -66,7 +88,13 @@ public class TeleOpLoopCoordinator {
         accumulator.isAutoParking = progressResult.isAutoParking;
         accumulator.autoParkStartTime = progressResult.autoParkStartTime;
         accumulator.shotgunPowerLatch = progressResult.shotgunPowerLatch;
+    }
 
+    private void applyDriveAndUpdateFollower(
+            LoopAccumulator accumulator,
+            DriverOneBindings driverOne,
+            TeleOpLoopDependencies deps
+    ) {
         deps.driveControlCoordinator.applyTeleOpDrive(
                 accumulator.isAutoParking,
                 driverOne.driveForwardAxis,
@@ -79,21 +107,29 @@ public class TeleOpLoopCoordinator {
                 deps.config.rotationScale,
                 deps.follower
         );
-
         deps.follower.update();
+    }
 
+    private void updateMechanismFSMs(double currentTime, TeleOpLoopDependencies deps) {
         deps.gateFSM.update(currentTime, deps.telemetry);
         deps.turretFSM.update(currentTime, deps.telemetry);
-
         deps.intakeCoordinator.updateActiveIntake(currentTime, deps.telemetry);
         deps.shootingCoordinator.updateActiveSequence(currentTime, deps.telemetry);
+    }
 
+    private void capturePoseSnapshot(LoopAccumulator accumulator, TeleOpLoopDependencies deps) {
         accumulator.pose = new PoseSnapshot(
                 deps.follower.getPose().getX(),
                 deps.follower.getPose().getY(),
                 deps.follower.getPose().getHeading()
         );
+    }
 
+    private void updateCameraControl(
+            LoopAccumulator accumulator,
+            double currentTime,
+            TeleOpLoopDependencies deps
+    ) {
         deps.turretVisionCoordinator.updateCameraControl(
                 currentTime,
                 accumulator.autoAlliance,
@@ -114,12 +150,33 @@ public class TeleOpLoopCoordinator {
             double currentTime,
             TeleOpLoopDependencies deps
     ) {
+        // Process driver one intake and eject commands.
+        handleIntakeFromDriver(driverOne, deps);
+
+        // Try to start auto-park if requested.
+        tryStartAutoParkSequence(accumulator, driverOne, currentTime, deps);
+
+        // Process driver two shooting controls.
+        handleShootingFromDriver(driverTwo, currentTime, deps);
+
+        // Reset odometry to human player corner if requested.
+        tryResetOdometry(driverOne, accumulator, deps);
+    }
+
+    private void handleIntakeFromDriver(DriverOneBindings driverOne, TeleOpLoopDependencies deps) {
         deps.intakeCoordinator.handleDriverControls(
                 driverOne.intakeRequested,
                 driverOne.ejectRequested,
                 driverOne.intakeOffRequested
         );
+    }
 
+    private void tryStartAutoParkSequence(
+            LoopAccumulator accumulator,
+            DriverOneBindings driverOne,
+            double currentTime,
+            TeleOpLoopDependencies deps
+    ) {
         AutoParkCoordinator.AutoParkResult startResult = deps.autoParkCoordinator.tryStartAutoPark(
                 driverOne.autoParkRequested,
                 accumulator.isAutoParking,
@@ -144,7 +201,9 @@ public class TeleOpLoopCoordinator {
         accumulator.isAutoParking = startResult.isAutoParking;
         accumulator.autoParkStartTime = startResult.autoParkStartTime;
         accumulator.shotgunPowerLatch = startResult.shotgunPowerLatch;
+    }
 
+    private void handleShootingFromDriver(DriverTwoBindings driverTwo, double currentTime, TeleOpLoopDependencies deps) {
         deps.shootingCoordinator.handleDriverControls(
                 currentTime,
                 driverTwo.closeGateRequested,
@@ -153,7 +212,9 @@ public class TeleOpLoopCoordinator {
                 driverTwo.shootingStickY,
                 deps.config.shootPowerSelectStickThreshold
         );
+    }
 
+    private void tryResetOdometry(DriverOneBindings driverOne, LoopAccumulator accumulator, TeleOpLoopDependencies deps) {
         deps.odometryResetCoordinator.tryResetToHumanPlayerPosition(
                 driverOne.odometryResetRequested,
                 accumulator.autoAlliance,
@@ -177,6 +238,24 @@ public class TeleOpLoopCoordinator {
             double currentTime,
             TeleOpLoopDependencies deps
     ) {
+        // Handle driver requests to switch alliance and update internal state.
+        handleAllianceSwitch(accumulator, driverTwo, deps);
+
+        // Handle driver requests to switch turret aiming mode.
+        handleTurretModeSwitch(accumulator, currentTime, driverTwo, deps);
+
+        // Apply manual or odometry-based turret control.
+        applyTurretControl(accumulator, driverTwo, deps);
+
+        // Compute and apply shooter power (close/far RPM) based on mode and position.
+        handleShooterPowerSelection(accumulator, driverTwo, deps);
+    }
+
+    private void handleAllianceSwitch(
+            LoopAccumulator accumulator,
+            DriverTwoBindings driverTwo,
+            TeleOpLoopDependencies deps
+    ) {
         TurretVisionCoordinator.AllianceSwitchResult allianceSwitchResult = deps.turretVisionCoordinator.handleAllianceButtons(
                 driverTwo.setAllianceRedRequested,
                 driverTwo.setAllianceBlueRequested,
@@ -184,7 +263,14 @@ public class TeleOpLoopCoordinator {
                 deps.telemetry
         );
         accumulator.autoAlliance = allianceSwitchResult.alliance;
+    }
 
+    private void handleTurretModeSwitch(
+            LoopAccumulator accumulator,
+            double currentTime,
+            DriverTwoBindings driverTwo,
+            TeleOpLoopDependencies deps
+    ) {
         TurretModeCoordinator.ModeSwitchResult modeSwitchResult = deps.turretModeCoordinator.handleModeSwitches(
                 driverTwo.odometryModeRequested,
                 driverTwo.cameraModeRequested,
@@ -194,7 +280,13 @@ public class TeleOpLoopCoordinator {
         if (modeSwitchResult.shouldStartGoalReading) {
             deps.turretVisionCoordinator.startReadingGoalId(currentTime);
         }
+    }
 
+    private void applyTurretControl(
+            LoopAccumulator accumulator,
+            DriverTwoBindings driverTwo,
+            TeleOpLoopDependencies deps
+    ) {
         deps.turretCoordinator.applyManualOrOdometryControl(
                 accumulator.autoAlliance,
                 driverTwo.turretManualAxis,
@@ -204,7 +296,13 @@ public class TeleOpLoopCoordinator {
                 accumulator.pose.y,
                 accumulator.pose.headingRadians
         );
+    }
 
+    private void handleShooterPowerSelection(
+            LoopAccumulator accumulator,
+            DriverTwoBindings driverTwo,
+            TeleOpLoopDependencies deps
+    ) {
         ShooterPowerCoordinator.PowerState powerState = deps.shooterPowerCoordinator.computePowerState(
                 accumulator.shootingPowerMode,
                 accumulator.shotgunPowerLatch,
