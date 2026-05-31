@@ -65,24 +65,35 @@ public class TeleOpCoordinatorSet {
             ShootingFSM shootingFSM,
             GateFSM gateFSM
     ) {
+        AutoParkCoordinator autoParkCoordinator = new AutoParkCoordinator();
+        DriveControlCoordinator driveControlCoordinator = new DriveControlCoordinator();
         IntakeCoordinator intakeCoordinator = new IntakeCoordinator(intakeFSM);
+        OdometryResetCoordinator odometryResetCoordinator = new OdometryResetCoordinator();
+        ShooterPowerCoordinator shooterPowerCoordinator = new ShooterPowerCoordinator();
         ShootingCoordinator shootingCoordinator = new ShootingCoordinator(shootingFSM, intakeFSM, gateFSM);
+        TeleOpInitializationCoordinator initializationCoordinator = new TeleOpInitializationCoordinator();
+        TeleOpInputMapper inputMapper = new TeleOpInputMapper();
+        TeleOpLoopCoordinator loopCoordinator = new TeleOpLoopCoordinator();
+        TeleOpStatusCoordinator statusCoordinator = new TeleOpStatusCoordinator();
+        TeleOpTelemetryCoordinator telemetryCoordinator = new TeleOpTelemetryCoordinator();
+        TurretCoordinator turretCoordinator = new TurretCoordinator(turretFSM);
+        TurretModeCoordinator turretModeCoordinator = new TurretModeCoordinator(turretFSM);
         TurretVisionCoordinator turretVisionCoordinator = createTurretVisionCoordinator(aprilTagService, turretFSM);
 
         return new TeleOpCoordinatorSet(
-                new AutoParkCoordinator(),
-                new DriveControlCoordinator(),
+                autoParkCoordinator,
+                driveControlCoordinator,
                 intakeCoordinator,
-                new OdometryResetCoordinator(),
-                new ShooterPowerCoordinator(),
+                odometryResetCoordinator,
+                shooterPowerCoordinator,
                 shootingCoordinator,
-                new TeleOpInitializationCoordinator(),
-                new TeleOpInputMapper(),
-                new TeleOpLoopCoordinator(),
-                new TeleOpStatusCoordinator(),
-                new TeleOpTelemetryCoordinator(),
-                new TurretCoordinator(turretFSM),
-                new TurretModeCoordinator(turretFSM),
+                initializationCoordinator,
+                inputMapper,
+                loopCoordinator,
+                statusCoordinator,
+                telemetryCoordinator,
+                turretCoordinator,
+                turretModeCoordinator,
                 turretVisionCoordinator
         );
     }
