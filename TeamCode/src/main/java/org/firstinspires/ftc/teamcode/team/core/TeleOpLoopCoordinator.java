@@ -299,34 +299,30 @@ public class TeleOpLoopCoordinator {
         );
     }
 
-    private TeleOpStatusSnapshot buildStatusSnapshot(
-            LoopAccumulator accumulator,
-            TeleOpLoopDependencies deps,
-            TeleOpLoopMetrics metrics
-    ) {
+    private TeleOpStatusSnapshot buildStatusSnapshot(PhaseContext context) {
         return new TeleOpStatusSnapshot(
-                deps.gateFSM,
-                deps.intakeFSM,
-                deps.shootingFSM,
-                deps.turretFSM,
-                accumulator.shootingPowerMode.toString(),
-                accumulator.shotgunPowerLatch.toString(),
-                metrics.ejectionMotorRpm,
-                metrics.ejectionMotorPower,
-                metrics.ejectionMotorVelocity,
-                accumulator.autoAlliance,
-                deps.turretVisionCoordinator.getTargetGoalTagId(),
-                accumulator.pose.x,
-                accumulator.pose.y,
-                accumulator.pose.headingRadians,
-                accumulator.isAutoParking,
-                deps.config.parkRedX,
-                deps.config.parkRedY,
-                deps.config.parkBlueX,
-                deps.config.parkBlueY,
-                deps.config.autoParkTimeout,
-                accumulator.autoParkStartTime,
-                metrics.currentTime
+                context.deps.gateFSM,
+                context.deps.intakeFSM,
+                context.deps.shootingFSM,
+                context.deps.turretFSM,
+                context.accumulator.shootingPowerMode.toString(),
+                context.accumulator.shotgunPowerLatch.toString(),
+                context.metrics.ejectionMotorRpm,
+                context.metrics.ejectionMotorPower,
+                context.metrics.ejectionMotorVelocity,
+                context.accumulator.autoAlliance,
+                context.deps.turretVisionCoordinator.getTargetGoalTagId(),
+                context.accumulator.pose.x,
+                context.accumulator.pose.y,
+                context.accumulator.pose.headingRadians,
+                context.accumulator.isAutoParking,
+                context.deps.config.parkRedX,
+                context.deps.config.parkRedY,
+                context.deps.config.parkBlueX,
+                context.deps.config.parkBlueY,
+                context.deps.config.autoParkTimeout,
+                context.accumulator.autoParkStartTime,
+                context.metrics.currentTime
         );
     }
 
@@ -336,31 +332,23 @@ public class TeleOpLoopCoordinator {
         runDriverTwoPhase(context);
     }
 
-    private TeleOpStatusCoordinator.TraceState publishTraceState(
-            LoopAccumulator accumulator,
-            TeleOpLoopDependencies deps,
-            TeleOpLoopMetrics metrics
-    ) {
-        TeleOpStatusSnapshot status = buildStatusSnapshot(
-                accumulator,
-                deps,
-                metrics
-        );
-        return deps.statusCoordinator.publishStatus(
-                deps.telemetry,
-                deps.telemetryCoordinator,
-                deps.turretVisionCoordinator,
+    private TeleOpStatusCoordinator.TraceState publishTraceState(PhaseContext context) {
+        TeleOpStatusSnapshot status = buildStatusSnapshot(context);
+        return context.deps.statusCoordinator.publishStatus(
+                context.deps.telemetry,
+                context.deps.telemetryCoordinator,
+                context.deps.turretVisionCoordinator,
                 status
         );
     }
 
-    private TeleOpLoopState buildNextState(LoopAccumulator accumulator) {
+    private TeleOpLoopState buildNextState(PhaseContext context) {
         return new TeleOpLoopState(
-                accumulator.isAutoParking,
-                accumulator.autoParkStartTime,
-                accumulator.autoAlliance,
-                accumulator.shootingPowerMode,
-                accumulator.shotgunPowerLatch
+                context.accumulator.isAutoParking,
+                context.accumulator.autoParkStartTime,
+                context.accumulator.autoAlliance,
+                context.accumulator.shootingPowerMode,
+                context.accumulator.shotgunPowerLatch
         );
     }
 
@@ -378,8 +366,8 @@ public class TeleOpLoopCoordinator {
         PhaseContext context = new PhaseContext(accumulator, driverOne, driverTwo, metrics, deps);
 
         runAllPhases(context);
-        TeleOpStatusCoordinator.TraceState traceState = publishTraceState(accumulator, deps, metrics);
-        TeleOpLoopState nextState = buildNextState(accumulator);
+        TeleOpStatusCoordinator.TraceState traceState = publishTraceState(context);
+        TeleOpLoopState nextState = buildNextState(context);
         return new TeleOpIterationResult(loopContext.withState(nextState), traceState);
     }
 }
