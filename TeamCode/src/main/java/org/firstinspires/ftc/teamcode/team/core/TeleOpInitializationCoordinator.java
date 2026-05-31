@@ -24,15 +24,9 @@ public class TeleOpInitializationCoordinator {
             LocalizationService localizationService,
             TurretVisionCoordinator turretVisionCoordinator,
             Telemetry telemetry,
-            String unknownAllianceDefault,
-            double humanPlayerRedX,
-            double humanPlayerRedY,
-            double humanPlayerBlueX,
-            double humanPlayerBlueY,
-            double robotCenterOffsetX,
-            double robotCenterOffsetY
+            TeleOpInitializationConfig config
     ) {
-        String autoAlliance = preferencesService.getAutoAlliance(unknownAllianceDefault);
+        String autoAlliance = preferencesService.getAutoAlliance(config.unknownAllianceDefault);
 
         // Keep alliance-derived turret target setup at startup.
         turretVisionCoordinator.setAlliance(autoAlliance);
@@ -40,12 +34,12 @@ public class TeleOpInitializationCoordinator {
         LocalizationService.SeedResult seedResult = localizationService.seedTeleOpPose(
                 autoAlliance,
                 preferencesService,
-                humanPlayerRedX,
-                humanPlayerRedY,
-                humanPlayerBlueX,
-                humanPlayerBlueY,
-                robotCenterOffsetX,
-                robotCenterOffsetY
+                config.humanPlayerRedX,
+                config.humanPlayerRedY,
+                config.humanPlayerBlueX,
+                config.humanPlayerBlueY,
+                config.robotCenterOffsetX,
+                config.robotCenterOffsetY
         );
 
         if (seedResult.loadedFromAuto) {

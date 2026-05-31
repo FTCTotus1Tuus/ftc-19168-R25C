@@ -5,12 +5,12 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import com.bylazar.configurables.annotations.Configurable;
 
-import org.firstinspires.ftc.teamcode.team.config.AutoConfig;
 import org.firstinspires.ftc.teamcode.team.config.DriveConfig;
 import org.firstinspires.ftc.teamcode.team.core.DriverOneBindings;
 import org.firstinspires.ftc.teamcode.team.core.DriverTwoBindings;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpIterationResult;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpCoordinatorSet;
+import org.firstinspires.ftc.teamcode.team.core.TeleOpInitializationConfig;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpInitializationCoordinator;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpLoopConfig;
 import org.firstinspires.ftc.teamcode.team.core.TeleOpLoopContext;
@@ -52,18 +52,13 @@ public class TeleOpFSM extends DarienOpModeFSM {
     }
 
     private String initializeFromAutoState() {
+        TeleOpInitializationConfig initConfig = TeleOpInitializationConfig.createDefault();
         TeleOpInitializationCoordinator.InitializationResult initializationResult = coordinators.initializationCoordinator.initialize(
                 preferencesService,
                 localizationService,
                 coordinators.turretVisionCoordinator,
                 telemetry,
-                "UNKNOWN",
-                AutoConfig.HUMAN_PLAYER_RED_X,
-                AutoConfig.HUMAN_PLAYER_RED_Y,
-                AutoConfig.HUMAN_PLAYER_BLUE_X,
-                AutoConfig.HUMAN_PLAYER_BLUE_Y,
-                DriveConfig.ROBOT_CENTER_OFFSET_X,
-                DriveConfig.ROBOT_CENTER_OFFSET_Y
+                initConfig
         );
         return initializationResult.autoAlliance;
     }
