@@ -100,9 +100,7 @@ public class TeleOpLoopCoordinator {
                 context.deps.telemetry,
                 context.accumulator.shotgunPowerLatch
         );
-        context.accumulator.isAutoParking = progressResult.isAutoParking;
-        context.accumulator.autoParkStartTime = progressResult.autoParkStartTime;
-        context.accumulator.shotgunPowerLatch = progressResult.shotgunPowerLatch;
+        applyAutoParkResult(context.accumulator, progressResult);
     }
 
     private void applyDriveAndUpdateFollower(PhaseContext context) {
@@ -194,9 +192,16 @@ public class TeleOpLoopCoordinator {
                 context.deps.gateFSM,
                 context.accumulator.shotgunPowerLatch
         );
-        context.accumulator.isAutoParking = startResult.isAutoParking;
-        context.accumulator.autoParkStartTime = startResult.autoParkStartTime;
-        context.accumulator.shotgunPowerLatch = startResult.shotgunPowerLatch;
+        applyAutoParkResult(context.accumulator, startResult);
+    }
+
+    private void applyAutoParkResult(
+            LoopAccumulator accumulator,
+            AutoParkCoordinator.AutoParkResult result
+    ) {
+        accumulator.isAutoParking = result.isAutoParking;
+        accumulator.autoParkStartTime = result.autoParkStartTime;
+        accumulator.shotgunPowerLatch = result.shotgunPowerLatch;
     }
 
     private void handleShootingFromDriver(PhaseContext context) {
@@ -352,18 +357,25 @@ public class TeleOpLoopCoordinator {
         );
     }
 
+    private PhaseContext createPhaseContext(
+            TeleOpLoopContext loopContext,
+            TeleOpLoopIterationInput iterationInput
+    ) {
+        LoopAccumulator accumulator = new LoopAccumulator(loopContext.state);
+        return new PhaseContext(
+                accumulator,
+                iterationInput.driverOne,
+                iterationInput.driverTwo,
+                iterationInput.metrics,
+                loopContext.dependencies
+        );
+    }
+
     public TeleOpIterationResult runLoopIteration(
             TeleOpLoopContext loopContext,
             TeleOpLoopIterationInput iterationInput
     ) {
-        TeleOpLoopState loopState = loopContext.state;
-        TeleOpLoopDependencies deps = loopContext.dependencies;
-        LoopAccumulator accumulator = new LoopAccumulator(loopState);
-        DriverOneBindings driverOne = iterationInput.driverOne;
-        DriverTwoBindings driverTwo = iterationInput.driverTwo;
-        TeleOpLoopMetrics metrics = iterationInput.metrics;
-
-        PhaseContext context = new PhaseContext(accumulator, driverOne, driverTwo, metrics, deps);
+        PhaseContext context = createPhaseContext(loopContext, iterationInput);
 
         runAllPhases(context);
         TeleOpStatusCoordinator.TraceState traceState = publishTraceState(context);
