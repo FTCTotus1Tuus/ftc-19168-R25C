@@ -89,6 +89,30 @@ public class TeleOpFSM extends DarienOpModeFSM {
         );
     }
 
+    private boolean waitForTeleOpStart() {
+        waitForStart();
+        if (isStopRequested()) {
+            return false;
+        }
+
+        // Start follower in TeleOp drive mode before entering loop.
+        follower.startTeleopDrive(true);
+        follower.update();
+        return true;
+    }
+
+    private void runTeleOpLoop(TeleOpLoopContext loopContext) {
+        while (this.opModeIsActive() && !isStopRequested()) {
+            TeleOpLoopIterationInput loopInput = buildLoopInput();
+
+            TeleOpIterationResult iterationResult = coordinators.loopCoordinator.runLoopIteration(
+                    loopContext,
+                    loopInput
+            );
+            loopContext = applyLoopResult(iterationResult);
+        }
+    }
+
     @Override
     public void initControls() {
         super.initControls();
@@ -109,23 +133,13 @@ public class TeleOpFSM extends DarienOpModeFSM {
 
         String autoAlliance = initializeFromAutoState();
 
-        waitForStart();
-        if (isStopRequested()) return;
-        // Start follower in TeleOp drive mode before entering loop.
-        follower.startTeleopDrive(true);
-        follower.update();
+        if (!waitForTeleOpStart()) {
+            return;
+        }
 
         TeleOpLoopContext loopContext = createInitialLoopContext(autoAlliance);
 
-        while (this.opModeIsActive() && !isStopRequested()) {
-            TeleOpLoopIterationInput loopInput = buildLoopInput();
-
-            TeleOpIterationResult iterationResult = coordinators.loopCoordinator.runLoopIteration(
-                    loopContext,
-                    loopInput
-            );
-            loopContext = applyLoopResult(iterationResult);
-        } //while opModeIsActive
+        runTeleOpLoop(loopContext);
 
         stopRobot();
     } //runOpMode
