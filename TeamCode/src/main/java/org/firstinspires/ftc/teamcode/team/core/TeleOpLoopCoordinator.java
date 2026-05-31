@@ -356,17 +356,13 @@ public class TeleOpLoopCoordinator {
         );
     }
 
-    public TeleOpIterationResult runLoopIteration(
-            TeleOpLoopContext loopContext,
-            TeleOpLoopIterationInput iterationInput
+    private void runAllPhases(
+            LoopAccumulator accumulator,
+            DriverOneBindings driverOne,
+            DriverTwoBindings driverTwo,
+            TeleOpLoopMetrics metrics,
+            TeleOpLoopDependencies deps
     ) {
-        TeleOpLoopState loopState = loopContext.state;
-        TeleOpLoopDependencies deps = loopContext.dependencies;
-        LoopAccumulator accumulator = new LoopAccumulator(loopState);
-        DriverOneBindings driverOne = iterationInput.driverOne;
-        DriverTwoBindings driverTwo = iterationInput.driverTwo;
-        TeleOpLoopMetrics metrics = iterationInput.metrics;
-
         runAlwaysPhase(
                 accumulator,
                 driverOne,
@@ -388,27 +384,50 @@ public class TeleOpLoopCoordinator {
                 metrics.currentTime,
                 deps
         );
+    }
 
+    private TeleOpStatusCoordinator.TraceState publishTraceState(
+            LoopAccumulator accumulator,
+            TeleOpLoopDependencies deps,
+            TeleOpLoopMetrics metrics
+    ) {
         TeleOpStatusSnapshot status = buildStatusSnapshot(
                 accumulator,
                 deps,
                 metrics
         );
-
-        TeleOpStatusCoordinator.TraceState traceState = deps.statusCoordinator.publishStatus(
+        return deps.statusCoordinator.publishStatus(
                 deps.telemetry,
                 deps.telemetryCoordinator,
                 deps.turretVisionCoordinator,
                 status
         );
+    }
 
-        TeleOpLoopState nextState = new TeleOpLoopState(
+    private TeleOpLoopState buildNextState(LoopAccumulator accumulator) {
+        return new TeleOpLoopState(
                 accumulator.isAutoParking,
                 accumulator.autoParkStartTime,
                 accumulator.autoAlliance,
                 accumulator.shootingPowerMode,
                 accumulator.shotgunPowerLatch
         );
+    }
+
+    public TeleOpIterationResult runLoopIteration(
+            TeleOpLoopContext loopContext,
+            TeleOpLoopIterationInput iterationInput
+    ) {
+        TeleOpLoopState loopState = loopContext.state;
+        TeleOpLoopDependencies deps = loopContext.dependencies;
+        LoopAccumulator accumulator = new LoopAccumulator(loopState);
+        DriverOneBindings driverOne = iterationInput.driverOne;
+        DriverTwoBindings driverTwo = iterationInput.driverTwo;
+        TeleOpLoopMetrics metrics = iterationInput.metrics;
+
+        runAllPhases(accumulator, driverOne, driverTwo, metrics, deps);
+        TeleOpStatusCoordinator.TraceState traceState = publishTraceState(accumulator, deps, metrics);
+        TeleOpLoopState nextState = buildNextState(accumulator);
         return new TeleOpIterationResult(loopContext.withState(nextState), traceState);
     }
 }
