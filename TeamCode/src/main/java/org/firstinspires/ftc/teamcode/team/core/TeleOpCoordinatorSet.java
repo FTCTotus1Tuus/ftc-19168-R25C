@@ -65,13 +65,17 @@ public class TeleOpCoordinatorSet {
             ShootingFSM shootingFSM,
             GateFSM gateFSM
     ) {
+        IntakeCoordinator intakeCoordinator = new IntakeCoordinator(intakeFSM);
+        ShootingCoordinator shootingCoordinator = new ShootingCoordinator(shootingFSM, intakeFSM, gateFSM);
+        TurretVisionCoordinator turretVisionCoordinator = createTurretVisionCoordinator(aprilTagService, turretFSM);
+
         return new TeleOpCoordinatorSet(
                 new AutoParkCoordinator(),
                 new DriveControlCoordinator(),
-                new IntakeCoordinator(intakeFSM),
+                intakeCoordinator,
                 new OdometryResetCoordinator(),
                 new ShooterPowerCoordinator(),
-                new ShootingCoordinator(shootingFSM, intakeFSM, gateFSM),
+                shootingCoordinator,
                 new TeleOpInitializationCoordinator(),
                 new TeleOpInputMapper(),
                 new TeleOpLoopCoordinator(),
@@ -79,13 +83,20 @@ public class TeleOpCoordinatorSet {
                 new TeleOpTelemetryCoordinator(),
                 new TurretCoordinator(turretFSM),
                 new TurretModeCoordinator(turretFSM),
-                new TurretVisionCoordinator(
-                        aprilTagService,
-                        turretFSM,
-                        VisionConfig.APRILTAG_ID_GOAL_BLUE,
-                        VisionConfig.APRILTAG_ID_GOAL_RED,
-                        VisionConfig.CAMERA_FALLBACK_TIMEOUT_MS
-                )
+                turretVisionCoordinator
+        );
+    }
+
+    private static TurretVisionCoordinator createTurretVisionCoordinator(
+            AprilTagService aprilTagService,
+            TurretFSM turretFSM
+    ) {
+        return new TurretVisionCoordinator(
+                aprilTagService,
+                turretFSM,
+                VisionConfig.APRILTAG_ID_GOAL_BLUE,
+                VisionConfig.APRILTAG_ID_GOAL_RED,
+                VisionConfig.CAMERA_FALLBACK_TIMEOUT_MS
         );
     }
 }
